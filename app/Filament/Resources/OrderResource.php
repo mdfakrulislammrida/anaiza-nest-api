@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
+use App\Models\ShippingZone;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,11 +17,15 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OrderResource extends Resource
 {
+    use AuthorizesResourceAccess;
+
     protected static ?string $model = Order::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?string $navigationGroup = 'Sales';
+
+    protected static string $permissionKey = 'orders.manage';
 
     public const STATUSES = [
         'pending' => 'Pending',
@@ -59,6 +65,17 @@ class OrderResource extends Resource
                     ->numeric()
                     ->minValue(0)
                     ->suffix('৳'),
+                Forms\Components\Select::make('shipping_zone_id')
+                    ->label('Shipping Zone')
+                    ->relationship('shippingZone', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(function (?string $state, Forms\Set $set) {
+                        if ($state && $zone = ShippingZone::find($state)) {
+                            $set('delivery_fee', $zone->delivery_fee);
+                        }
+                    }),
                 Forms\Components\TextInput::make('delivery_fee')
                     ->label('Delivery Fee (BDT)')
                     ->required()
@@ -101,6 +118,9 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->formatStateUsing(fn (string $state): string => self::PAYMENT_METHODS[$state] ?? $state)
                     ->badge(),
+                Tables\Columns\TextColumn::make('shippingZone.name')
+                    ->label('Shipping Zone')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('total')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state))
                     ->sortable(),

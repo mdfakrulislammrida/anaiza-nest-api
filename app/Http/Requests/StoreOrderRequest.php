@@ -30,7 +30,7 @@ class StoreOrderRequest extends FormRequest
             'customer_city' => ['required', 'string', 'max:120'],
             'customer_postal_code' => ['required', 'string', 'max:20'],
             'payment_method' => ['required', 'in:cod,bkash,nagad,card'],
-            'delivery_fee' => ['required', 'integer', 'min:0'],
+            'shipping_zone_id' => ['required', 'integer', 'exists:shipping_zones,id'],
             'gift_note' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],

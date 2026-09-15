@@ -23,6 +23,11 @@ class OrderResource extends JsonResource
             'total' => $this->total,
             'gift_note' => $this->gift_note,
             'created_at' => $this->created_at,
+            'shipping_zone' => $this->whenLoaded('shippingZone', fn () => $this->shippingZone && [
+                'id' => $this->shippingZone->id,
+                'name' => $this->shippingZone->name,
+                'estimated_days' => $this->shippingZone->estimated_days,
+            ]),
             'customer' => [
                 'id' => $this->customer->id,
                 'name' => $this->customer->name,

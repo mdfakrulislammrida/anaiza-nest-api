@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\ShippingZone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -81,10 +82,12 @@ class OrderController extends Controller
                 $product->decrement('stock_quantity', $item['quantity']);
             }
 
-            $deliveryFee = $request->integer('delivery_fee');
+            $shippingZone = ShippingZone::findOrFail($request->integer('shipping_zone_id'));
+            $deliveryFee = $shippingZone->delivery_fee;
 
             $order = Order::create([
                 'customer_id' => $customer->id,
+                'shipping_zone_id' => $shippingZone->id,
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'delivery_fee' => $deliveryFee,
@@ -98,7 +101,7 @@ class OrderController extends Controller
             return $order;
         });
 
-        return OrderResource::make($order->load(['customer', 'items']))
+        return OrderResource::make($order->load(['customer', 'items', 'shippingZone']))
             ->response()
             ->setStatusCode(201);
     }
