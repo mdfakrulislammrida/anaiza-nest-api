@@ -67,6 +67,25 @@ class ProductResource extends Resource
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active (visible in store)')
                     ->default(true),
+
+                Forms\Components\Section::make('SEO')
+                    ->collapsible()
+                    ->collapsed(fn (string $operation) => $operation === 'create')
+                    ->schema([
+                        Forms\Components\TextInput::make('meta_title')
+                            ->label('Meta title')
+                            ->helperText('Falls back to the product name if left blank.')
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('meta_description')
+                            ->label('Meta description')
+                            ->maxLength(255)
+                            ->rows(2),
+                        Forms\Components\TextInput::make('og_image')
+                            ->label('Social share image URL')
+                            ->url()
+                            ->maxLength(255),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 

@@ -1,15 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\MarketingSettingController;
 use App\Http\Controllers\Api\NewsletterSubscriberController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PageController;
 use App\Http\Controllers\Api\PaymentSettingController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ShippingZoneController;
+use App\Http\Controllers\Api\SitemapController;
 use App\Http\Controllers\Api\SiteSettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +33,15 @@ Route::get('/faqs', [FaqController::class, 'index']);
 Route::get('/shipping-zones', [ShippingZoneController::class, 'index']);
 Route::get('/site-settings', [SiteSettingController::class, 'show']);
 Route::get('/payment-settings', [PaymentSettingController::class, 'show']);
+Route::get('/marketing-settings', [MarketingSettingController::class, 'show']);
 Route::post('/newsletter-subscribers', [NewsletterSubscriberController::class, 'store']);
+
+// Blog
+Route::get('/articles', [ArticleController::class, 'index']);
+Route::get('/articles/{slug}', [ArticleController::class, 'show']);
+
+// Sitemap data (products, pages, articles) for the frontend to build sitemap.xml from
+Route::get('/sitemap', [SitemapController::class, 'index']);
 
 // Customer authentication
 Route::prefix('auth')->group(function () {

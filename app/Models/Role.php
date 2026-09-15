@@ -24,9 +24,11 @@ class Role extends Model
         'pages.manage' => 'Manage Pages',
         'banners.manage' => 'Manage Banners',
         'faqs.manage' => 'Manage FAQs',
+        'articles.manage' => 'Manage Blog Articles',
         'newsletter.view' => 'View Newsletter Subscribers',
         'site_settings.manage' => 'Manage Site Settings',
         'payment_settings.manage' => 'Manage Payment Settings',
+        'marketing_settings.manage' => 'Manage Marketing Settings',
         'staff.manage' => 'Manage Staff & Roles',
     ];
 

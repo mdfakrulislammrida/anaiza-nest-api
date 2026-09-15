@@ -13,5 +13,8 @@ class Page extends Model
         'title',
         'slug',
         'content',
+        'meta_title',
+        'meta_description',
+        'og_image',
     ];
 }

@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
-use App\Filament\Resources\PageResource\Pages;
-use App\Models\Page;
+use App\Filament\Resources\ArticleResource\Pages;
+use App\Models\Article;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,17 +12,19 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 
-class PageResource extends Resource
+class ArticleResource extends Resource
 {
     use AuthorizesResourceAccess;
 
-    protected static ?string $model = Page::class;
+    protected static ?string $model = Article::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationIcon = 'heroicon-o-newspaper';
 
     protected static ?string $navigationGroup = 'Content';
 
-    protected static string $permissionKey = 'pages.manage';
+    protected static ?string $navigationLabel = 'Blog Articles';
+
+    protected static string $permissionKey = 'articles.manage';
 
     public static function form(Form $form): Form
     {
@@ -37,6 +39,15 @@ class PageResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('featured_image')
+                    ->label('Featured image URL')
+                    ->url()
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+                Forms\Components\DateTimePicker::make('published_at')
+                    ->label('Publish at')
+                    ->helperText('Leave blank to keep this article as a draft.')
+                    ->native(false),
                 Forms\Components\RichEditor::make('content')
                     ->columnSpanFull(),
 
@@ -46,7 +57,7 @@ class PageResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('meta_title')
                             ->label('Meta title')
-                            ->helperText('Falls back to the page title if left blank.')
+                            ->helperText('Falls back to the article title if left blank.')
                             ->maxLength(255),
                         Forms\Components\Textarea::make('meta_description')
                             ->label('Meta description')
@@ -64,14 +75,35 @@ class PageResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
+                Tables\Columns\ImageColumn::make('featured_image')
+                    ->label('')
+                    ->circular(false),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('updated_at')
+                Tables\Columns\IconColumn::make('published_at')
+                    ->label('Published')
+                    ->boolean()
+                    ->getStateUsing(fn (Article $record): bool => $record->published_at !== null && $record->published_at->isPast()),
+                Tables\Columns\TextColumn::make('published_at')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->placeholder('Draft'),
+            ])
+            ->filters([
+                Tables\Filters\TernaryFilter::make('published_at')
+                    ->label('Published')
+                    ->nullable()
+                    ->trueLabel('Published')
+                    ->falseLabel('Draft')
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('published_at'),
+                        false: fn ($query) => $query->whereNull('published_at'),
+                        blank: fn ($query) => $query,
+                    ),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -87,9 +119,9 @@ class PageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPages::route('/'),
-            'create' => Pages\CreatePage::route('/create'),
-            'edit' => Pages\EditPage::route('/{record}/edit'),
+            'index' => Pages\ListArticles::route('/'),
+            'create' => Pages\CreateArticle::route('/create'),
+            'edit' => Pages\EditArticle::route('/{record}/edit'),
         ];
     }
 }

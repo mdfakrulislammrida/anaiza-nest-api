@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PageResource extends JsonResource
+class ArticleResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -19,6 +19,8 @@ class PageResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             'content' => $this->content,
+            'featured_image' => $this->featured_image,
+            'published_at' => $this->published_at,
             'seo' => [
                 'meta_title' => $this->meta_title ?: $this->title,
                 'meta_description' => $this->meta_description,

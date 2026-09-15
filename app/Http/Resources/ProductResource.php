@@ -24,10 +24,16 @@ class ProductResource extends JsonResource
             'sku' => $this->sku,
             'is_new' => $this->is_new,
             'is_active' => $this->is_active,
+            'seo' => [
+                'meta_title' => $this->meta_title ?: $this->name,
+                'meta_description' => $this->meta_description,
+                'og_image' => $this->og_image,
+            ],
             'category' => CategoryResource::make($this->whenLoaded('category')),
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->url,
+                'alt_text' => $image->alt_text,
                 'sort_order' => $image->sort_order,
             ])),
             'variants' => $this->whenLoaded('variants', fn () => $this->variants->map(fn ($variant) => [

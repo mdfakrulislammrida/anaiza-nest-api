@@ -22,6 +22,11 @@ class ImagesRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
+                Forms\Components\TextInput::make('alt_text')
+                    ->label('Alt text')
+                    ->helperText('Describe the image for accessibility and SEO.')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('sort_order')
                     ->numeric()
                     ->default(0)
@@ -34,12 +39,17 @@ class ImagesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('url')
             ->defaultSort('sort_order')
+            ->reorderable('sort_order')
             ->columns([
                 Tables\Columns\ImageColumn::make('url')
                     ->label('Preview'),
                 Tables\Columns\TextColumn::make('url')
                     ->limit(40)
                     ->searchable(),
+                Tables\Columns\TextColumn::make('alt_text')
+                    ->label('Alt text')
+                    ->limit(40)
+                    ->placeholder('None'),
                 Tables\Columns\TextColumn::make('sort_order')
                     ->sortable(),
             ])
