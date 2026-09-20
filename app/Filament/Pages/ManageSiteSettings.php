@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\SiteSetting;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -47,10 +48,11 @@ class ManageSiteSettings extends Page implements HasForms
                     ->label('Site Name')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('logo_url')
-                    ->label('Logo URL')
-                    ->url()
-                    ->maxLength(255),
+                FileUpload::make('logo_url')
+                    ->label('Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('site'),
                 TextInput::make('contact_phone')
                     ->label('Contact Phone')
                     ->tel()
@@ -58,6 +60,9 @@ class ManageSiteSettings extends Page implements HasForms
                 TextInput::make('contact_email')
                     ->label('Contact Email')
                     ->email()
+                    ->maxLength(255),
+                TextInput::make('address')
+                    ->label('Address')
                     ->maxLength(255),
                 TextInput::make('facebook_url')
                     ->label('Facebook URL')

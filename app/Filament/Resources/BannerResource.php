@@ -31,11 +31,13 @@ class BannerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('image_url')
-                    ->label('Image URL')
-                    ->url()
+                Forms\Components\FileUpload::make('image_url')
+                    ->label('Image')
+                    ->image()
+                    ->disk('public')
+                    ->directory('banners')
+                    ->imageEditor()
                     ->required()
-                    ->maxLength(255)
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('headline')
                     ->maxLength(255),
@@ -62,7 +64,8 @@ class BannerResource extends Resource
             ->reorderable('sort_order')
             ->columns([
                 Tables\Columns\ImageColumn::make('image_url')
-                    ->label('Preview'),
+                    ->label('Preview')
+                    ->disk('public'),
                 Tables\Columns\TextColumn::make('headline')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('sort_order')

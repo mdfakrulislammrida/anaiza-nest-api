@@ -24,13 +24,13 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'customer_name' => ['required', 'string', 'max:255'],
-            'customer_email' => ['required', 'email', 'max:255'],
+            'customer_email' => ['nullable', 'email', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:30'],
             'customer_address' => ['required', 'string', 'max:500'],
-            'customer_city' => ['required', 'string', 'max:120'],
-            'customer_postal_code' => ['required', 'string', 'max:20'],
-            'payment_method' => ['required', 'in:cod,bkash,nagad,card'],
-            'shipping_zone_id' => ['required', 'integer', 'exists:shipping_zones,id'],
+            'division' => ['required', 'string', 'max:60'],
+            'district' => ['required', 'string', 'max:60'],
+            'thana' => ['required', 'string', 'max:60'],
+            'payment_method' => ['required', 'in:cod,bkash,nagad,rocket,card'],
             'gift_note' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],

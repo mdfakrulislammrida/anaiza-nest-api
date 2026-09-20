@@ -17,6 +17,7 @@ class PaymentSettingResource extends JsonResource
         return [
             'bkash_number' => $this->bkash_number,
             'nagad_number' => $this->nagad_number,
+            'rocket_number' => $this->rocket_number,
             'cod_enabled' => $this->cod_enabled,
         ];
     }

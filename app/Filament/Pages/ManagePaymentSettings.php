@@ -52,6 +52,10 @@ class ManagePaymentSettings extends Page implements HasForms
                     ->label('Nagad Number')
                     ->tel()
                     ->maxLength(20),
+                TextInput::make('rocket_number')
+                    ->label('Rocket Number')
+                    ->tel()
+                    ->maxLength(20),
                 Toggle::make('cod_enabled')
                     ->label('Cash on Delivery Enabled')
                     ->default(true),

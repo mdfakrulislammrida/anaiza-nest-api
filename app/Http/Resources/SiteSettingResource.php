@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,9 +17,10 @@ class SiteSettingResource extends JsonResource
     {
         return [
             'site_name' => $this->site_name,
-            'logo_url' => $this->logo_url,
+            'logo_url' => MediaUrl::resolve($this->logo_url),
             'contact_phone' => $this->contact_phone,
             'contact_email' => $this->contact_email,
+            'address' => $this->address,
             'facebook_url' => $this->facebook_url,
             'instagram_url' => $this->instagram_url,
             'youtube_url' => $this->youtube_url,

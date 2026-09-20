@@ -9,7 +9,8 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\ShippingZone;
+use App\Support\DeliveryFeeCalculator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,15 +20,20 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request)
     {
         $order = DB::transaction(function () use ($request) {
-            $customer = Customer::where('email', $request->string('customer_email'))->first();
+            $customer = Customer::where('phone', $request->string('customer_phone'))->first();
 
             $contactDetails = [
                 'name' => $request->string('customer_name'),
                 'phone' => $request->string('customer_phone'),
                 'address' => $request->string('customer_address'),
-                'city' => $request->string('customer_city'),
-                'postal_code' => $request->string('customer_postal_code'),
+                'division' => $request->string('division'),
+                'district' => $request->string('district'),
+                'thana' => $request->string('thana'),
             ];
+
+            if ($request->filled('customer_email')) {
+                $contactDetails['email'] = $request->string('customer_email');
+            }
 
             if ($customer) {
                 // Keep the customer's address/contact details in sync with their latest order,
@@ -36,7 +42,6 @@ class OrderController extends Controller
             } else {
                 $customer = Customer::create([
                     ...$contactDetails,
-                    'email' => $request->string('customer_email'),
                     'password' => Str::random(32),
                 ]);
             }
@@ -67,14 +72,15 @@ class OrderController extends Controller
                         ->first();
                 }
 
-                $lineTotal = $product->price * $item['quantity'];
+                $price = $product->effective_price;
+                $lineTotal = $price * $item['quantity'];
                 $subtotal += $lineTotal;
 
                 $itemsToCreate[] = [
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'quantity' => $item['quantity'],
-                    'price' => $product->price,
+                    'price' => $price,
                     'variant_name' => $variant?->name,
                     'variant_value' => $variant?->value,
                 ];
@@ -82,12 +88,10 @@ class OrderController extends Controller
                 $product->decrement('stock_quantity', $item['quantity']);
             }
 
-            $shippingZone = ShippingZone::findOrFail($request->integer('shipping_zone_id'));
-            $deliveryFee = $shippingZone->delivery_fee;
+            $deliveryFee = DeliveryFeeCalculator::forDivision($request->string('division')->toString(), $subtotal);
 
             $order = Order::create([
                 'customer_id' => $customer->id,
-                'shipping_zone_id' => $shippingZone->id,
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'delivery_fee' => $deliveryFee,
@@ -101,8 +105,35 @@ class OrderController extends Controller
             return $order;
         });
 
-        return OrderResource::make($order->load(['customer', 'items', 'shippingZone']))
+        return OrderResource::make($order->load(['customer', 'items']))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Guest order tracking: an order is only returned when both the order
+     * ID and the phone number on file for it match, so order IDs alone
+     * (sequential integers) can't be used to browse other customers' orders.
+     */
+    public function lookup(Request $request)
+    {
+        $request->validate([
+            'order_id' => ['required', 'integer'],
+            'phone' => ['required', 'string'],
+        ]);
+
+        $order = Order::query()
+            ->with(['customer', 'items'])
+            ->where('id', $request->integer('order_id'))
+            ->whereHas('customer', fn ($query) => $query->where('phone', $request->string('phone')))
+            ->first();
+
+        if (! $order) {
+            return response()->json([
+                'message' => 'No order found with that ID and phone number.',
+            ], 404);
+        }
+
+        return OrderResource::make($order);
     }
 }

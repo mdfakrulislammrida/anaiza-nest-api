@@ -35,6 +35,10 @@ class ProductResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
+                Forms\Components\Select::make('brand_id')
+                    ->relationship('brand', 'name')
+                    ->searchable()
+                    ->preload(),
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255)
@@ -53,6 +57,12 @@ class ProductResource extends Resource
                     ->numeric()
                     ->minValue(0)
                     ->suffix('৳'),
+                Forms\Components\TextInput::make('sale_price')
+                    ->label('Sale price (BDT)')
+                    ->helperText('Set this lower than the regular price to mark the product as a Hot Deal. Leave blank for no discount.')
+                    ->numeric()
+                    ->minValue(0)
+                    ->suffix('৳'),
                 Forms\Components\TextInput::make('stock_quantity')
                     ->required()
                     ->numeric()
@@ -64,9 +74,34 @@ class ProductResource extends Resource
                     ->unique(ignoreRecord: true),
                 Forms\Components\Toggle::make('is_new')
                     ->label('Mark as new arrival'),
+                Forms\Components\Toggle::make('is_featured')
+                    ->label('Feature in Bestsellers'),
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active (visible in store)')
                     ->default(true),
+
+                Forms\Components\Section::make('Merchandising')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Select::make('tags')
+                            ->relationship('tags', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\Select::make('labels')
+                            ->relationship('labels', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\Select::make('attributeValues')
+                            ->label('Attributes')
+                            ->relationship('attributeValues', 'value')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->attribute->name}: {$record->value}")
+                            ->multiple()
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('SEO')
                     ->collapsible()
@@ -80,10 +115,11 @@ class ProductResource extends Resource
                             ->label('Meta description')
                             ->maxLength(255)
                             ->rows(2),
-                        Forms\Components\TextInput::make('og_image')
-                            ->label('Social share image URL')
-                            ->url()
-                            ->maxLength(255),
+                        Forms\Components\FileUpload::make('og_image')
+                            ->label('Social share image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products/og'),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -95,6 +131,9 @@ class ProductResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('category.name')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('brand.name')
+                    ->sortable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('sku')
@@ -103,10 +142,16 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state))
                     ->sortable(),
+                Tables\Columns\TextColumn::make('sale_price')
+                    ->label('Sale price')
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? '—' : '৳'.number_format($state))
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('stock_quantity')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_new')
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_featured')
                     ->boolean(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
@@ -125,6 +170,7 @@ class ProductResource extends Resource
                     ->label('Category'),
                 Tables\Filters\TernaryFilter::make('is_active'),
                 Tables\Filters\TernaryFilter::make('is_new'),
+                Tables\Filters\TernaryFilter::make('is_featured'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

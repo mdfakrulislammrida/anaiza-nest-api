@@ -18,6 +18,9 @@ class Customer extends Authenticatable
         'password',
         'phone',
         'address',
+        'division',
+        'district',
+        'thana',
         'city',
         'postal_code',
     ];

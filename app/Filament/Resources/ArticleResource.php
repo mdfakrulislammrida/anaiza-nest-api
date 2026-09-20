@@ -39,10 +39,12 @@ class ArticleResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
-                Forms\Components\TextInput::make('featured_image')
-                    ->label('Featured image URL')
-                    ->url()
-                    ->maxLength(255)
+                Forms\Components\FileUpload::make('featured_image')
+                    ->label('Featured image')
+                    ->image()
+                    ->disk('public')
+                    ->directory('articles')
+                    ->imageEditor()
                     ->columnSpanFull(),
                 Forms\Components\DateTimePicker::make('published_at')
                     ->label('Publish at')
@@ -63,10 +65,11 @@ class ArticleResource extends Resource
                             ->label('Meta description')
                             ->maxLength(255)
                             ->rows(2),
-                        Forms\Components\TextInput::make('og_image')
-                            ->label('Social share image URL')
-                            ->url()
-                            ->maxLength(255),
+                        Forms\Components\FileUpload::make('og_image')
+                            ->label('Social share image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('articles/og'),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -79,6 +82,7 @@ class ArticleResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('featured_image')
                     ->label('')
+                    ->disk('public')
                     ->circular(false),
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),

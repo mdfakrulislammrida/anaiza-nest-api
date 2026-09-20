@@ -11,6 +11,7 @@ class SiteSetting extends Model
         'logo_url',
         'contact_phone',
         'contact_email',
+        'address',
         'facebook_url',
         'instagram_url',
         'youtube_url',

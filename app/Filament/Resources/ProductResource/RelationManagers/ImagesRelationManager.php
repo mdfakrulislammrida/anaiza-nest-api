@@ -16,11 +16,13 @@ class ImagesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('url')
-                    ->label('Image URL')
-                    ->url()
+                Forms\Components\FileUpload::make('url')
+                    ->label('Image')
+                    ->image()
+                    ->disk('public')
+                    ->directory('products')
+                    ->imageEditor()
                     ->required()
-                    ->maxLength(255)
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('alt_text')
                     ->label('Alt text')
@@ -42,7 +44,8 @@ class ImagesRelationManager extends RelationManager
             ->reorderable('sort_order')
             ->columns([
                 Tables\Columns\ImageColumn::make('url')
-                    ->label('Preview'),
+                    ->label('Preview')
+                    ->disk('public'),
                 Tables\Columns\TextColumn::make('url')
                     ->limit(40)
                     ->searchable(),

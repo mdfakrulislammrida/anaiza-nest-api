@@ -9,6 +9,7 @@ class PaymentSetting extends Model
     protected $fillable = [
         'bkash_number',
         'nagad_number',
+        'rocket_number',
         'cod_enabled',
     ];
 

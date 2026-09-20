@@ -13,10 +13,18 @@ class ProductController extends Controller
     {
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['category', 'images'])
+            ->with(['category', 'brand', 'images', 'tags', 'labels'])
             ->when($request->filled('category'), fn ($query) => $query->whereHas(
                 'category',
                 fn ($q) => $q->where('slug', $request->string('category'))
+            ))
+            ->when($request->filled('brand'), fn ($query) => $query->whereHas(
+                'brand',
+                fn ($q) => $q->where('slug', $request->string('brand'))
+            ))
+            ->when($request->filled('tag'), fn ($query) => $query->whereHas(
+                'tags',
+                fn ($q) => $q->where('slug', $request->string('tag'))
             ))
             ->when($request->filled('search'), fn ($query) => $query->where(
                 'name',
@@ -24,7 +32,19 @@ class ProductController extends Controller
                 '%'.$request->string('search').'%'
             ))
             ->when($request->boolean('is_new'), fn ($query) => $query->where('is_new', true))
-            ->orderBy('name')
+            ->when($request->boolean('is_featured'), fn ($query) => $query->where('is_featured', true))
+            ->when($request->boolean('on_sale'), fn ($query) => $query->whereNotNull('sale_price')
+                ->whereColumn('sale_price', '<', 'price'))
+            ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->integer('min_price')))
+            ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->integer('max_price')))
+            ->when($request->string('sort')->toString(), function ($query, $sort) {
+                match ($sort) {
+                    'newest' => $query->orderBy('created_at', 'desc'),
+                    'price_asc' => $query->orderByRaw('COALESCE(sale_price, price) asc'),
+                    'price_desc' => $query->orderByRaw('COALESCE(sale_price, price) desc'),
+                    default => $query->orderBy('name'),
+                };
+            }, fn ($query) => $query->orderBy('name'))
             ->paginate($request->integer('per_page', 15));
 
         return ProductResource::collection($products);
@@ -34,7 +54,7 @@ class ProductController extends Controller
     {
         abort_unless($product->is_active, 404);
 
-        $product->load(['category', 'images', 'variants']);
+        $product->load(['category', 'brand', 'images', 'variants', 'tags', 'labels', 'attributeValues.attribute']);
 
         return ProductResource::make($product);
     }
