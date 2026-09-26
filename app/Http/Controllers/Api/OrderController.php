@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
+use App\Mail\OrderConfirmationMail;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\SiteSetting;
 use App\Support\DeliveryFeeCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -105,9 +109,36 @@ class OrderController extends Controller
             return $order;
         });
 
-        return OrderResource::make($order->load(['customer', 'items']))
+        $order->load(['customer', 'items']);
+
+        $this->sendConfirmationEmail($order);
+
+        return OrderResource::make($order)
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Best-effort: a customer who didn't provide an email simply gets none,
+     * and a broken/unconfigured SMTP setup must never fail the checkout
+     * itself since the order is already committed at this point.
+     */
+    private function sendConfirmationEmail(Order $order): void
+    {
+        if (! $order->customer->email) {
+            return;
+        }
+
+        try {
+            Mail::to($order->customer->email)->send(
+                new OrderConfirmationMail($order, SiteSetting::first())
+            );
+        } catch (\Throwable $e) {
+            Log::error('Failed to send order confirmation email.', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

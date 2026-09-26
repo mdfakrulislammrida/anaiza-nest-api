@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ProductTagController;
 use App\Http\Controllers\Api\ShippingZoneController;
 use App\Http\Controllers\Api\SitemapController;
 use App\Http\Controllers\Api\SiteSettingController;
+use App\Http\Controllers\Api\SocialAuthController;
 use App\Http\Controllers\Api\TestimonialController;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,11 @@ Route::get('/sitemap', [SitemapController::class, 'index']);
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+    Route::get('/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
+    Route::get('/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
