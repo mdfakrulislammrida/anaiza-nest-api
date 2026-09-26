@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\SiteSetting;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,10 +22,12 @@ class SiteSettingResource extends JsonResource
             'contact_phone' => $this->contact_phone,
             'contact_email' => $this->contact_email,
             'address' => $this->address,
-            'facebook_url' => $this->facebook_url,
-            'instagram_url' => $this->instagram_url,
-            'youtube_url' => $this->youtube_url,
-            'tiktok_url' => $this->tiktok_url,
+            'promo_text' => $this->promo_text ?: SiteSetting::defaultPromoText(),
+            'nav_links' => $this->nav_links ?: SiteSetting::defaultNavLinks(),
+            'footer_about' => $this->footer_about ?: SiteSetting::defaultFooterAbout(),
+            'footer_links' => $this->footer_links ?: SiteSetting::defaultFooterLinks(),
+            'social_links' => $this->social_links ?? [],
+            'footer_copyright_text' => $this->footer_copyright_text ?: SiteSetting::defaultCopyrightText(),
         ];
     }
 }
