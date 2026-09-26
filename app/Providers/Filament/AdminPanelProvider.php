@@ -6,10 +6,12 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -30,6 +32,22 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            // Registered explicitly (rather than relying on each resource's
+            // string $navigationGroup alone) so every group can start
+            // collapsed -- the plain string form doesn't support that.
+            ->navigationGroups([
+                NavigationGroup::make('Catalog')->collapsed(),
+                NavigationGroup::make('Content')->collapsed(),
+                NavigationGroup::make('Engagement')->collapsed(),
+                NavigationGroup::make('Sales')->collapsed(),
+                NavigationGroup::make('Marketing')->collapsed(),
+                NavigationGroup::make('Administration')->collapsed(),
+                NavigationGroup::make('Settings')->collapsed(),
+            ])
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): string => view('filament.admin.compact-styles')->render(),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

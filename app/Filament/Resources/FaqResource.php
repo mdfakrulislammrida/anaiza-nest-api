@@ -19,7 +19,7 @@ class FaqResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
-    protected static ?string $navigationGroup = 'Content';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static ?string $navigationLabel = 'FAQs';
 

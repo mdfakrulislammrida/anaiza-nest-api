@@ -19,7 +19,7 @@ class TestimonialResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
-    protected static ?string $navigationGroup = 'Content';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static string $permissionKey = 'testimonials.manage';
 

@@ -19,7 +19,7 @@ class ContactSubmissionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
 
-    protected static ?string $navigationGroup = 'Content';
+    protected static ?string $navigationGroup = 'Engagement';
 
     protected static string $permissionKey = 'contact_submissions.manage';
 
