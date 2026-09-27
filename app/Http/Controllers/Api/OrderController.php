@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
+use App\Jobs\SendMetaConversionEvent;
+use App\Jobs\SendTikTokConversionEvent;
 use App\Mail\OrderConfirmationMail;
 use App\Models\Customer;
 use App\Models\Order;
@@ -112,6 +114,12 @@ class OrderController extends Controller
         $order->load(['customer', 'items']);
 
         $this->sendConfirmationEmail($order);
+
+        // Queued: each job no-ops on its own if that platform's pixel ID +
+        // access token aren't both configured, and a slow/failed call to
+        // Meta/TikTok must never delay or break this response.
+        SendMetaConversionEvent::dispatch($order);
+        SendTikTokConversionEvent::dispatch($order);
 
         return OrderResource::make($order)
             ->response()
