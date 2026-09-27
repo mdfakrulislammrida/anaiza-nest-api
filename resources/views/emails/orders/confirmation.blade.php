@@ -19,11 +19,7 @@
                     </tr>
                     <tr>
                         <td style="padding:32px 32px 8px;">
-                            <h1 style="font-size:20px;margin:0 0 4px;">Thanks for your order, {{ $order->customer->name }}!</h1>
-                            <p style="margin:0;color:#52525b;font-size:14px;">
-                                Order #{{ $order->id }} placed on {{ $order->created_at->format('d M Y, h:i A') }} has been confirmed.
-                                A detailed invoice is attached to this email.
-                            </p>
+                            {!! $introHtml !!}
                         </td>
                     </tr>
                     <tr>

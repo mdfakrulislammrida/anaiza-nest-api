@@ -37,6 +37,7 @@ class Role extends Model
         'site_settings.manage' => 'Manage Site Settings',
         'payment_settings.manage' => 'Manage Payment Settings',
         'marketing_settings.manage' => 'Manage Marketing Settings',
+        'email_templates.manage' => 'Manage Email Templates',
         'staff.manage' => 'Manage Staff & Roles',
     ];
 
