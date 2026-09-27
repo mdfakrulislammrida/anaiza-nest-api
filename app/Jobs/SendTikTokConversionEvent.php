@@ -23,7 +23,16 @@ class SendTikTokConversionEvent implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 
-    public function __construct(public Order $order) {}
+    /**
+     * $clientIp/$clientUserAgent are captured from the checkout request
+     * itself (see OrderController::store) -- by the time this job runs
+     * there's no request to read them from any more.
+     */
+    public function __construct(
+        public Order $order,
+        public ?string $clientIp = null,
+        public ?string $clientUserAgent = null,
+    ) {}
 
     public function handle(): void
     {
@@ -36,9 +45,13 @@ class SendTikTokConversionEvent implements ShouldQueue
         $this->order->loadMissing(['customer', 'items']);
         $customer = $this->order->customer;
 
+        // ip/user_agent are sent as plain values, not hashed -- unlike
+        // email/phone, that's what TikTok's spec requires for them.
         $user = array_filter([
             'email' => ConversionApiHasher::email($customer->email) ? [ConversionApiHasher::email($customer->email)] : null,
             'phone' => ConversionApiHasher::phone($customer->phone) ? [ConversionApiHasher::phone($customer->phone)] : null,
+            'ip' => $this->clientIp,
+            'user_agent' => $this->clientUserAgent,
         ]);
 
         $payload = [

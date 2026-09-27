@@ -117,9 +117,11 @@ class OrderController extends Controller
 
         // Queued: each job no-ops on its own if that platform's pixel ID +
         // access token aren't both configured, and a slow/failed call to
-        // Meta/TikTok must never delay or break this response.
-        SendMetaConversionEvent::dispatch($order);
-        SendTikTokConversionEvent::dispatch($order);
+        // Meta/TikTok must never delay or break this response. IP/user
+        // agent are captured here, from the request itself, since neither
+        // is available any more once the job actually runs.
+        SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
 
         return OrderResource::make($order)
             ->response()

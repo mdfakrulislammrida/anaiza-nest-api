@@ -23,7 +23,16 @@ class SendMetaConversionEvent implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 
-    public function __construct(public Order $order) {}
+    /**
+     * $clientIp/$clientUserAgent are captured from the checkout request
+     * itself (see OrderController::store) -- by the time this job runs
+     * there's no request to read them from any more.
+     */
+    public function __construct(
+        public Order $order,
+        public ?string $clientIp = null,
+        public ?string $clientUserAgent = null,
+    ) {}
 
     public function handle(): void
     {
@@ -36,9 +45,13 @@ class SendMetaConversionEvent implements ShouldQueue
         $this->order->loadMissing(['customer', 'items']);
         $customer = $this->order->customer;
 
+        // client_ip_address/client_user_agent are sent as plain values, not
+        // hashed -- unlike em/ph, that's what Meta's spec requires for them.
         $userData = array_filter([
             'em' => ConversionApiHasher::email($customer->email) ? [ConversionApiHasher::email($customer->email)] : null,
             'ph' => ConversionApiHasher::phone($customer->phone) ? [ConversionApiHasher::phone($customer->phone)] : null,
+            'client_ip_address' => $this->clientIp,
+            'client_user_agent' => $this->clientUserAgent,
         ]);
 
         $payload = [
