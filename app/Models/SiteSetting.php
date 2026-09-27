@@ -47,6 +47,7 @@ class SiteSetting extends Model
             ['label' => 'Shop', 'url' => '/shop'],
             ['label' => 'Hot Deals', 'url' => '/hot-deals'],
             ['label' => 'Gift Finder', 'url' => '/gift-finder'],
+            ['label' => 'Blog', 'url' => '/blog'],
             ['label' => 'Contact', 'url' => '/contact'],
         ];
     }
