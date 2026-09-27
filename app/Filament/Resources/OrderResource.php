@@ -12,8 +12,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OrderResource extends Resource
 {
@@ -90,6 +88,29 @@ class OrderResource extends Resource
                     ->suffix('৳'),
                 Forms\Components\Textarea::make('gift_note')
                     ->columnSpanFull(),
+
+                Forms\Components\Section::make('Marketing Attribution')
+                    ->description('Captured from the checkout URL\'s UTM parameters at the time the order was placed -- read-only.')
+                    ->schema([
+                        Forms\Components\TextInput::make('utm_source')
+                            ->label('Source')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('utm_medium')
+                            ->label('Medium')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('utm_campaign')
+                            ->label('Campaign')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('utm_content')
+                            ->label('Content')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('utm_term')
+                            ->label('Term')
+                            ->disabled(),
+                    ])
+                    ->columns(2)
+                    ->collapsed()
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -118,6 +139,21 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->formatStateUsing(fn (string $state): string => self::PAYMENT_METHODS[$state] ?? $state)
                     ->badge(),
+                Tables\Columns\TextColumn::make('utm_source')
+                    ->label('UTM Source')
+                    ->placeholder('Direct/organic')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('utm_medium')
+                    ->label('UTM Medium')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('utm_campaign')
+                    ->label('UTM Campaign')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('shippingZone.name')
                     ->label('Shipping Zone')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -139,6 +175,22 @@ class OrderResource extends Resource
                 Tables\Filters\SelectFilter::make('payment_method')
                     ->label('Payment Method')
                     ->options(self::PAYMENT_METHODS),
+                Tables\Filters\SelectFilter::make('utm_source')
+                    ->label('UTM Source')
+                    ->options(fn (): array => Order::query()
+                        ->whereNotNull('utm_source')
+                        ->distinct()
+                        ->orderBy('utm_source')
+                        ->pluck('utm_source', 'utm_source')
+                        ->all()),
+                Tables\Filters\SelectFilter::make('utm_campaign')
+                    ->label('UTM Campaign')
+                    ->options(fn (): array => Order::query()
+                        ->whereNotNull('utm_campaign')
+                        ->distinct()
+                        ->orderBy('utm_campaign')
+                        ->pluck('utm_campaign', 'utm_campaign')
+                        ->all()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

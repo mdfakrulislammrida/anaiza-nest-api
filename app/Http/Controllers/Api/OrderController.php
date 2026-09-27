@@ -104,6 +104,11 @@ class OrderController extends Controller
                 'total' => $subtotal + $deliveryFee,
                 'payment_method' => $request->input('payment_method'),
                 'gift_note' => $request->input('gift_note'),
+                'utm_source' => $request->input('utm_source'),
+                'utm_medium' => $request->input('utm_medium'),
+                'utm_campaign' => $request->input('utm_campaign'),
+                'utm_content' => $request->input('utm_content'),
+                'utm_term' => $request->input('utm_term'),
             ]);
 
             $order->items()->createMany($itemsToCreate);
