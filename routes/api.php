@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactSubmissionController;
 use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\HomepageSectionController;
 use App\Http\Controllers\Api\MarketingSettingController;
 use App\Http\Controllers\Api\MediaItemController;
 use App\Http\Controllers\Api\NewsletterSubscriberController;
@@ -50,6 +51,7 @@ Route::get('/marketing-settings', [MarketingSettingController::class, 'show']);
 Route::post('/newsletter-subscribers', [NewsletterSubscriberController::class, 'store']);
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 Route::get('/media-library', [MediaItemController::class, 'index']);
+Route::get('/homepage-sections', [HomepageSectionController::class, 'index']);
 
 // Blog
 Route::get('/articles', [ArticleController::class, 'index']);

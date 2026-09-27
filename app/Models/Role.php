@@ -27,6 +27,7 @@ class Role extends Model
         'shipping_zones.manage' => 'Manage Shipping Zones',
         'pages.manage' => 'Manage Pages',
         'banners.manage' => 'Manage Banners',
+        'homepage_sections.manage' => 'Manage Homepage Sections',
         'faqs.manage' => 'Manage FAQs',
         'articles.manage' => 'Manage Blog Articles',
         'testimonials.manage' => 'Manage Testimonials',
