@@ -41,6 +41,7 @@ class OrderResource extends JsonResource
                 'price' => $item->price,
                 'variant_name' => $item->variant_name,
                 'variant_value' => $item->variant_value,
+                'sku' => $item->sku,
             ])),
         ];
     }

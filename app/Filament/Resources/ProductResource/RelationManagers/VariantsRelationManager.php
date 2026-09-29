@@ -24,6 +24,39 @@ class VariantsRelationManager extends RelationManager
                     ->label('Value (e.g. Burgundy)')
                     ->required()
                     ->maxLength(255),
+
+                Forms\Components\Section::make('Overrides')
+                    ->description('Leave any of these blank to inherit the product\'s own price, stock, or main image.')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\TextInput::make('price')
+                            ->label('Price (BDT)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->suffix('৳'),
+                        Forms\Components\TextInput::make('sale_price')
+                            ->label('Sale price (BDT)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->suffix('৳'),
+                        Forms\Components\TextInput::make('stock_quantity')
+                            ->label('Stock')
+                            ->numeric()
+                            ->minValue(0),
+                        Forms\Components\TextInput::make('sku')
+                            ->label('SKU')
+                            ->maxLength(255),
+                        Forms\Components\Select::make('image_id')
+                            ->label('Image')
+                            ->options(fn () => $this->getOwnerRecord()->images()
+                                ->get()
+                                ->mapWithKeys(fn ($image) => [
+                                    $image->id => $image->alt_text ?: "Image #{$image->id} (sort {$image->sort_order})",
+                                ]))
+                            ->searchable(),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -36,6 +69,15 @@ class VariantsRelationManager extends RelationManager
                     ->searchable(),
                 Tables\Columns\TextColumn::make('value')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->label('Price')
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? 'Inherits' : '৳'.number_format($state)),
+                Tables\Columns\TextColumn::make('stock_quantity')
+                    ->label('Stock')
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? 'Inherits' : (string) $state),
+                Tables\Columns\ImageColumn::make('image.url')
+                    ->label('Image')
+                    ->disk('public'),
             ])
             ->filters([
                 //

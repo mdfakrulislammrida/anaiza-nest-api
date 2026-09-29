@@ -54,7 +54,12 @@ class ProductController extends Controller
     {
         abort_unless($product->is_active, 404);
 
-        $product->load(['category', 'brand', 'images', 'variants', 'tags', 'labels', 'attributeValues.attribute']);
+        $product->load(['category', 'brand', 'images', 'variants.image', 'tags', 'labels', 'attributeValues.attribute', 'faqs']);
+
+        // Avoids an N+1: each variant's effective_price/effective_stock/etc.
+        // accessor falls back to $this->product, so every variant needs it
+        // set without triggering its own lazy-load query.
+        $product->variants->each(fn ($variant) => $variant->setRelation('product', $product));
 
         return ProductResource::make($product);
     }

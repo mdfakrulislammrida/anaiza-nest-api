@@ -14,6 +14,10 @@ class ProductImage extends Model
     protected $fillable = [
         'product_id',
         'url',
+        'width',
+        'height',
+        'url_400',
+        'url_800',
         'alt_text',
         'sort_order',
     ];
@@ -22,6 +26,8 @@ class ProductImage extends Model
     {
         return [
             'sort_order' => 'integer',
+            'width' => 'integer',
+            'height' => 'integer',
         ];
     }
 
@@ -33,5 +39,15 @@ class ProductImage extends Model
     public function getDisplayUrlAttribute(): ?string
     {
         return MediaUrl::resolve($this->url);
+    }
+
+    public function getDisplayUrl400Attribute(): ?string
+    {
+        return MediaUrl::resolve($this->url_400);
+    }
+
+    public function getDisplayUrl800Attribute(): ?string
+    {
+        return MediaUrl::resolve($this->url_800);
     }
 }

@@ -18,9 +18,13 @@ class Product extends Model
         'name',
         'slug',
         'description',
+        'short_description',
         'meta_title',
         'meta_description',
         'og_image',
+        'video_url',
+        'video_file',
+        'video_poster',
         'price',
         'sale_price',
         'stock_quantity',
@@ -97,6 +101,11 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(ProductFaq::class)->orderBy('sort_order');
     }
 
     public function orderItems(): HasMany

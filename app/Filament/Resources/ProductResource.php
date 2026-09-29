@@ -8,11 +8,13 @@ use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ProductResource extends Resource
 {
@@ -41,15 +43,64 @@ class ProductResource extends Resource
                     ->preload(),
                 Forms\Components\TextInput::make('name')
                     ->required()
-                    ->maxLength(255)
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', \Illuminate\Support\Str::slug($state)) : null),
+                    ->live()
+                    ->maxLength(100)
+                    ->helperText(fn (?string $state): string => strlen($state ?? '').'/100 characters (recommended 60-70). This becomes the page H1 -- put the main keyword first.')
+                    ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
-                Forms\Components\Textarea::make('description')
+
+                Forms\Components\Textarea::make('short_description')
+                    ->label('Short description')
+                    ->live()
+                    ->maxLength(200)
+                    ->rows(2)
+                    ->helperText(fn (?string $state): string => strlen($state ?? '').'/200 characters. Plain text (no HTML) -- a short teaser shown near the price.')
                     ->columnSpanFull(),
+
+                Forms\Components\Section::make('Description')
+                    ->schema([
+                        Forms\Components\RichEditor::make('description')
+                            ->label('')
+                            ->helperText('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the product name.')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Section::make('Paste or upload raw HTML instead')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Forms\Components\Textarea::make('raw_html_paste')
+                                    ->label('Raw HTML')
+                                    ->dehydrated(false)
+                                    ->rows(6)
+                                    ->helperText('Paste HTML here, then click "Use this HTML" to overwrite the description above with it exactly as typed.')
+                                    ->columnSpanFull(),
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('useHtml')
+                                        ->label('Use this HTML')
+                                        ->action(function (Get $get, Set $set) {
+                                            $set('description', $get('raw_html_paste'));
+                                        }),
+                                ]),
+                                Forms\Components\FileUpload::make('raw_html_file')
+                                    ->label('...or upload an .html file')
+                                    ->dehydrated(false)
+                                    ->live()
+                                    ->acceptedFileTypes(['text/html'])
+                                    ->helperText('Uploading a file here immediately fills the description above with its contents.')
+                                    ->afterStateUpdated(function ($state, Set $set) {
+                                        if ($state instanceof TemporaryUploadedFile) {
+                                            $set('description', $state->get());
+                                        }
+                                    })
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
                 Forms\Components\TextInput::make('price')
                     ->label('Price (BDT)')
                     ->helperText('Whole taka amount, no decimals')
@@ -103,18 +154,77 @@ class ProductResource extends Resource
                     ])
                     ->columnSpanFull(),
 
+                Forms\Components\Section::make('Product FAQ')
+                    ->description('Shown as an accordion near the bottom of the product page. Up to 8 questions.')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Repeater::make('faqs')
+                            ->relationship('faqs')
+                            ->label('')
+                            ->schema([
+                                Forms\Components\TextInput::make('question')
+                                    ->required()
+                                    ->live()
+                                    ->maxLength(120)
+                                    ->helperText(fn (?string $state): string => strlen($state ?? '').'/120 characters'),
+                                Forms\Components\Textarea::make('answer')
+                                    ->required()
+                                    ->live()
+                                    ->maxLength(500)
+                                    ->rows(3)
+                                    ->helperText(fn (?string $state): string => strlen($state ?? '').'/500 characters'),
+                            ])
+                            ->maxItems(8)
+                            ->reorderable()
+                            ->reorderableWithButtons()
+                            ->collapsed()
+                            ->itemLabel(fn (array $state): ?string => $state['question'] ?? null)
+                            ->addActionLabel('Add FAQ')
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                Forms\Components\Section::make('Video (optional)')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        Forms\Components\TextInput::make('video_url')
+                            ->label('YouTube / Vimeo URL')
+                            ->url()
+                            ->maxLength(255)
+                            ->helperText('Takes priority over an uploaded MP4 below if both are set.'),
+                        Forms\Components\FileUpload::make('video_file')
+                            ->label('...or upload MP4')
+                            ->disk('public')
+                            ->directory('products/videos')
+                            ->acceptedFileTypes(['video/mp4'])
+                            ->maxSize(15360)
+                            ->helperText('Max 15MB.'),
+                        Forms\Components\FileUpload::make('video_poster')
+                            ->label('Poster image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products/videos')
+                            ->helperText('Shown before the visitor taps play. Required for either video option above to actually display.'),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
+
                 Forms\Components\Section::make('SEO')
                     ->collapsible()
                     ->collapsed(fn (string $operation) => $operation === 'create')
                     ->schema([
                         Forms\Components\TextInput::make('meta_title')
                             ->label('Meta title')
-                            ->helperText('Falls back to the product name if left blank.')
-                            ->maxLength(255),
+                            ->live()
+                            ->maxLength(70)
+                            ->helperText(fn (?string $state): string => strlen($state ?? '').'/70 characters (recommended 50-60). Falls back to the product name if left blank.'),
                         Forms\Components\Textarea::make('meta_description')
                             ->label('Meta description')
-                            ->maxLength(255)
-                            ->rows(2),
+                            ->live()
+                            ->maxLength(160)
+                            ->rows(2)
+                            ->helperText(fn (?string $state): string => strlen($state ?? '').'/160 characters (recommended 120-155).'),
                         Forms\Components\FileUpload::make('og_image')
                             ->label('Social share image')
                             ->image()

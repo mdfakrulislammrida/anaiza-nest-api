@@ -58,6 +58,13 @@ class OrderController extends Controller
                 ->get()
                 ->keyBy('id');
 
+            $variantIds = collect($request->input('items'))->pluck('variant_id')->filter()->values();
+            $variants = ProductVariant::query()
+                ->whereIn('id', $variantIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
             $subtotal = 0;
             $itemsToCreate = [];
 
@@ -65,20 +72,27 @@ class OrderController extends Controller
                 /** @var Product $product */
                 $product = $products->get($item['product_id']);
 
-                if ($product->stock_quantity < $item['quantity']) {
+                $variant = null;
+                if (! empty($item['variant_id'])) {
+                    $variant = $variants->get($item['variant_id']);
+                    if ($variant && $variant->product_id !== $product->id) {
+                        $variant = null;
+                    }
+                }
+                // A variant's effective_* accessors fall back to its parent
+                // product, so it needs that relation set without a lazy-load
+                // query (the locked row above is the one that must be used).
+                $variant?->setRelation('product', $product);
+
+                $availableStock = $variant?->effective_stock ?? $product->stock_quantity;
+
+                if ($availableStock < $item['quantity']) {
                     throw ValidationException::withMessages([
                         'items' => "Insufficient stock for {$product->name}.",
                     ]);
                 }
 
-                $variant = null;
-                if (! empty($item['variant_id'])) {
-                    $variant = ProductVariant::where('id', $item['variant_id'])
-                        ->where('product_id', $product->id)
-                        ->first();
-                }
-
-                $price = $product->effective_price;
+                $price = $variant?->effective_price ?? $product->effective_price;
                 $lineTotal = $price * $item['quantity'];
                 $subtotal += $lineTotal;
 
@@ -89,9 +103,16 @@ class OrderController extends Controller
                     'price' => $price,
                     'variant_name' => $variant?->name,
                     'variant_value' => $variant?->value,
+                    'sku' => $variant?->effective_sku ?? $product->sku,
                 ];
 
-                $product->decrement('stock_quantity', $item['quantity']);
+                // A variant with its own stock count is a separate pool from
+                // the product's; one with no override shares the product's.
+                if ($variant && $variant->stock_quantity !== null) {
+                    $variant->decrement('stock_quantity', $item['quantity']);
+                } else {
+                    $product->decrement('stock_quantity', $item['quantity']);
+                }
             }
 
             $deliveryFee = DeliveryFeeCalculator::forDivision($request->string('division')->toString(), $subtotal);
