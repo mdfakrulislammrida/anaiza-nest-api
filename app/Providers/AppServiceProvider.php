@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Category;
 use App\Models\ProductImage;
+use App\Observers\CategoryObserver;
 use App\Observers\ProductImageObserver;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         ProductImage::observe(ProductImageObserver::class);
+        Category::observe(CategoryObserver::class);
     }
 }

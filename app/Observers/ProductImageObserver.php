@@ -3,12 +3,10 @@
 namespace App\Observers;
 
 use App\Models\ProductImage;
+use App\Support\WebpImage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\Encoders\WebpEncoder;
-use Intervention\Image\ImageManager;
 
 /**
  * Converts an admin-uploaded product image to WebP and generates the
@@ -46,8 +44,7 @@ class ProductImageObserver
                 return;
             }
 
-            $manager = new ImageManager(new Driver);
-            $source = $manager->decodePath($disk->path($originalPath));
+            $source = WebpImage::decode($disk->path($originalPath));
 
             $directory = 'products/generated';
             $disk->makeDirectory($directory);
@@ -71,7 +68,7 @@ class ProductImageObserver
                 }
 
                 $path = "{$directory}/{$basename}-{$targetWidth}.webp";
-                $disk->put($path, (string) $resized->encode(new WebpEncoder(quality: 82)));
+                $disk->put($path, WebpImage::encode($resized));
                 $generated[$targetWidth] = $path;
 
                 if ($targetWidth === $largestWidth) {

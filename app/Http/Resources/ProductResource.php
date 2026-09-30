@@ -45,7 +45,7 @@ class ProductResource extends JsonResource
                 'meta_description' => $this->meta_description,
                 'og_image' => MediaUrl::resolve($this->og_image),
             ],
-            'category' => CategoryResource::make($this->whenLoaded('category')),
+            'category' => CategorySummaryResource::make($this->whenLoaded('category')),
             'brand' => BrandResource::make($this->whenLoaded('brand')),
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,
