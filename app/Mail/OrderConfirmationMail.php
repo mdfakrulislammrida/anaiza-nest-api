@@ -23,10 +23,8 @@ class OrderConfirmationMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $siteName = $this->siteSetting?->site_name ?: config('app.name');
-
         return new Envelope(
-            from: new Address(config('mail.from.address'), $siteName),
+            from: new Address(config('mail.from.address'), config('mail.from.name')),
             subject: $this->resolveTemplate()['subject'],
         );
     }
