@@ -26,6 +26,14 @@ class ProductResource extends JsonResource
             // pastes into the rich editor.
             'description' => HtmlSanitizer::downgradeH1($this->description),
             'short_description' => $this->short_description,
+            'summary' => $this->summary,
+            // Only complete rows reach the storefront; a half-filled admin row is dropped.
+            'specifications' => collect($this->specifications ?? [])
+                ->filter(fn ($row) => filled($row['label'] ?? null) && filled($row['value'] ?? null))
+                ->map(fn ($row) => ['label' => $row['label'], 'value' => $row['value']])
+                ->values(),
+            'gtin' => $this->gtin,
+            'mpn' => $this->mpn,
             'price' => $this->price,
             'sale_price' => $this->sale_price,
             'effective_price' => $this->effective_price,

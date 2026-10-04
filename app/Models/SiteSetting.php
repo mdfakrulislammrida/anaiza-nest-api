@@ -18,6 +18,33 @@ class SiteSetting extends Model
         'footer_links',
         'social_links',
         'footer_copyright_text',
+        'brand_description',
+        'free_delivery_threshold',
+        'delivery_fee_dhaka',
+        'delivery_fee_outside_dhaka',
+        'delivery_days_dhaka_min',
+        'delivery_days_dhaka_max',
+        'delivery_days_outside_min',
+        'delivery_days_outside_max',
+        'return_window_days',
+    ];
+
+    /**
+     * The delivery/return rules as they stood before they became editable.
+     * Mirrors the migration's column defaults, but as real in-PHP defaults:
+     * Eloquent does not re-read a row after inserting it, so a freshly
+     * created or entirely missing settings row would otherwise read these as
+     * null -- and checkout would charge the wrong fee.
+     */
+    protected $attributes = [
+        'free_delivery_threshold' => 2000,
+        'delivery_fee_dhaka' => 80,
+        'delivery_fee_outside_dhaka' => 130,
+        'delivery_days_dhaka_min' => 1,
+        'delivery_days_dhaka_max' => 3,
+        'delivery_days_outside_min' => 3,
+        'delivery_days_outside_max' => 5,
+        'return_window_days' => 7,
     ];
 
     protected function casts(): array
@@ -26,6 +53,14 @@ class SiteSetting extends Model
             'nav_links' => 'array',
             'footer_links' => 'array',
             'social_links' => 'array',
+            'free_delivery_threshold' => 'integer',
+            'delivery_fee_dhaka' => 'integer',
+            'delivery_fee_outside_dhaka' => 'integer',
+            'delivery_days_dhaka_min' => 'integer',
+            'delivery_days_dhaka_max' => 'integer',
+            'delivery_days_outside_min' => 'integer',
+            'delivery_days_outside_max' => 'integer',
+            'return_window_days' => 'integer',
         ];
     }
 
@@ -35,9 +70,28 @@ class SiteSetting extends Model
      * admin hasn't touched), so the storefront and the admin form never show
      * up blank.
      */
-    public static function defaultPromoText(): string
+    /**
+     * The sentence the form used to pre-fill and save as a literal, back when the
+     * threshold was fixed. A stored copy of exactly this text was never written by
+     * an admin, so it is treated as "not customised" and follows the threshold.
+     */
+    private const LEGACY_DEFAULT_PROMO_TEXT = 'Free delivery inside Dhaka on orders over ৳2,000';
+
+    /** The promo text to show: the admin's own wording, else the generated default. */
+    public function promoTextOrDefault(): string
     {
-        return 'Free delivery inside Dhaka on orders over ৳2,000';
+        if (blank($this->promo_text) || $this->promo_text === self::LEGACY_DEFAULT_PROMO_TEXT) {
+            return self::defaultPromoText($this);
+        }
+
+        return $this->promo_text;
+    }
+
+    public static function defaultPromoText(?self $settings = null): string
+    {
+        $threshold = number_format(($settings ?? new self)->free_delivery_threshold);
+
+        return "Free delivery inside Dhaka on orders over ৳{$threshold}";
     }
 
     public static function defaultNavLinks(): array

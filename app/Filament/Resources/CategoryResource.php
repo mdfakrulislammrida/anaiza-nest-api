@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CategoryResource\Pages;
+use App\Filament\Support\AuthoringGuidance;
 use App\Models\Category;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -46,11 +47,11 @@ class CategoryResource extends Resource
                     ->columnSpanFull(),
 
                 Forms\Components\Textarea::make('intro_text')
-                    ->label('Short intro text')
+                    ->label('Summary / intro (shown directly under the title)')
                     ->live()
-                    ->maxLength(300)
-                    ->rows(2)
-                    ->helperText(fn (?string $state): string => strlen($state ?? '').'/300 characters (recommended 150-300). Shown above the product grid.')
+                    ->maxLength(600)
+                    ->rows(4)
+                    ->helperText(fn (?string $state): string => mb_strlen($state ?? '').'/600 characters, '.AuthoringGuidance::wordCount($state).' words (recommended 50-100). Make the first sentence say what this category is, who it is for and the key benefit, using the brand and category name instead of "our products".')
                     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Long SEO description')
@@ -58,7 +59,7 @@ class CategoryResource extends Resource
                     ->schema([
                         Forms\Components\RichEditor::make('seo_description')
                             ->label('')
-                            ->helperText('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the category name.')
+                            ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the category name.'))
                             ->columnSpanFull(),
 
                         Forms\Components\Section::make('Paste or upload raw HTML instead')
@@ -127,7 +128,7 @@ class CategoryResource extends Resource
                     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Category FAQ')
-                    ->description('Shown as an accordion near the bottom of the category page. Up to 8 questions.')
+                    ->description('Shown as an accordion near the bottom of the category page. Up to 8 questions. '.AuthoringGuidance::faq())
                     ->collapsible()
                     ->schema([
                         Forms\Components\Repeater::make('faqs')

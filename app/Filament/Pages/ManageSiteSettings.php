@@ -46,7 +46,7 @@ class ManageSiteSettings extends Page implements HasForms
 
         $this->form->fill([
             ...$settings->toArray(),
-            'promo_text' => $settings->promo_text ?: SiteSetting::defaultPromoText(),
+            'promo_text' => $settings->promoTextOrDefault(),
             'nav_links' => $settings->nav_links ?: SiteSetting::defaultNavLinks(),
             'footer_about' => $settings->footer_about ?: SiteSetting::defaultFooterAbout(),
             'footer_links' => $settings->footer_links ?: SiteSetting::defaultFooterLinks(),
@@ -80,6 +80,46 @@ class ManageSiteSettings extends Page implements HasForms
                         TextInput::make('address')
                             ->label('Address')
                             ->maxLength(255),
+                        Textarea::make('brand_description')
+                            ->label('Brand description')
+                            ->rows(4)
+                            ->maxLength(1000)
+                            ->helperText('One master paragraph about the business. It is reused for the Organization structured data, llms.txt, the default meta description and (once you add one) an About page -- so write it as plain, factual copy you are happy to see quoted. If left blank, those places fall back to the Footer "About" text.')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
+                Section::make('Delivery & returns')
+                    ->description('These numbers drive the delivery fee charged at checkout and every place the storefront quotes delivery or returns, including the product structured data. They start out equal to the previous fixed rules (free over ৳2,000, ৳80 inside Dhaka, ৳130 outside, 1-3 / 3-5 days, 7-day returns). The Shipping and Returns pages are separate text you edit yourself.')
+                    ->schema([
+                        TextInput::make('free_delivery_threshold')
+                            ->label('Free delivery inside Dhaka over (৳)')
+                            ->helperText('Orders with a subtotal above this ship free inside Dhaka. Set 0 to charge the Dhaka fee on every order.')
+                            ->numeric()->integer()->minValue(0)->required(),
+                        TextInput::make('delivery_fee_dhaka')
+                            ->label('Delivery fee inside Dhaka (৳)')
+                            ->numeric()->integer()->minValue(0)->required(),
+                        TextInput::make('delivery_fee_outside_dhaka')
+                            ->label('Delivery fee outside Dhaka (৳)')
+                            ->numeric()->integer()->minValue(0)->required(),
+                        TextInput::make('return_window_days')
+                            ->label('Return window (days)')
+                            ->helperText('Set 0 if returns are not accepted.')
+                            ->numeric()->integer()->minValue(0)->maxValue(365)->required(),
+                        TextInput::make('delivery_days_dhaka_min')
+                            ->label('Delivery time inside Dhaka: from (days)')
+                            ->numeric()->integer()->minValue(0)->maxValue(60)->required(),
+                        TextInput::make('delivery_days_dhaka_max')
+                            ->label('...to (days)')
+                            ->numeric()->integer()->minValue(0)->maxValue(60)->required()
+                            ->gte('delivery_days_dhaka_min'),
+                        TextInput::make('delivery_days_outside_min')
+                            ->label('Delivery time outside Dhaka: from (days)')
+                            ->numeric()->integer()->minValue(0)->maxValue(60)->required(),
+                        TextInput::make('delivery_days_outside_max')
+                            ->label('...to (days)')
+                            ->numeric()->integer()->minValue(0)->maxValue(60)->required()
+                            ->gte('delivery_days_outside_min'),
                     ])
                     ->columns(2),
 
@@ -178,7 +218,16 @@ class ManageSiteSettings extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        SiteSetting::query()->firstOrCreate([])->update($data);
+        $settings = SiteSetting::query()->firstOrCreate([]);
+
+        // The form pre-fills a blank promo text with the generated default. Saving that
+        // back as a literal would freeze today's threshold into it, so an untouched
+        // default is stored as blank and keeps following the free-delivery setting.
+        if (($data['promo_text'] ?? null) === SiteSetting::defaultPromoText($settings)) {
+            $data['promo_text'] = null;
+        }
+
+        $settings->update($data);
 
         Notification::make()
             ->title('Site settings saved')

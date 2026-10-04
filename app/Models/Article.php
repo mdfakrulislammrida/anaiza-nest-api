@@ -14,6 +14,8 @@ class Article extends Model
         'title',
         'slug',
         'content',
+        'author_name',
+        'author_bio',
         'featured_image',
         'published_at',
         'meta_title',

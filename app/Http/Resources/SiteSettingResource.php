@@ -22,12 +22,28 @@ class SiteSettingResource extends JsonResource
             'contact_phone' => $this->contact_phone,
             'contact_email' => $this->contact_email,
             'address' => $this->address,
-            'promo_text' => $this->promo_text ?: SiteSetting::defaultPromoText(),
+            'promo_text' => $this->resource->promoTextOrDefault(),
             'nav_links' => $this->nav_links ?: SiteSetting::defaultNavLinks(),
             'footer_about' => $this->footer_about ?: SiteSetting::defaultFooterAbout(),
             'footer_links' => $this->footer_links ?: SiteSetting::defaultFooterLinks(),
             'social_links' => $this->social_links ?? [],
             'footer_copyright_text' => $this->footer_copyright_text ?: SiteSetting::defaultCopyrightText(),
+            // Null when blank on purpose: each consumer falls back to what it used before.
+            'brand_description' => $this->brand_description ?: null,
+            'policy' => [
+                'free_delivery_threshold' => $this->free_delivery_threshold,
+                'delivery_fee_dhaka' => $this->delivery_fee_dhaka,
+                'delivery_fee_outside_dhaka' => $this->delivery_fee_outside_dhaka,
+                'delivery_days_dhaka' => [
+                    'min' => $this->delivery_days_dhaka_min,
+                    'max' => $this->delivery_days_dhaka_max,
+                ],
+                'delivery_days_outside_dhaka' => [
+                    'min' => $this->delivery_days_outside_min,
+                    'max' => $this->delivery_days_outside_max,
+                ],
+                'return_window_days' => $this->return_window_days,
+            ],
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
+use App\Filament\Support\AuthoringGuidance;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -60,11 +61,19 @@ class ProductResource extends Resource
                     ->helperText(fn (?string $state): string => strlen($state ?? '').'/200 characters. Plain text (no HTML) -- a short teaser shown near the price.')
                     ->columnSpanFull(),
 
+                Forms\Components\Textarea::make('summary')
+                    ->label('Summary (shown directly under the title)')
+                    ->live()
+                    ->maxLength(600)
+                    ->rows(4)
+                    ->helperText(fn (?string $state): string => mb_strlen($state ?? '').'/600 characters, '.AuthoringGuidance::wordCount($state).' words (recommended 50-100). Make the first sentence say what it is, who it is for and the key benefit, using the brand and product name instead of "our product".')
+                    ->columnSpanFull(),
+
                 Forms\Components\Section::make('Description')
                     ->schema([
                         Forms\Components\RichEditor::make('description')
                             ->label('')
-                            ->helperText('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the product name.')
+                            ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the product name.'))
                             ->columnSpanFull(),
 
                         Forms\Components\Section::make('Paste or upload raw HTML instead')
@@ -123,6 +132,16 @@ class ProductResource extends Resource
                     ->label('SKU')
                     ->required()
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('gtin')
+                    ->label('GTIN / barcode (optional)')
+                    ->regex('/^(\d{8}|\d{12,14})$/')
+                    ->validationMessages(['regex' => 'A GTIN is 8, 12, 13 or 14 digits, with no spaces.'])
+                    ->helperText('EAN/UPC barcode digits. Leave blank if the product has none -- it is only published when you fill it in.')
+                    ->maxLength(14),
+                Forms\Components\TextInput::make('mpn')
+                    ->label('Manufacturer part number (optional)')
+                    ->helperText('Leave blank if there is none -- it is only published when you fill it in.')
+                    ->maxLength(100),
                 Forms\Components\Toggle::make('is_new')
                     ->label('Mark as new arrival'),
                 Forms\Components\Toggle::make('is_featured')
@@ -154,8 +173,33 @@ class ProductResource extends Resource
                     ])
                     ->columnSpanFull(),
 
+                Forms\Components\Section::make('Specifications')
+                    ->description('Shown as a table on the product page. Up to 20 rows. A label such as "Material" or "Colour" is also published to search engines as that property.')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Repeater::make('specifications')
+                            ->label('')
+                            ->schema([
+                                Forms\Components\TextInput::make('label')
+                                    ->required()
+                                    ->maxLength(100)
+                                    ->placeholder('e.g. Material'),
+                                Forms\Components\TextInput::make('value')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->columns(2)
+                            ->maxItems(20)
+                            ->reorderable()
+                            ->reorderableWithButtons()
+                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                            ->addActionLabel('Add specification')
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
                 Forms\Components\Section::make('Product FAQ')
-                    ->description('Shown as an accordion near the bottom of the product page. Up to 8 questions.')
+                    ->description('Shown as an accordion near the bottom of the product page. Up to 8 questions. '.AuthoringGuidance::faq())
                     ->collapsible()
                     ->schema([
                         Forms\Components\Repeater::make('faqs')

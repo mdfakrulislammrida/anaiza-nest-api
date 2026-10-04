@@ -2,27 +2,29 @@
 
 namespace App\Support;
 
+use App\Models\SiteSetting;
+
 /**
- * Bangladesh delivery fee rule, per the published Shipping Policy: free
- * inside Dhaka on orders over ৳2,000, a flat ৳80 fee inside Dhaka
- * otherwise, and a flat ৳130 fee for every other division.
+ * Bangladesh delivery fee rule, read from the editable Site Settings:
+ * free inside Dhaka on orders over the free-delivery threshold, a flat
+ * Dhaka fee below it, and a flat fee for every other division.
+ *
+ * With nothing edited the settings equal the rules that used to be hardcoded
+ * here (free over ৳2,000, ৳80 inside Dhaka, ৳130 elsewhere) -- the model
+ * supplies those as its defaults even when no settings row exists yet.
  */
 class DeliveryFeeCalculator
 {
-    private const FREE_DELIVERY_THRESHOLD = 2000;
-
-    private const DHAKA_FEE = 80;
-
-    private const OUTSIDE_DHAKA_FEE = 130;
-
     public static function forDivision(string $division, int $subtotal): int
     {
+        $settings = SiteSetting::query()->first() ?? new SiteSetting;
+
         $isDhaka = strcasecmp(trim($division), 'Dhaka') === 0;
 
         if (! $isDhaka) {
-            return self::OUTSIDE_DHAKA_FEE;
+            return $settings->delivery_fee_outside_dhaka;
         }
 
-        return $subtotal > self::FREE_DELIVERY_THRESHOLD ? 0 : self::DHAKA_FEE;
+        return $subtotal > $settings->free_delivery_threshold ? 0 : $settings->delivery_fee_dhaka;
     }
 }

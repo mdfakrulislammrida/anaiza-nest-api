@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ArticleResource\Pages;
+use App\Filament\Support\AuthoringGuidance;
+use App\Filament\Support\RawHtmlSection;
 use App\Models\Article;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -50,8 +52,19 @@ class ArticleResource extends Resource
                     ->label('Publish at')
                     ->helperText('Leave blank to keep this article as a draft.')
                     ->native(false),
+                Forms\Components\TextInput::make('author_name')
+                    ->label('Author name (optional)')
+                    ->helperText('Shown as a byline and published as the article author. Leave blank to show no author.')
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('author_bio')
+                    ->label('Author bio (optional)')
+                    ->helperText('One or two sentences on who the author is and why they know the topic.')
+                    ->maxLength(500)
+                    ->rows(2),
                 Forms\Components\RichEditor::make('content')
+                    ->helperText(AuthoringGuidance::html('A table of contents is built automatically from your <h2> headings, and any <h1> is shown as an H2 (the article title is the page\'s one H1).'))
                     ->columnSpanFull(),
+                RawHtmlSection::make('content'),
 
                 Forms\Components\Section::make('SEO')
                     ->collapsible()
