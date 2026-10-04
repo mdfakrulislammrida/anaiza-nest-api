@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ShippingZoneResource\Pages;
+use App\Filament\Support\DeleteGuard;
 use App\Models\ShippingZone;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -57,11 +58,13 @@ class ShippingZoneResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['orders' => 'orders'], 'Orders keep their shipping zone, so change the zone on those orders first.')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->using(DeleteGuard::bulk(['orders' => 'orders'], 'Orders keep their shipping zone, so change the zone on those orders first.'))
+                        ->successNotificationTitle(null),
                 ]),
             ]);
     }

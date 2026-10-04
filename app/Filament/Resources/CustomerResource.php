@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
+use App\Filament\Support\DeleteGuard;
 use App\Models\Customer;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -80,7 +81,9 @@ class CustomerResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->using(DeleteGuard::bulk(['orders' => 'orders'], "Orders are kept as a record of sales, so customers with orders can't be deleted."))
+                        ->successNotificationTitle(null),
                 ]),
             ]);
     }

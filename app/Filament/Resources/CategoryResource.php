@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
+use App\Filament\Support\DeleteGuard;
 use App\Models\Category;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -240,11 +241,13 @@ class CategoryResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['products' => 'products'], 'Move them to another category or delete them first.')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->using(DeleteGuard::bulk(['products' => 'products'], 'Move them to another category or delete them first.'))
+                        ->successNotificationTitle(null),
                 ]),
             ]);
     }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoleResource\Pages;
+use App\Filament\Support\DeleteGuard;
 use App\Models\Role;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -77,7 +78,10 @@ class RoleResource extends Resource
                 Tables\Columns\TextColumn::make('slug'),
                 Tables\Columns\TextColumn::make('permissions')
                     ->label('Permissions')
-                    ->formatStateUsing(fn (?array $state): string => $state ? count($state).' granted' : 'None')
+                    // The column's state is an array, and Filament formats array state one
+                    // item at a time, so a formatter typed ?array breaks. Build the summary
+                    // from the record instead and let the column show a single string.
+                    ->getStateUsing(fn (Role $record): string => $record->permissions ? count($record->permissions).' granted' : 'None')
                     ->badge(),
                 Tables\Columns\TextColumn::make('users_count')
                     ->label('Staff')
@@ -85,11 +89,13 @@ class RoleResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['users' => 'staff accounts'], 'Give them another role first: a staff account with no role has full admin access.')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->using(DeleteGuard::bulk(['users' => 'staff accounts'], 'Give them another role first: a staff account with no role has full admin access.'))
+                        ->successNotificationTitle(null),
                 ]),
             ]);
     }
