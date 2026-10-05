@@ -28,6 +28,13 @@ class SiteSetting extends Model
         'delivery_days_outside_max',
         'return_window_days',
         'show_categories_menu',
+        'hero_badge',
+        'hero_title',
+        'hero_text',
+        'hero_hot_deals_text',
+        'hero_new_arrivals_text',
+        'newsletter_headline',
+        'newsletter_text',
     ];
 
     /**
@@ -111,7 +118,7 @@ class SiteSetting extends Model
 
     public static function defaultFooterAbout(): string
     {
-        return "Bangladesh's #1 gift shop — handcrafted ceramic tea sets, porcelain collections, and premium gift boxes, delivered across Bangladesh with cash-on-delivery and mobile-wallet checkout.";
+        return 'Handcrafted ceramic tea sets, porcelain collections, and premium gift boxes, delivered across Bangladesh with cash-on-delivery and mobile-wallet checkout.';
     }
 
     public static function defaultFooterLinks(): array

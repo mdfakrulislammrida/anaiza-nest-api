@@ -31,6 +31,17 @@ class SiteSettingResource extends JsonResource
             'footer_copyright_text' => $this->footer_copyright_text ?: SiteSetting::defaultCopyrightText(),
             // Null when blank on purpose: each consumer falls back to what it used before.
             'brand_description' => $this->brand_description ?: null,
+            // Homepage wording. Null when blank: the storefront then uses its own neutral default,
+            // so no discount or ranking claim shows unless the admin writes one here.
+            'homepage' => [
+                'hero_badge' => $this->hero_badge ?: null,
+                'hero_title' => $this->hero_title ?: null,
+                'hero_text' => $this->hero_text ?: null,
+                'hot_deals_tile_text' => $this->hero_hot_deals_text ?: null,
+                'new_arrivals_tile_text' => $this->hero_new_arrivals_text ?: null,
+                'newsletter_headline' => $this->newsletter_headline ?: null,
+                'newsletter_text' => $this->newsletter_text ?: null,
+            ],
             'policy' => [
                 'free_delivery_threshold' => $this->free_delivery_threshold,
                 'delivery_fee_dhaka' => $this->delivery_fee_dhaka,

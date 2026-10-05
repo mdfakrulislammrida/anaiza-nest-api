@@ -124,6 +124,44 @@ class ManageSiteSettings extends Page implements HasForms
                     ])
                     ->columns(2),
 
+                Section::make('Homepage wording')
+                    ->description('The text on the homepage hero tiles and in the newsletter sign-up (banner and popup). Every field is optional: left blank, the storefront shows neutral wording with no discount, percentage or ranking claim. Write a real offer here only when you are running one.')
+                    ->schema([
+                        TextInput::make('hero_badge')
+                            ->label('Hero badge')
+                            ->helperText('The small pill above the headline. Blank hides it.')
+                            ->maxLength(80),
+                        TextInput::make('hero_title')
+                            ->label('Hero headline')
+                            ->placeholder('Handcrafted tea sets & gifts, done right.')
+                            ->maxLength(160),
+                        Textarea::make('hero_text')
+                            ->label('Hero paragraph')
+                            ->rows(3)
+                            ->maxLength(400)
+                            ->columnSpanFull(),
+                        TextInput::make('hero_hot_deals_text')
+                            ->label('Hot Deals tile line')
+                            ->placeholder('Hot deals, while stock lasts')
+                            ->maxLength(120),
+                        TextInput::make('hero_new_arrivals_text')
+                            ->label('New Arrivals tile line')
+                            ->placeholder('New gifts to explore')
+                            ->maxLength(120),
+                        TextInput::make('newsletter_headline')
+                            ->label('Newsletter headline')
+                            ->placeholder('Stay in the loop')
+                            ->helperText('Used by the homepage newsletter section and the newsletter popup. Signing up does not create a discount code, so do not promise one unless you send it yourself.')
+                            ->maxLength(120)
+                            ->columnSpanFull(),
+                        TextInput::make('newsletter_text')
+                            ->label('Newsletter text')
+                            ->placeholder('Join our list for news about new arrivals and hot deals.')
+                            ->maxLength(240)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+
                 Section::make('Header')
                     ->description('The top promo bar and main navigation shown on every page.')
                     ->schema([
