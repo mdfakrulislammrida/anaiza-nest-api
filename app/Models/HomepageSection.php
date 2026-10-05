@@ -29,6 +29,7 @@ class HomepageSection extends Model
         'is_enabled',
         'custom_title',
         'custom_html',
+        'deal_ends_at',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class HomepageSection extends Model
         return [
             'position' => 'integer',
             'is_enabled' => 'boolean',
+            'deal_ends_at' => 'datetime',
         ];
     }
 }

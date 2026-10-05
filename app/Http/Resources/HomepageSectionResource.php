@@ -20,6 +20,8 @@ class HomepageSectionResource extends JsonResource
             'position' => $this->position,
             'custom_title' => $this->custom_title,
             'custom_html' => $this->custom_html,
+            // ISO 8601 with offset; only the Hot Deals section carries one.
+            'deal_ends_at' => $this->type === 'hot_deals' ? $this->deal_ends_at?->toIso8601String() : null,
         ];
     }
 }

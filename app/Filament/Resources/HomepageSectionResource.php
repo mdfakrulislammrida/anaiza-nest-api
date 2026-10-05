@@ -43,6 +43,13 @@ class HomepageSectionResource extends Resource
                 Forms\Components\Toggle::make('is_enabled')
                     ->label('Enabled')
                     ->default(true),
+                Forms\Components\DateTimePicker::make('deal_ends_at')
+                    ->label('Deal ends at (optional)')
+                    ->helperText('Times are Bangladesh time. When set and still in the future, the storefront shows a live countdown to this moment. Leave blank for no countdown -- nothing is shown by default.')
+                    ->timezone('Asia/Dhaka')
+                    ->seconds(false)
+                    ->visible(fn (Get $get): bool => $get('type') === 'hot_deals')
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('custom_title')
                     ->label('Custom Title (optional)')
                     ->helperText('Shown as a heading above the HTML block -- leave blank for none.')
