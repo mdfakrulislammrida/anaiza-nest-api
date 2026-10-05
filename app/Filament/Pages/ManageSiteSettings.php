@@ -9,6 +9,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -129,6 +130,10 @@ class ManageSiteSettings extends Page implements HasForms
                         TextInput::make('promo_text')
                             ->label('Top Promo Bar Text')
                             ->maxLength(255)
+                            ->columnSpanFull(),
+                        Toggle::make('show_categories_menu')
+                            ->label('Show a Categories menu in the header')
+                            ->helperText('Lists the categories marked "Show in the storefront Categories menu" (Categories > edit). Needs at least one such category to appear.')
                             ->columnSpanFull(),
                         Repeater::make('nav_links')
                             ->label('Main Navigation Links')

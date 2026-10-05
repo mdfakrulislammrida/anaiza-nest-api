@@ -23,6 +23,7 @@ class SiteSettingResource extends JsonResource
             'contact_email' => $this->contact_email,
             'address' => $this->address,
             'promo_text' => $this->resource->promoTextOrDefault(),
+            'show_categories_menu' => (bool) $this->show_categories_menu,
             'nav_links' => $this->nav_links ?: SiteSetting::defaultNavLinks(),
             'footer_about' => $this->footer_about ?: SiteSetting::defaultFooterAbout(),
             'footer_links' => $this->footer_links ?: SiteSetting::defaultFooterLinks(),

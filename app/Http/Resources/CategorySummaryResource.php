@@ -24,6 +24,9 @@ class CategorySummaryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            // For the storefront's Categories menu.
+            'show_in_menu' => (bool) $this->show_in_menu,
+            'menu_order' => (int) $this->menu_order,
             'thumbnail' => [
                 'url' => MediaUrl::resolve($this->thumbnail),
                 'width' => $this->thumbnail_width,

@@ -43,6 +43,18 @@ class CategoryResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Forms\Components\Toggle::make('show_in_menu')
+                    ->label('Show in the storefront Categories menu')
+                    ->helperText('The menu itself can be switched off in Site Settings > Header. The storefront is a static build, so menu changes appear after the next storefront build.')
+                    ->default(true),
+                Forms\Components\TextInput::make('menu_order')
+                    ->label('Menu order')
+                    ->helperText('Smaller numbers come first; categories with the same number are sorted by name.')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->default(0)
+                    ->required(),
                 Forms\Components\Textarea::make('description')
                     ->helperText('Internal note -- not shown on the storefront. Use the intro text and SEO description below for that.')
                     ->columnSpanFull(),
@@ -227,6 +239,9 @@ class CategoryResource extends Resource
                 Tables\Columns\TextColumn::make('products_count')
                     ->counts('products')
                     ->label('Products'),
+                Tables\Columns\IconColumn::make('show_in_menu')
+                    ->label('In menu')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

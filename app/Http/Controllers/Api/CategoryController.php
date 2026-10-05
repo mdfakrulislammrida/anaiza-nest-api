@@ -11,7 +11,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        return CategorySummaryResource::collection(Category::orderBy('name')->get());
+        return CategorySummaryResource::collection(Category::orderBy('menu_order')->orderBy('name')->get());
     }
 
     public function show(Category $category)

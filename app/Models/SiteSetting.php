@@ -27,6 +27,7 @@ class SiteSetting extends Model
         'delivery_days_outside_min',
         'delivery_days_outside_max',
         'return_window_days',
+        'show_categories_menu',
     ];
 
     /**
@@ -45,6 +46,7 @@ class SiteSetting extends Model
         'delivery_days_outside_min' => 3,
         'delivery_days_outside_max' => 5,
         'return_window_days' => 7,
+        'show_categories_menu' => true,
     ];
 
     protected function casts(): array
@@ -61,6 +63,7 @@ class SiteSetting extends Model
             'delivery_days_outside_min' => 'integer',
             'delivery_days_outside_max' => 'integer',
             'return_window_days' => 'integer',
+            'show_categories_menu' => 'boolean',
         ];
     }
 
