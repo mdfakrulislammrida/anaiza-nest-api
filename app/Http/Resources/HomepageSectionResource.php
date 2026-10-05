@@ -18,9 +18,11 @@ class HomepageSectionResource extends JsonResource
             'id' => $this->id,
             'type' => $this->type,
             'position' => $this->position,
+            // Title and subtitle the admin set for a built-in section; null means the storefront default.
             'custom_title' => $this->custom_title,
+            'custom_subtitle' => $this->custom_subtitle,
             'custom_html' => $this->custom_html,
-            // ISO 8601 with offset; only the Hot Deals section carries one.
+            // ISO 8601 with offset; only the Special prices section carries one.
             'deal_ends_at' => $this->type === 'hot_deals' ? $this->deal_ends_at?->toIso8601String() : null,
         ];
     }

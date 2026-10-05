@@ -65,8 +65,31 @@ class ManageSiteSettings extends Page implements HasForms
                             ->label('Site Name')
                             ->required()
                             ->maxLength(255),
+                        TextInput::make('tagline')
+                            ->label('Tagline')
+                            ->helperText('Shown under the logo on desktop, in the footer and in the default social-sharing data. The brand kit line is "Gifted, beautifully." -- keep the comma and full stop.')
+                            ->maxLength(120),
+                        FileUpload::make('logo_navy')
+                            ->label('Logo, navy (default, on ivory)')
+                            ->helperText('The master file, navy on a transparent background. Used in the header. At least 120 px wide; do not redraw or recolour it.')
+                            ->image()
+                            ->disk('public')
+                            ->directory('site'),
+                        FileUpload::make('logo_ivory')
+                            ->label('Logo, ivory (for dark areas)')
+                            ->helperText('The ivory master, used on deep ink areas such as the footer.')
+                            ->image()
+                            ->disk('public')
+                            ->directory('site'),
+                        FileUpload::make('monogram')
+                            ->label('Monogram')
+                            ->helperText('The square monogram: browser tab icon and small avatars.')
+                            ->image()
+                            ->disk('public')
+                            ->directory('site'),
                         FileUpload::make('logo_url')
-                            ->label('Logo')
+                            ->label('Previous logo (fallback)')
+                            ->helperText('Only used where a brand kit logo above has not been uploaded.')
                             ->image()
                             ->disk('public')
                             ->directory('site'),
@@ -141,8 +164,8 @@ class ManageSiteSettings extends Page implements HasForms
                             ->maxLength(400)
                             ->columnSpanFull(),
                         TextInput::make('hero_hot_deals_text')
-                            ->label('Hot Deals tile line')
-                            ->placeholder('Hot deals, while stock lasts')
+                            ->label('Special prices tile line')
+                            ->placeholder('Special prices, while stock lasts')
                             ->maxLength(120),
                         TextInput::make('hero_new_arrivals_text')
                             ->label('New Arrivals tile line')
@@ -150,17 +173,25 @@ class ManageSiteSettings extends Page implements HasForms
                             ->maxLength(120),
                         TextInput::make('newsletter_headline')
                             ->label('Newsletter headline')
-                            ->placeholder('Stay in the loop')
+                            ->placeholder('New pieces, sent with care.')
                             ->helperText('Used by the homepage newsletter section and the newsletter popup. Signing up does not create a discount code, so do not promise one unless you send it yourself.')
                             ->maxLength(120)
                             ->columnSpanFull(),
                         TextInput::make('newsletter_text')
                             ->label('Newsletter text')
-                            ->placeholder('Join our list for news about new arrivals and hot deals.')
+                            ->placeholder('Join our list for new arrivals and special prices.')
                             ->maxLength(240)
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+
+                Section::make('Product pages')
+                    ->schema([
+                        TextInput::make('low_stock_threshold')
+                            ->label('Say "Only a few left" at or below this stock')
+                            ->helperText('A product with stock above zero and at or below this number shows "Only a few left in this colour." Set 0 to never show it.')
+                            ->numeric()->integer()->minValue(0)->required(),
+                    ]),
 
                 Section::make('Header')
                     ->description('The top promo bar and main navigation shown on every page.')

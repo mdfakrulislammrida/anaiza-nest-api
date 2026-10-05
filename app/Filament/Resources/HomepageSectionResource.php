@@ -51,10 +51,18 @@ class HomepageSectionResource extends Resource
                     ->visible(fn (Get $get): bool => $get('type') === 'hot_deals')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('custom_title')
-                    ->label('Custom Title (optional)')
-                    ->helperText('Shown as a heading above the HTML block -- leave blank for none.')
+                    ->label('Section title (optional)')
+                    ->helperText(fn (Get $get): string => $get('type') === 'custom_html'
+                        ? 'Shown as a heading above the HTML block -- leave blank for none.'
+                        : 'Replaces the built-in title. Leave blank to keep the default ("Special prices", "Bestsellers", "New arrivals"...).')
                     ->maxLength(255)
-                    ->visible(fn (Get $get): bool => $get('type') === 'custom_html')
+                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter', 'custom_html'], true))
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('custom_subtitle')
+                    ->label('Section subtitle (optional)')
+                    ->helperText('The line under the title. Leave blank to keep the default.')
+                    ->maxLength(255)
+                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter'], true))
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('custom_html')
                     ->label('Custom HTML')

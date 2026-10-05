@@ -35,6 +35,11 @@ class SiteSetting extends Model
         'hero_new_arrivals_text',
         'newsletter_headline',
         'newsletter_text',
+        'tagline',
+        'logo_navy',
+        'logo_ivory',
+        'monogram',
+        'low_stock_threshold',
     ];
 
     /**
@@ -54,6 +59,8 @@ class SiteSetting extends Model
         'delivery_days_outside_max' => 5,
         'return_window_days' => 7,
         'show_categories_menu' => true,
+        'tagline' => 'Gifted, beautifully.',
+        'low_stock_threshold' => 5,
     ];
 
     protected function casts(): array
@@ -71,6 +78,7 @@ class SiteSetting extends Model
             'delivery_days_outside_max' => 'integer',
             'return_window_days' => 'integer',
             'show_categories_menu' => 'boolean',
+            'low_stock_threshold' => 'integer',
         ];
     }
 
@@ -109,26 +117,38 @@ class SiteSetting extends Model
         return [
             ['label' => 'Home', 'url' => '/'],
             ['label' => 'Shop', 'url' => '/shop'],
-            ['label' => 'Hot Deals', 'url' => '/hot-deals'],
-            ['label' => 'Gift Finder', 'url' => '/gift-finder'],
+            ['label' => 'Special prices', 'url' => '/hot-deals'],
+            ['label' => 'Gift finder', 'url' => '/gift-finder'],
             ['label' => 'Blog', 'url' => '/blog'],
             ['label' => 'Contact', 'url' => '/contact'],
         ];
     }
 
+    /**
+     * The brand kit's one-line boilerplate: the footer blurb and the default meta description.
+     */
     public static function defaultFooterAbout(): string
     {
-        return 'Handcrafted ceramic tea sets, porcelain collections, and premium gift boxes, delivered across Bangladesh with cash-on-delivery and mobile-wallet checkout.';
+        return 'Anaiza Nest is a Dhaka gifting house for tea sets, gift boxes and homeware, packed by hand and ready to give.';
+    }
+
+    /**
+     * The brand kit's short boilerplate: the Organization description and llms.txt summary
+     * when the admin has not written a brand description.
+     */
+    public static function defaultBrandDescription(): string
+    {
+        return 'Anaiza Nest curates ceramic and glass tea sets, gift collections and homeware for people who care how a gift feels to open. Every order is packed by hand and sent gift-ready, online at anaizanest.com and in store in Dhaka. Anaiza Nest is part of Fast-Signs Group, trading in Bangladesh since 2003.';
     }
 
     public static function defaultFooterLinks(): array
     {
         return [
-            ['label' => 'Track Order', 'url' => '/track-order'],
-            ['label' => 'Shipping Policy', 'url' => '/pages/shipping'],
-            ['label' => 'Returns & Refunds', 'url' => '/pages/returns'],
+            ['label' => 'Track order', 'url' => '/track-order'],
+            ['label' => 'Shipping policy', 'url' => '/pages/shipping'],
+            ['label' => 'Returns & refunds', 'url' => '/pages/returns'],
             ['label' => 'FAQs', 'url' => '/faq'],
-            ['label' => 'Contact Us', 'url' => '/contact'],
+            ['label' => 'Contact us', 'url' => '/contact'],
         ];
     }
 

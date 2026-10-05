@@ -125,11 +125,11 @@ class StorePolicyAndContentFieldsTest extends TestCase
         $this->assertSame('Eid sale is on', $this->getJson('/api/site-settings')->json('data.promo_text'));
     }
 
-    public function test_brand_description_is_null_when_blank(): void
+    public function test_brand_description_falls_back_to_the_brand_kit_boilerplate_when_blank(): void
     {
         SiteSetting::create(['site_name' => 'Anaiza Nest']);
 
-        $this->assertNull($this->getJson('/api/site-settings')->json('data.brand_description'));
+        $this->assertSame(SiteSetting::defaultBrandDescription(), $this->getJson('/api/site-settings')->json('data.brand_description'));
     }
 
     // --- product content ------------------------------------------------

@@ -8,6 +8,7 @@ use App\Models\ProductLabel;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\Colors\Color;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -32,7 +33,7 @@ class ProductLabelResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Badge text (e.g. Hot, New, Sale, Limited Stock)')
+                    ->label('Badge text (e.g. New, Gift-ready, Special price)')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\ColorPicker::make('badge_color')
@@ -47,7 +48,7 @@ class ProductLabelResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->badge()
-                    ->color(fn (ProductLabel $record) => \Filament\Support\Colors\Color::hex($record->badge_color))
+                    ->color(fn (ProductLabel $record) => Color::hex($record->badge_color))
                     ->searchable(),
                 Tables\Columns\ColorColumn::make('badge_color'),
                 Tables\Columns\TextColumn::make('products_count')

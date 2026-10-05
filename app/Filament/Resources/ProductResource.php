@@ -119,7 +119,7 @@ class ProductResource extends Resource
                     ->suffix('৳'),
                 Forms\Components\TextInput::make('sale_price')
                     ->label('Sale price (BDT)')
-                    ->helperText('Set this lower than the regular price to mark the product as a Hot Deal. Leave blank for no discount.')
+                    ->helperText('Set this lower than the regular price to show it as a Special price. Leave blank for no discount.')
                     ->numeric()
                     ->minValue(0)
                     ->suffix('৳'),

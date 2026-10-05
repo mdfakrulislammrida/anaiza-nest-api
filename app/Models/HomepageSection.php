@@ -16,7 +16,7 @@ class HomepageSection extends Model
      */
     public const TYPES = [
         'hero_banner' => 'Hero Banner',
-        'hot_deals' => 'Hot Deals',
+        'hot_deals' => 'Special prices',
         'bestsellers' => 'Bestsellers',
         'new_arrivals' => 'New Arrivals',
         'newsletter' => 'Newsletter',
@@ -28,6 +28,7 @@ class HomepageSection extends Model
         'position',
         'is_enabled',
         'custom_title',
+        'custom_subtitle',
         'custom_html',
         'deal_ends_at',
     ];
