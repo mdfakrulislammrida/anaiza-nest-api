@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ArticleResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
+use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\RawHtmlSection;
 use App\Models\Article;
 use Filament\Forms;
@@ -37,6 +38,7 @@ class ArticleResource extends Resource
                     ->maxLength(255)
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                BrandVoiceNote::under('title'),
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
@@ -62,8 +64,10 @@ class ArticleResource extends Resource
                     ->maxLength(500)
                     ->rows(2),
                 Forms\Components\RichEditor::make('content')
+                    ->live(onBlur: true)
                     ->helperText(AuthoringGuidance::html('A table of contents is built automatically from your <h2> headings, and any <h1> is shown as an H2 (the article title is the page\'s one H1).'))
                     ->columnSpanFull(),
+                BrandVoiceNote::under('content'),
                 RawHtmlSection::make('content'),
 
                 Forms\Components\Section::make('SEO')

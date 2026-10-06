@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\BrandVoiceNote;
 use App\Models\SiteSetting;
+use App\Support\BrandVoice;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -33,6 +35,32 @@ class ManageSiteSettings extends Page implements HasForms
     protected static string $view = 'filament.pages.manage-site-settings';
 
     protected static ?string $slug = 'site-settings';
+
+    /**
+     * The wording fields the brand check reads (state path => label).
+     *
+     * @var array<string, string>
+     */
+    private const VOICE_FIELDS = [
+        'hero_badge' => 'Hero badge',
+        'hero_title' => 'Hero headline',
+        'hero_text' => 'Hero paragraph',
+        'hero_hot_deals_text' => 'Special prices tile',
+        'hero_new_arrivals_text' => 'New arrivals tile',
+        'newsletter_headline' => 'Newsletter headline',
+        'newsletter_text' => 'Newsletter text',
+        'promo_text' => 'Promo bar',
+        'footer_about' => 'Footer about',
+        'brand_description' => 'Brand description',
+        'corporate_intro' => 'Corporate intro',
+    ];
+
+    /**
+     * Paths offered as suggestions in the menu and footer link pickers.
+     *
+     * @var list<string>
+     */
+    private const LINK_SUGGESTIONS = ['/shop', '/hot-deals', '/gift-finder', '/corporate-gifting', '/contact', '/faq'];
 
     public ?array $data = [];
 
@@ -105,6 +133,7 @@ class ManageSiteSettings extends Page implements HasForms
                             ->label('Address')
                             ->maxLength(255),
                         Textarea::make('brand_description')
+                            ->live(onBlur: true)
                             ->label('Brand description')
                             ->rows(4)
                             ->maxLength(1000)
@@ -151,39 +180,66 @@ class ManageSiteSettings extends Page implements HasForms
                     ->description('The text on the homepage hero tiles and in the newsletter sign-up (banner and popup). Every field is optional: left blank, the storefront shows neutral wording with no discount, percentage or ranking claim. Write a real offer here only when you are running one.')
                     ->schema([
                         TextInput::make('hero_badge')
+                            ->live(onBlur: true)
                             ->label('Hero badge')
                             ->helperText('The small pill above the headline. Blank hides it.')
                             ->maxLength(80),
                         TextInput::make('hero_title')
+                            ->live(onBlur: true)
                             ->label('Hero headline')
                             ->placeholder('Handcrafted tea sets & gifts, done right.')
                             ->maxLength(160),
                         Textarea::make('hero_text')
+                            ->live(onBlur: true)
                             ->label('Hero paragraph')
                             ->rows(3)
                             ->maxLength(400)
                             ->columnSpanFull(),
                         TextInput::make('hero_hot_deals_text')
+                            ->live(onBlur: true)
                             ->label('Special prices tile line')
                             ->placeholder('Special prices, while stock lasts')
                             ->maxLength(120),
                         TextInput::make('hero_new_arrivals_text')
+                            ->live(onBlur: true)
                             ->label('New arrivals tile line')
                             ->placeholder('New gifts to explore')
                             ->maxLength(120),
                         TextInput::make('newsletter_headline')
+                            ->live(onBlur: true)
                             ->label('Newsletter headline')
                             ->placeholder('New pieces, sent with care.')
                             ->helperText('Used by the homepage newsletter section and the newsletter popup. Signing up does not create a discount code, so do not promise one unless you send it yourself.')
                             ->maxLength(120)
                             ->columnSpanFull(),
                         TextInput::make('newsletter_text')
+                            ->live(onBlur: true)
                             ->label('Newsletter text')
                             ->placeholder('Join our list for new arrivals and special prices.')
                             ->maxLength(240)
                             ->columnSpanFull(),
+                        BrandVoiceNote::forFields(self::VOICE_FIELDS),
                     ])
                     ->columns(2),
+
+                Section::make('Corporate gifting')
+                    ->description('The /corporate-gifting page and the enquiry form on it.')
+                    ->schema([
+                        Textarea::make('corporate_intro')
+                            ->label('Short intro on the page (optional)')
+                            ->helperText('Two or three plain sentences under the page heading. Leave blank to keep the built-in sentence. State only what you can do: no discounts or minimum quantities unless you set them.')
+                            ->rows(3)
+                            ->maxLength(500)
+                            ->live(onBlur: true)
+                            ->columnSpanFull(),
+                        BrandVoiceNote::under('corporate_intro'),
+                        TextInput::make('corporate_notify_email')
+                            ->label('Send new enquiries to')
+                            ->email()
+                            ->maxLength(255)
+                            ->helperText('An email is sent here when someone submits the form. Leave blank to send none: enquiries are always saved under Corporate enquiries either way.')
+                            ->columnSpanFull(),
+                    ]),
 
                 Section::make('Product pages')
                     ->schema([
@@ -197,6 +253,7 @@ class ManageSiteSettings extends Page implements HasForms
                     ->description('The top promo bar and main navigation shown on every page.')
                     ->schema([
                         TextInput::make('promo_text')
+                            ->live(onBlur: true)
                             ->label('Top Promo Bar Text')
                             ->maxLength(255)
                             ->columnSpanFull(),
@@ -214,7 +271,8 @@ class ManageSiteSettings extends Page implements HasForms
                                     ->label('URL')
                                     ->required()
                                     ->maxLength(255)
-                                    ->helperText('A relative path like /shop, or a full https:// URL.'),
+                                    ->datalist(self::LINK_SUGGESTIONS)
+                                    ->helperText('A relative path like /shop, or a full https:// URL. Pick /corporate-gifting for the corporate quotation page.'),
                             ])
                             ->columns(2)
                             ->reorderable()
@@ -228,6 +286,7 @@ class ManageSiteSettings extends Page implements HasForms
                 Section::make('Footer')
                     ->schema([
                         Textarea::make('footer_about')
+                            ->live(onBlur: true)
                             ->label('About Blurb')
                             ->rows(3)
                             ->maxLength(500)
@@ -237,12 +296,14 @@ class ManageSiteSettings extends Page implements HasForms
                             ->schema([
                                 TextInput::make('label')
                                     ->required()
+                                    ->datalist(['Ask for a corporate quotation'])
                                     ->maxLength(60),
                                 TextInput::make('url')
                                     ->label('URL')
                                     ->required()
                                     ->maxLength(255)
-                                    ->helperText('A relative path like /faq, or a full https:// URL.'),
+                                    ->datalist(self::LINK_SUGGESTIONS)
+                                    ->helperText('A relative path like /faq, or a full https:// URL. Pick /corporate-gifting for the corporate quotation page.'),
                             ])
                             ->columns(2)
                             ->reorderable()
@@ -303,8 +364,14 @@ class ManageSiteSettings extends Page implements HasForms
 
         $settings->update($data);
 
+        $summary = BrandVoice::summary(array_map(
+            fn (string $field): string => (string) ($settings->{$field} ?? ''),
+            array_keys(self::VOICE_FIELDS),
+        ));
+
         Notification::make()
             ->title('Site settings saved')
+            ->body($summary)
             ->success()
             ->send();
     }

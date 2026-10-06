@@ -87,6 +87,19 @@ class OrderResource extends Resource
                     ->minValue(0)
                     ->suffix('৳'),
                 Forms\Components\Textarea::make('gift_note')
+                    ->label('Order notes')
+                    ->columnSpanFull(),
+                Forms\Components\Toggle::make('is_gift')
+                    ->label('This is a gift')
+                    ->helperText('Ticked by the customer at checkout. Free, and it never changes the price.')
+                    ->live(),
+                Forms\Components\Textarea::make('gift_message')
+                    ->label('Gift message')
+                    ->rows(3)
+                    ->maxLength(200)
+                    ->live(debounce: 500)
+                    ->helperText(fn (?string $state): string => mb_strlen($state ?? '').'/200 characters. This is what the "Print gift note" button puts on the card.')
+                    ->visible(fn (Forms\Get $get): bool => (bool) $get('is_gift'))
                     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Marketing Attribution')
@@ -136,6 +149,12 @@ class OrderResource extends Resource
                         'cancelled' => 'danger',
                         default => 'gray',
                     }),
+                Tables\Columns\IconColumn::make('is_gift')
+                    ->label('Gift')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-gift')
+                    ->falseIcon('')
+                    ->trueColor('warning'),
                 Tables\Columns\TextColumn::make('payment_method')
                     ->formatStateUsing(fn (string $state): string => self::PAYMENT_METHODS[$state] ?? $state)
                     ->badge(),
@@ -194,6 +213,12 @@ class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('printGiftNote')
+                    ->label('Print gift note')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (Order $record): string => route('orders.gift-note', $record))
+                    ->openUrlInNewTab()
+                    ->visible(fn (Order $record): bool => (bool) $record->is_gift),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -39,6 +39,8 @@ class SiteSettingResource extends JsonResource
             // The admin's text, or the brand kit's short boilerplate when blank.
             'brand_description' => $this->brand_description ?: SiteSetting::defaultBrandDescription(),
             'low_stock_threshold' => (int) $this->low_stock_threshold,
+            // The intro on /corporate-gifting; null means the storefront's own default sentence.
+            'corporate_intro' => filled($this->corporate_intro) ? trim($this->corporate_intro) : null,
             // Whether the storefront may say "cash on delivery" (the Payment Settings toggle).
             'cod_enabled' => (bool) (PaymentSetting::query()->value('cod_enabled') ?? true),
             // Homepage wording. Null when blank: the storefront then uses its own neutral default,

@@ -20,6 +20,8 @@ class Order extends Model
         'total',
         'payment_method',
         'gift_note',
+        'is_gift',
+        'gift_message',
         'utm_source',
         'utm_medium',
         'utm_campaign',
@@ -33,6 +35,7 @@ class Order extends Model
             'subtotal' => 'integer',
             'delivery_fee' => 'integer',
             'total' => 'integer',
+            'is_gift' => 'boolean',
         ];
     }
 

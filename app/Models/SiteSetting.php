@@ -40,6 +40,8 @@ class SiteSetting extends Model
         'logo_ivory',
         'monogram',
         'low_stock_threshold',
+        'corporate_intro',
+        'corporate_notify_email',
     ];
 
     /**

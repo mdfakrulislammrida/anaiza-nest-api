@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactSubmissionController;
+use App\Http\Controllers\Api\CorporateEnquiryController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HomepageSectionController;
 use App\Http\Controllers\Api\MarketingSettingController;
@@ -39,6 +40,7 @@ Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/lookup', [OrderController::class, 'lookup']);
 
 Route::post('/contact-submissions', [ContactSubmissionController::class, 'store']);
+Route::post('/corporate-enquiries', [CorporateEnquiryController::class, 'store'])->middleware('throttle:corporate-enquiries');
 
 // Storefront content (mirrors what's managed in the Filament admin panel, so
 // the Next.js frontend doesn't need any of this hardcoded)

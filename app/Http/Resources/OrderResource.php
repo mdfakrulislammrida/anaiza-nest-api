@@ -22,6 +22,8 @@ class OrderResource extends JsonResource
             'delivery_fee' => $this->delivery_fee,
             'total' => $this->total,
             'gift_note' => $this->gift_note,
+            'is_gift' => (bool) $this->is_gift,
+            'gift_message' => $this->is_gift ? $this->gift_message : null,
             'created_at' => $this->created_at,
             'customer' => [
                 'id' => $this->customer->id,

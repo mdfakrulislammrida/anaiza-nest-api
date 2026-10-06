@@ -125,6 +125,9 @@ class OrderController extends Controller
                 'total' => $subtotal + $deliveryFee,
                 'payment_method' => $request->input('payment_method'),
                 'gift_note' => $request->input('gift_note'),
+                // A message only counts when the order is marked as a gift; free, no price change.
+                'is_gift' => $request->boolean('is_gift'),
+                'gift_message' => $request->boolean('is_gift') ? (trim((string) $request->input('gift_message')) ?: null) : null,
                 'utm_source' => $request->input('utm_source'),
                 'utm_medium' => $request->input('utm_medium'),
                 'utm_campaign' => $request->input('utm_campaign'),

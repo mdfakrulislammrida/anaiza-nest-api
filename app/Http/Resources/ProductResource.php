@@ -32,6 +32,13 @@ class ProductResource extends JsonResource
                 ->filter(fn ($row) => filled($row['label'] ?? null) && filled($row['value'] ?? null))
                 ->map(fn ($row) => ['label' => $row['label'], 'value' => $row['value']])
                 ->values(),
+            // What is in the box: plain lines, blanks dropped. Empty list means the section is hidden.
+            'box_contents' => collect($this->box_contents ?? [])
+                ->map(fn ($row) => trim((string) (is_array($row) ? ($row['line'] ?? '') : $row)))
+                ->filter()
+                ->values(),
+            'care_instructions' => filled($this->care_instructions) ? trim($this->care_instructions) : null,
+            'gift_box_included' => (bool) $this->gift_box_included,
             'gtin' => $this->gtin,
             'mpn' => $this->mpn,
             'price' => $this->price,

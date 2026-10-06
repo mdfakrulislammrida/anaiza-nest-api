@@ -7,6 +7,7 @@ use App\Models\Banner;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\ContactSubmission;
+use App\Models\CorporateEnquiry;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Faq;
@@ -110,6 +111,7 @@ class AdminRecords
             Brand::class => Brand::create(['name' => 'Anaiza', 'slug' => 'anaiza']),
             Category::class => self::category(),
             ContactSubmission::class => ContactSubmission::create(['name' => 'Fakrul', 'phone' => '01710000000', 'message' => 'Hello']),
+            CorporateEnquiry::class => CorporateEnquiry::create(['name' => 'Rafi', 'company' => 'Northwind Ltd', 'phone' => '01710000001', 'email' => 'rafi@example.com', 'quantity' => 40]),
             Coupon::class => Coupon::create(['code' => 'WELCOME10', 'discount_type' => 'percent', 'amount' => 10]),
             Customer::class => self::customer(),
             Faq::class => Faq::create(['question' => 'How long is delivery?', 'answer' => '1-3 days.']),

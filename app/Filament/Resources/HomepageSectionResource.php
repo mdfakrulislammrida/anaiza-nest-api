@@ -4,7 +4,11 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\HomepageSectionResource\Pages;
+use App\Filament\Support\BrandVoiceNote;
+use App\Models\Category;
 use App\Models\HomepageSection;
+use App\Models\Page;
+use App\Support\SectionLinks;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -51,18 +55,101 @@ class HomepageSectionResource extends Resource
                     ->visible(fn (Get $get): bool => $get('type') === 'hot_deals')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('custom_title')
+                    ->live(onBlur: true)
                     ->label('Section title (optional)')
                     ->helperText(fn (Get $get): string => $get('type') === 'custom_html'
                         ? 'Shown as a heading above the HTML block -- leave blank for none.'
                         : 'Replaces the built-in title. Leave blank to keep the default ("Special prices", "Featured gifts", "New arrivals"...).')
                     ->maxLength(255)
-                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter', 'custom_html'], true))
+                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter', 'occasions', 'why_us', 'custom_html'], true))
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('custom_subtitle')
+                    ->live(onBlur: true)
                     ->label('Section subtitle (optional)')
                     ->helperText('The line under the title. Leave blank to keep the default.')
                     ->maxLength(255)
-                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter'], true))
+                    ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter', 'occasions', 'why_us'], true))
+                    ->columnSpanFull(),
+                BrandVoiceNote::forFields(['custom_title' => 'Title', 'custom_subtitle' => 'Subtitle']),
+                Forms\Components\Repeater::make('tiles')
+                    ->label('Occasion tiles')
+                    ->helperText('Shown two to a row on phones. A tile with no picture shows its label on a plain panel. Switched-off tiles and tiles with no link are not shown. "Add kit occasions" on the Homepage Sections list adds the seven kit occasions here, switched off.')
+                    ->schema([
+                        Forms\Components\TextInput::make('label')
+                            ->required()
+                            ->maxLength(60)
+                            ->live(onBlur: true),
+                        BrandVoiceNote::under('label'),
+                        Forms\Components\Toggle::make('is_enabled')
+                            ->label('Shown')
+                            ->default(true),
+                        Forms\Components\FileUpload::make('image')
+                            ->label('Picture (optional)')
+                            ->helperText('Any JPG, PNG or WebP. It is converted to a small WebP automatically.')
+                            ->image()
+                            ->disk('public')
+                            ->directory('occasions')
+                            ->imageEditor()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(3072)
+                            ->columnSpanFull(),
+                        Forms\Components\Select::make('link_type')
+                            ->label('Links to')
+                            ->options(SectionLinks::TYPES)
+                            ->default('category')
+                            ->required()
+                            ->native(false)
+                            ->live(),
+                        Forms\Components\Select::make('link_category')
+                            ->label('Category')
+                            ->options(fn (): array => Category::query()->orderBy('name')->pluck('name', 'slug')->all())
+                            ->searchable()
+                            ->required(fn (Get $get): bool => $get('link_type') === 'category')
+                            ->visible(fn (Get $get): bool => $get('link_type') === 'category'),
+                        Forms\Components\Select::make('link_page')
+                            ->label('Page')
+                            ->options(fn (): array => Page::query()->orderBy('title')->pluck('title', 'slug')->all())
+                            ->searchable()
+                            ->required(fn (Get $get): bool => $get('link_type') === 'page')
+                            ->visible(fn (Get $get): bool => $get('link_type') === 'page'),
+                        Forms\Components\TextInput::make('custom_url')
+                            ->label('URL')
+                            ->helperText('A path like /shop, or a full https:// address.')
+                            ->maxLength(255)
+                            ->required(fn (Get $get): bool => $get('link_type') === 'custom')
+                            ->visible(fn (Get $get): bool => $get('link_type') === 'custom'),
+                    ])
+                    ->columns(2)
+                    ->reorderable()
+                    ->reorderableWithButtons()
+                    ->collapsed()
+                    ->itemLabel(fn (array $state): ?string => filled($state['label'] ?? null) ? $state['label'].(($state['is_enabled'] ?? true) ? '' : ' (switched off)') : null)
+                    ->addActionLabel('Add a tile')
+                    ->visible(fn (Get $get): bool => $get('type') === 'occasions')
+                    ->columnSpanFull(),
+                Forms\Components\Repeater::make('reasons')
+                    ->label('Reasons')
+                    ->helperText('Up to five. Each is a short title (optional) and one line. Empty by default, so the section stays hidden until you add something. "Insert kit lines" on the Homepage Sections list fills in the five lines from the brand kit.')
+                    ->schema([
+                        Forms\Components\TextInput::make('title')
+                            ->label('Title (optional)')
+                            ->maxLength(60)
+                            ->live(onBlur: true),
+                        Forms\Components\TextInput::make('line')
+                            ->label('One line')
+                            ->required()
+                            ->maxLength(160)
+                            ->live(onBlur: true),
+                        BrandVoiceNote::forFields(['title' => 'Title', 'line' => 'Line']),
+                    ])
+                    ->columns(2)
+                    ->maxItems(HomepageSection::MAX_REASONS)
+                    ->reorderable()
+                    ->reorderableWithButtons()
+                    ->collapsed()
+                    ->itemLabel(fn (array $state): ?string => filled($state['title'] ?? null) ? $state['title'] : ($state['line'] ?? null))
+                    ->addActionLabel('Add a reason')
+                    ->visible(fn (Get $get): bool => $get('type') === 'why_us')
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('custom_html')
                     ->label('Custom HTML')

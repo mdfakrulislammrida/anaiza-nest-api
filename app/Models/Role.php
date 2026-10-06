@@ -33,6 +33,7 @@ class Role extends Model
         'testimonials.manage' => 'Manage Testimonials',
         'media_library.manage' => 'Manage Media Library',
         'contact_submissions.manage' => 'View Contact Submissions',
+        'corporate_enquiries.manage' => 'Manage Corporate Enquiries',
         'newsletter.view' => 'View Newsletter Subscribers',
         'site_settings.manage' => 'Manage Site Settings',
         'payment_settings.manage' => 'Manage Payment Settings',

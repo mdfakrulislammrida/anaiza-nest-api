@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\PageResource\Pages;
+use App\Filament\Support\BrandVoiceNote;
 use App\Models\Page;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -33,12 +34,15 @@ class PageResource extends Resource
                     ->maxLength(255)
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (string $operation, $state, Forms\Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                BrandVoiceNote::under('title'),
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
                 Forms\Components\RichEditor::make('content')
+                    ->live(onBlur: true)
                     ->columnSpanFull(),
+                BrandVoiceNote::under('content'),
 
                 Forms\Components\Section::make('SEO')
                     ->collapsible()

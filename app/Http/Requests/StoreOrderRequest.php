@@ -32,6 +32,9 @@ class StoreOrderRequest extends FormRequest
             'thana' => ['required', 'string', 'max:60'],
             'payment_method' => ['required', 'in:cod,bkash,nagad,rocket,card'],
             'gift_note' => ['nullable', 'string', 'max:1000'],
+            'is_gift' => ['nullable', 'boolean'],
+            // Counted in characters, so Bangla text gets the same 200 as English.
+            'gift_message' => ['nullable', 'string', 'max:200'],
             'utm_source' => ['nullable', 'string', 'max:255'],
             'utm_medium' => ['nullable', 'string', 'max:255'],
             'utm_campaign' => ['nullable', 'string', 'max:255'],

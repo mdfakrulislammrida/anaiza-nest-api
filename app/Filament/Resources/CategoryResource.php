@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
+use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\DeleteGuard;
 use App\Models\Category;
 use Filament\Forms;
@@ -39,6 +40,7 @@ class CategoryResource extends Resource
                     ->maxLength(255)
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                BrandVoiceNote::under('name'),
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
@@ -71,6 +73,7 @@ class CategoryResource extends Resource
                     ->description('Shown below the product grid, collapsed behind "Read more" on mobile. Typically 300-800 words.')
                     ->schema([
                         Forms\Components\RichEditor::make('seo_description')
+                            ->live(onBlur: true)
                             ->label('')
                             ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the category name.'))
                             ->columnSpanFull(),

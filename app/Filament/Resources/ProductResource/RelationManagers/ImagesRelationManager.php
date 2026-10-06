@@ -8,6 +8,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ImagesRelationManager extends RelationManager
@@ -15,6 +16,9 @@ class ImagesRelationManager extends RelationManager
     protected static string $relationship = 'images';
 
     private const MAX_IMAGES = 8;
+
+    /** The shots the brand kit asks for, shown as a hint only. */
+    private const SUGGESTED_SHOTS = 4;
 
     public function form(Form $form): Form
     {
@@ -78,6 +82,16 @@ class ImagesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description(function (): HtmlString {
+                $count = $this->getOwnerRecord()->images()->count();
+                $hint = 'Four shots work well: the reveal, the pour, the table and a detail. The image with the lowest sort order is the main one.';
+
+                if ($count >= self::SUGGESTED_SHOTS) {
+                    return new HtmlString(e($hint));
+                }
+
+                return new HtmlString(e($hint).'<br><strong style="color:#8a5a00">This product has '.$count.' of '.self::SUGGESTED_SHOTS.' suggested images.</strong> A note only: you can still save and publish it.');
+            })
             ->recordTitleAttribute('url')
             ->defaultSort('sort_order')
             ->reorderable('sort_order')

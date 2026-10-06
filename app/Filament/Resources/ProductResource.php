@@ -6,6 +6,7 @@ use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Filament\Support\AuthoringGuidance;
+use App\Filament\Support\BrandVoiceNote;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -48,6 +49,7 @@ class ProductResource extends Resource
                     ->maxLength(100)
                     ->helperText(fn (?string $state): string => strlen($state ?? '').'/100 characters (recommended 60-70). This becomes the page H1 -- put the main keyword first.')
                     ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                BrandVoiceNote::under('name'),
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
@@ -68,13 +70,16 @@ class ProductResource extends Resource
                     ->rows(4)
                     ->helperText(fn (?string $state): string => mb_strlen($state ?? '').'/600 characters, '.AuthoringGuidance::wordCount($state).' words (recommended 50-100). Make the first sentence say what it is, who it is for and the key benefit, using the brand and product name instead of "our product".')
                     ->columnSpanFull(),
+                BrandVoiceNote::under('summary'),
 
                 Forms\Components\Section::make('Description')
                     ->schema([
                         Forms\Components\RichEditor::make('description')
                             ->label('')
+                            ->live(onBlur: true)
                             ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the product name.'))
                             ->columnSpanFull(),
+                        BrandVoiceNote::under('description'),
 
                         Forms\Components\Section::make('Paste or upload raw HTML instead')
                             ->collapsible()
@@ -172,6 +177,37 @@ class ProductResource extends Resource
                             ->preload(),
                     ])
                     ->columnSpanFull(),
+
+                Forms\Components\Section::make('In the box, and care')
+                    ->description('Shown on the product page under "What is in the box?" and "How do I care for it?". A section with nothing in it is hidden.')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\Toggle::make('gift_box_included')
+                            ->label('Gift box included')
+                            ->helperText('When on, the price on the product page reads "৳1,450, gift box included". Leave it off unless a gift box really comes with this product.')
+                            ->default(false)
+                            ->columnSpanFull(),
+                        Forms\Components\Repeater::make('box_contents')
+                            ->label('What is in the box')
+                            ->simple(
+                                Forms\Components\TextInput::make('line')
+                                    ->required()
+                                    ->maxLength(120),
+                            )
+                            ->maxItems(12)
+                            ->reorderable()
+                            ->reorderableWithButtons()
+                            ->addActionLabel('Add a line')
+                            ->helperText('One short line each, for example "Teapot" or "Two cups". Up to 12.')
+                            ->columnSpanFull(),
+                        Forms\Components\Textarea::make('care_instructions')
+                            ->label('Care instructions')
+                            ->rows(3)
+                            ->maxLength(400)
+                            ->live(debounce: 500)
+                            ->helperText(fn (?string $state): string => mb_strlen($state ?? '').'/400 characters. Plain text, for example how to wash it. Only write what is true for this product.')
+                            ->columnSpanFull(),
+                    ]),
 
                 Forms\Components\Section::make('Specifications')
                     ->description('Shown as a table on the product page. Up to 20 rows. A label such as "Material" or "Colour" is also published to search engines as that property.')
