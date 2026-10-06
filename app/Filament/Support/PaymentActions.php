@@ -3,6 +3,7 @@
 namespace App\Filament\Support;
 
 use App\Models\Order;
+use App\Support\ConversionEvents;
 use App\Support\WalletPayments;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -80,6 +81,12 @@ final class PaymentActions
                 'payment_note' => filled($note) ? trim($note) : null,
             ])->save();
         });
+
+        // Money confirmed: only now is a wallet order a sale for Meta and TikTok. Failed sends nothing, and
+        // verifying again (after a fail, say) cannot send it twice.
+        if ($status === 'verified') {
+            ConversionEvents::sendOnVerification($order);
+        }
 
         Notification::make()
             ->success()

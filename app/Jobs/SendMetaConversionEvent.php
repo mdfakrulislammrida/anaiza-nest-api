@@ -32,6 +32,9 @@ class SendMetaConversionEvent implements ShouldQueue
         public Order $order,
         public ?string $clientIp = null,
         public ?string $clientUserAgent = null,
+        // A unix time to report the sale at. Null means when the order was placed; a wallet order is sent when its
+        // payment is verified, which may be a while later.
+        public ?int $eventTime = null,
     ) {}
 
     public function handle(): void
@@ -57,7 +60,7 @@ class SendMetaConversionEvent implements ShouldQueue
         $payload = [
             'data' => [[
                 'event_name' => 'Purchase',
-                'event_time' => $this->order->created_at->timestamp,
+                'event_time' => $this->eventTime ?? $this->order->created_at->timestamp,
                 'event_id' => "order-{$this->order->id}",
                 'action_source' => 'website',
                 'event_source_url' => config('app.frontend_url').'/order-confirmation',

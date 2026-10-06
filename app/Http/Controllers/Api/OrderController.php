@@ -5,17 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
-use App\Jobs\SendMetaConversionEvent;
-use App\Jobs\SendTikTokConversionEvent;
 use App\Mail\OrderConfirmationMail;
 use App\Mail\WalletPaymentReceivedMail;
-use App\Models\CookieConsentSetting;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
+use App\Support\ConversionEvents;
 use App\Support\DeliveryFeeCalculator;
 use App\Support\WalletPayments;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -49,15 +47,21 @@ class OrderController extends Controller
         // Meta/TikTok must never delay or break this response. IP/user
         // agent are captured here, from the request itself, since neither
         // is available any more once the job actually runs.
-        // In opt-in cookie mode a visitor who has not allowed marketing cookies is not sent to Meta or TikTok.
-        if (! CookieConsentSetting::current()->requiresOptIn() || $request->boolean('marketing_consent')) {
-            SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
-            SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        // Cash on delivery is a sale now. A wallet order is not one until its payment is verified, so nothing is
+        // sent for it here (its visitor details were kept for that moment). In opt-in cookie mode a visitor who has
+        // not allowed marketing cookies is never sent.
+        if (! WalletPayments::isWallet($order->payment_method)) {
+            ConversionEvents::sendAtPlacement($order, $request->ip(), $request->userAgent());
         }
 
         return OrderResource::make($order)
             ->response()
             ->setStatusCode(201);
+    }
+
+    private function keepsVisitorDetails(StoreOrderRequest $request): bool
+    {
+        return WalletPayments::isWallet($request->input('payment_method')) && ConversionEvents::allowed($request->boolean('marketing_consent'));
     }
 
     private function placeOrder(StoreOrderRequest $request): Order
@@ -167,6 +171,9 @@ class OrderController extends Controller
                 'gift_note' => $request->input('gift_note'),
                 // A message only counts when the order is marked as a gift; free, no price change.
                 'marketing_consent' => $request->boolean('marketing_consent'),
+                // Kept only for a wallet order whose visitor may be reported to ad platforms, until it is verified.
+                'client_ip' => $this->keepsVisitorDetails($request) ? $request->ip() : null,
+                'client_user_agent' => $this->keepsVisitorDetails($request) ? mb_substr((string) $request->userAgent(), 0, 500) : null,
                 'is_gift' => $request->boolean('is_gift'),
                 'gift_message' => $request->boolean('is_gift') ? (trim((string) $request->input('gift_message')) ?: null) : null,
                 'utm_source' => $request->input('utm_source'),
