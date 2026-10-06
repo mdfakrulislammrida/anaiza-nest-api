@@ -18,6 +18,9 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'status' => $this->status,
             'payment_method' => $this->payment_method,
+            // cod, awaiting_verification, verified or failed. The sender number, transaction ID and the
+            // admin's note stay inside the admin.
+            'payment_status' => $this->payment_status,
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,
             'total' => $this->total,

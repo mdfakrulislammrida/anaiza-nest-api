@@ -8,12 +8,16 @@ use App\Http\Resources\OrderResource;
 use App\Jobs\SendMetaConversionEvent;
 use App\Jobs\SendTikTokConversionEvent;
 use App\Mail\OrderConfirmationMail;
+use App\Mail\WalletPaymentReceivedMail;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
 use App\Support\DeliveryFeeCalculator;
+use App\Support\WalletPayments;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +29,36 @@ class OrderController extends Controller
 {
     public function store(StoreOrderRequest $request)
     {
-        $order = DB::transaction(function () use ($request) {
+        try {
+            $order = $this->placeOrder($request);
+        } catch (UniqueConstraintViolationException) {
+            // Two orders arrived at once with the same transaction ID; the database let only one through.
+            throw ValidationException::withMessages([
+                'payment_trx_id' => 'This transaction ID has already been used on another order. Please check it, or contact us.',
+            ]);
+        }
+
+        $order->load(['customer', 'items']);
+
+        $this->sendConfirmationEmail($order);
+        $this->announceWalletOrder($order);
+
+        // Queued: each job no-ops on its own if that platform's pixel ID +
+        // access token aren't both configured, and a slow/failed call to
+        // Meta/TikTok must never delay or break this response. IP/user
+        // agent are captured here, from the request itself, since neither
+        // is available any more once the job actually runs.
+        SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+
+        return OrderResource::make($order)
+            ->response()
+            ->setStatusCode(201);
+    }
+
+    private function placeOrder(StoreOrderRequest $request): Order
+    {
+        return DB::transaction(function () use ($request) {
             $customer = Customer::where('phone', $request->string('customer_phone'))->first();
 
             $contactDetails = [
@@ -124,6 +157,9 @@ class OrderController extends Controller
                 'delivery_fee' => $deliveryFee,
                 'total' => $subtotal + $deliveryFee,
                 'payment_method' => $request->input('payment_method'),
+                'payment_status' => WalletPayments::initialStatus($request->input('payment_method')),
+                'payment_trx_id' => $request->input('payment_trx_id'),
+                'payment_sender_number' => $request->input('payment_sender_number'),
                 'gift_note' => $request->input('gift_note'),
                 // A message only counts when the order is marked as a gift; free, no price change.
                 'is_gift' => $request->boolean('is_gift'),
@@ -139,22 +175,34 @@ class OrderController extends Controller
 
             return $order;
         });
+    }
 
-        $order->load(['customer', 'items']);
+    /**
+     * Tells the shop a wallet order is waiting to be checked. It runs after the response is sent (no queue
+     * worker needed), and a failure is only logged: the order is saved and shows in the admin either way.
+     */
+    private function announceWalletOrder(Order $order): void
+    {
+        if (! WalletPayments::isWallet($order->payment_method)) {
+            return;
+        }
 
-        $this->sendConfirmationEmail($order);
+        $to = PaymentSetting::query()->value('payment_notify_email') ?: SiteSetting::query()->value('contact_email');
 
-        // Queued: each job no-ops on its own if that platform's pixel ID +
-        // access token aren't both configured, and a slow/failed call to
-        // Meta/TikTok must never delay or break this response. IP/user
-        // agent are captured here, from the request itself, since neither
-        // is available any more once the job actually runs.
-        SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
-        SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        if (blank($to)) {
+            return;
+        }
 
-        return OrderResource::make($order)
-            ->response()
-            ->setStatusCode(201);
+        dispatch(function () use ($order, $to): void {
+            try {
+                Mail::to($to)->send(new WalletPaymentReceivedMail($order));
+            } catch (\Throwable $e) {
+                Log::warning('Wallet payment notification email failed.', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        })->afterResponse();
     }
 
     /**

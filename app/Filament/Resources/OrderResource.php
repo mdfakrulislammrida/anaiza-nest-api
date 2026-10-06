@@ -5,8 +5,10 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
+use App\Filament\Support\PaymentActions;
 use App\Models\Order;
 use App\Models\ShippingZone;
+use App\Support\WalletPayments;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,8 +39,28 @@ class OrderResource extends Resource
         'cod' => 'Cash on Delivery',
         'bkash' => 'bKash',
         'nagad' => 'Nagad',
+        'rocket' => 'Rocket',
         'card' => 'Card',
     ];
+
+    public const PAYMENT_STATUSES = WalletPayments::STATUSES;
+
+    public static function getNavigationBadge(): ?string
+    {
+        $waiting = Order::query()->where('payment_status', WalletPayments::AWAITING)->count();
+
+        return $waiting > 0 ? (string) $waiting : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Payment to verify';
+    }
 
     public static function form(Form $form): Form
     {
@@ -89,6 +111,37 @@ class OrderResource extends Resource
                 Forms\Components\Textarea::make('gift_note')
                     ->label('Order notes')
                     ->columnSpanFull(),
+                Forms\Components\Section::make('Payment')
+                    ->description('Wallet payments are checked by hand: find the transaction ID in your bKash, Nagad or Rocket app, then use Mark verified or Mark failed at the top of this page. The status cannot be edited any other way.')
+                    ->schema([
+                        Forms\Components\TextInput::make('payment_status')
+                            ->label('Payment status')
+                            ->formatStateUsing(fn (?string $state): string => self::PAYMENT_STATUSES[$state] ?? (string) $state)
+                            ->disabled()
+                            ->dehydrated(false),
+                        Forms\Components\TextInput::make('payment_sender_number')
+                            ->label('Paid from')
+                            ->disabled()
+                            ->dehydrated(false),
+                        Forms\Components\TextInput::make('payment_trx_id')
+                            ->label('Transaction ID')
+                            ->disabled()
+                            ->dehydrated(false),
+                        Forms\Components\Placeholder::make('payment_decision')
+                            ->label('Decided')
+                            ->content(fn (?Order $record): string => $record?->payment_verified_at
+                                ? $record->payment_verified_at->timezone('Asia/Dhaka')->format('j M Y, g:i A').' by '.($record->verifiedBy?->name ?? 'a former admin')
+                                : 'Not yet')
+                            ->visible(fn (?Order $record): bool => $record !== null),
+                        Forms\Components\Textarea::make('payment_note')
+                            ->label('Payment note')
+                            ->rows(2)
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->visible(fn (?Order $record): bool => $record !== null && $record->payment_method !== 'cod'),
                 Forms\Components\Toggle::make('is_gift')
                     ->label('This is a gift')
                     ->helperText('Ticked by the customer at checkout. Free, and it never changes the price.')
@@ -149,6 +202,22 @@ class OrderResource extends Resource
                         'cancelled' => 'danger',
                         default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->label('Payment')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => self::PAYMENT_STATUSES[$state] ?? (string) $state)
+                    ->color(fn (?string $state): string => match ($state) {
+                        WalletPayments::AWAITING => 'warning',
+                        'verified' => 'success',
+                        'failed' => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('payment_trx_id')
+                    ->label('Transaction ID')
+                    ->searchable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('is_gift')
                     ->label('Gift')
                     ->boolean()
@@ -191,6 +260,9 @@ class OrderResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(self::STATUSES),
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->label('Payment')
+                    ->options(self::PAYMENT_STATUSES),
                 Tables\Filters\SelectFilter::make('payment_method')
                     ->label('Payment Method')
                     ->options(self::PAYMENT_METHODS),
@@ -213,6 +285,8 @@ class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                PaymentActions::verify(Tables\Actions\Action::class),
+                PaymentActions::fail(Tables\Actions\Action::class),
                 Tables\Actions\Action::make('printGiftNote')
                     ->label('Print gift note')
                     ->icon('heroicon-o-printer')

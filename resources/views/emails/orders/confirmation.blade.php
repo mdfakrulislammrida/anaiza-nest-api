@@ -83,6 +83,12 @@
                                     <td width="50%" style="vertical-align:top;padding-left:8px;">
                                         <p style="margin:0 0 4px;font-size:12px;color:#71717a;text-transform:uppercase;">Payment method</p>
                                         <p style="margin:0;font-size:14px;text-transform:uppercase;">{{ $order->payment_method }}</p>
+                                        @if ($paymentMessage = \App\Support\WalletPayments::message($order->payment_status))
+                                            <p style="margin:6px 0 0;font-size:14px;">{{ $paymentMessage }}</p>
+                                            @if ($order->payment_status !== 'verified' && $siteSetting?->contact_phone)
+                                                <p style="margin:4px 0 0;font-size:13px;color:#52525b;">Questions? Call {{ $siteSetting->contact_phone }}.</p>
+                                            @endif
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
