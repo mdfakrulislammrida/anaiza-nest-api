@@ -54,7 +54,7 @@ class HomepageSectionResource extends Resource
                     ->label('Section title (optional)')
                     ->helperText(fn (Get $get): string => $get('type') === 'custom_html'
                         ? 'Shown as a heading above the HTML block -- leave blank for none.'
-                        : 'Replaces the built-in title. Leave blank to keep the default ("Special prices", "Bestsellers", "New arrivals"...).')
+                        : 'Replaces the built-in title. Leave blank to keep the default ("Special prices", "Featured gifts", "New arrivals"...).')
                     ->maxLength(255)
                     ->visible(fn (Get $get): bool => in_array($get('type'), ['hot_deals', 'bestsellers', 'new_arrivals', 'newsletter', 'custom_html'], true))
                     ->columnSpanFull(),

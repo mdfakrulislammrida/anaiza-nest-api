@@ -10,6 +10,7 @@ class PaymentSettingController extends Controller
 {
     public function show()
     {
-        return PaymentSettingResource::make(PaymentSetting::query()->firstOrCreate([]));
+        // A GET is always a 200, even on the very first read that has to create the settings row.
+        return PaymentSettingResource::make(PaymentSetting::query()->firstOrCreate([]))->response()->setStatusCode(200);
     }
 }

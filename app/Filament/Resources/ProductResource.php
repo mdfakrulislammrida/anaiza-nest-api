@@ -145,7 +145,7 @@ class ProductResource extends Resource
                 Forms\Components\Toggle::make('is_new')
                     ->label('Mark as new arrival'),
                 Forms\Components\Toggle::make('is_featured')
-                    ->label('Feature in Bestsellers'),
+                    ->label('Show in Featured gifts'),
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active (visible in store)')
                     ->default(true),

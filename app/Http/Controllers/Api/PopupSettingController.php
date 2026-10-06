@@ -10,6 +10,7 @@ class PopupSettingController extends Controller
 {
     public function show()
     {
-        return PopupSettingResource::make(PopupSetting::query()->firstOrCreate([]));
+        // A GET is always a 200, even on the very first read that has to create the settings row.
+        return PopupSettingResource::make(PopupSetting::query()->firstOrCreate([]))->response()->setStatusCode(200);
     }
 }

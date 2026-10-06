@@ -58,6 +58,7 @@ class SiteSetting extends Model
         'delivery_days_outside_min' => 3,
         'delivery_days_outside_max' => 5,
         'return_window_days' => 7,
+        'site_name' => 'Anaiza Nest',
         'show_categories_menu' => true,
         'tagline' => 'Gifted, beautifully.',
         'low_stock_threshold' => 5,

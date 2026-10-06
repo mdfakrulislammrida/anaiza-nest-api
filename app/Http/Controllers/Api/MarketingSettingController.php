@@ -10,6 +10,7 @@ class MarketingSettingController extends Controller
 {
     public function show()
     {
-        return MarketingSettingResource::make(MarketingSetting::query()->firstOrCreate([]));
+        // A GET is always a 200, even on the very first read that has to create the settings row.
+        return MarketingSettingResource::make(MarketingSetting::query()->firstOrCreate([]))->response()->setStatusCode(200);
     }
 }

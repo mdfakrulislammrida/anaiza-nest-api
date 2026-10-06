@@ -13,6 +13,14 @@ class PaymentSetting extends Model
         'cod_enabled',
     ];
 
+    /**
+     * Eloquent does not re-read a row after inserting it, so a settings row created on first read
+     * (the API does that) would otherwise report cash on delivery as null instead of on.
+     */
+    protected $attributes = [
+        'cod_enabled' => true,
+    ];
+
     protected function casts(): array
     {
         return [

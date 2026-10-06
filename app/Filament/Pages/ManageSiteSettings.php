@@ -168,7 +168,7 @@ class ManageSiteSettings extends Page implements HasForms
                             ->placeholder('Special prices, while stock lasts')
                             ->maxLength(120),
                         TextInput::make('hero_new_arrivals_text')
-                            ->label('New Arrivals tile line')
+                            ->label('New arrivals tile line')
                             ->placeholder('New gifts to explore')
                             ->maxLength(120),
                         TextInput::make('newsletter_headline')

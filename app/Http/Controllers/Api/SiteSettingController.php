@@ -10,6 +10,7 @@ class SiteSettingController extends Controller
 {
     public function show()
     {
-        return SiteSettingResource::make(SiteSetting::query()->firstOrCreate([]));
+        // A GET is always a 200, even on the very first read that has to create the settings row.
+        return SiteSettingResource::make(SiteSetting::query()->firstOrCreate([]))->response()->setStatusCode(200);
     }
 }
