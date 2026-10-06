@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -19,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  * client-side pixel's CompletePayment event (see tracking.ts) so TikTok
  * deduplicates the two rather than double-counting the sale.
  */
-class SendTikTokConversionEvent implements ShouldQueue
+class SendTikTokConversionEvent
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 

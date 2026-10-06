@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Models\Category;
 use App\Models\HomepageSection;
+use App\Models\Order;
 use App\Models\ProductImage;
 use App\Observers\CategoryObserver;
 use App\Observers\HomepageSectionObserver;
+use App\Observers\OrderObserver;
 use App\Observers\ProductImageObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -34,5 +36,6 @@ class AppServiceProvider extends ServiceProvider
         ProductImage::observe(ProductImageObserver::class);
         Category::observe(CategoryObserver::class);
         HomepageSection::observe(HomepageSectionObserver::class);
+        Order::observe(OrderObserver::class);
     }
 }

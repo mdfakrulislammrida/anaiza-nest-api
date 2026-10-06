@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
-use App\Mail\OrderConfirmationMail;
 use App\Mail\WalletPaymentReceivedMail;
 use App\Models\Customer;
 use App\Models\Order;
@@ -15,6 +14,7 @@ use App\Models\ProductVariant;
 use App\Models\SiteSetting;
 use App\Support\ConversionEvents;
 use App\Support\DeliveryFeeCalculator;
+use App\Support\Email\TransactionalEmails;
 use App\Support\WalletPayments;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -39,7 +39,8 @@ class OrderController extends Controller
 
         $order->load(['customer', 'items']);
 
-        $this->sendConfirmationEmail($order);
+        // Sent right after this response (there is no queue worker), and a mail problem can never fail checkout.
+        TransactionalEmails::orderConfirmation($order);
         $this->announceWalletOrder($order);
 
         // Queued: each job no-ops on its own if that platform's pixel ID +
@@ -215,29 +216,6 @@ class OrderController extends Controller
                 ]);
             }
         })->afterResponse();
-    }
-
-    /**
-     * Best-effort: a customer who didn't provide an email simply gets none,
-     * and a broken/unconfigured SMTP setup must never fail the checkout
-     * itself since the order is already committed at this point.
-     */
-    private function sendConfirmationEmail(Order $order): void
-    {
-        if (! $order->customer->email) {
-            return;
-        }
-
-        try {
-            Mail::to($order->customer->email)->send(
-                new OrderConfirmationMail($order, SiteSetting::first())
-            );
-        } catch (\Throwable $e) {
-            Log::error('Failed to send order confirmation email.', [
-                'order_id' => $order->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     /**

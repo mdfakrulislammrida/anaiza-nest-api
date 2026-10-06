@@ -24,6 +24,9 @@ class Order extends Model
         'is_gift',
         'gift_message',
         'marketing_consent',
+        'courier_name',
+        'tracking_number',
+        'emails_sent',
         'client_ip',
         'client_user_agent',
         'payment_status',
@@ -49,6 +52,7 @@ class Order extends Model
             'marketing_consent' => 'boolean',
             'payment_verified_at' => 'datetime',
             'conversion_sent_at' => 'datetime',
+            'emails_sent' => 'array',
         ];
     }
 

@@ -30,7 +30,8 @@ final class ConversionEvents
     }
 
     /**
-     * Cash on delivery: queued at placement, as it has always been.
+     * Cash on delivery: sent at placement, right after the checkout response. (It used to be queued, but production has
+     * no queue worker, so those jobs were never run.)
      */
     public static function sendAtPlacement(Order $order, ?string $ip, ?string $userAgent): void
     {
@@ -40,8 +41,8 @@ final class ConversionEvents
 
         $order->forceFill(['conversion_sent_at' => now()])->saveQuietly();
 
-        SendMetaConversionEvent::dispatch($order, $ip, $userAgent);
-        SendTikTokConversionEvent::dispatch($order, $ip, $userAgent);
+        SendMetaConversionEvent::dispatchAfterResponse($order, $ip, $userAgent);
+        SendTikTokConversionEvent::dispatchAfterResponse($order, $ip, $userAgent);
     }
 
     /**

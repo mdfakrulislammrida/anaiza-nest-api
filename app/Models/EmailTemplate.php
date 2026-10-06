@@ -2,16 +2,25 @@
 
 namespace App\Models;
 
+use App\Support\Email\TemplateDefinitions;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * The admin's wording for one transactional email. A row only ever holds the admin's own text; the built-in wording
+ * (App\Support\Email\TemplateDefinitions) is what is used whenever a row is switched off, missing, or has a blank field.
+ */
 class EmailTemplate extends Model
 {
-    public const ORDER_CONFIRMATION = 'order_confirmation';
+    public const ORDER_CONFIRMATION = TemplateDefinitions::CONFIRMATION;
 
     protected $fillable = [
         'key',
         'subject',
-        'body_html',
+        'intro_html',
+        'closing_html',
+        'footer_note',
+        'use_custom_html',
+        'custom_html',
         'is_active',
     ];
 
@@ -19,43 +28,45 @@ class EmailTemplate extends Model
     {
         return [
             'is_active' => 'boolean',
+            'use_custom_html' => 'boolean',
         ];
     }
 
     /**
-     * Today's hardcoded wording for the order confirmation email, expressed
-     * with the same {{token}} placeholders a custom template uses. This is
-     * the true fallback -- kept in PHP rather than as a seeded-but-inactive
-     * database row -- so it can never be corrupted by anything that happens
-     * to the email_templates table, and both the default and a custom
-     * template render through the exact same substitution path.
+     * Makes sure every template has a row to list and edit. They start switched off, so nothing changes until the admin
+     * chooses to use their own wording.
      */
-    public static function defaultOrderConfirmationSubject(): string
+    public static function ensureAll(): void
     {
-        return 'Order #{{order_number}} confirmed - {{site_name}}';
+        $have = static::query()->pluck('key')->all();
+
+        foreach (array_diff(TemplateDefinitions::KEYS, $have) as $key) {
+            static::query()->create(['key' => $key, 'is_active' => false]);
+        }
     }
 
-    public static function defaultOrderConfirmationBodyHtml(): string
+    public function label(): string
     {
-        return <<<'HTML'
-        <h1 style="font-size:20px;margin:0 0 4px;">Thanks for your order, {{customer_name}}!</h1>
-        <p style="margin:0;color:#52525b;font-size:14px;">Order #{{order_number}} placed on {{order_date}} has been confirmed. A detailed invoice is attached to this email.</p>
-        HTML;
+        return TemplateDefinitions::label($this->key);
     }
 
     /**
-     * Substitutes every {{token}} in $subject/$body_html with the given
-     * values. strtr (not regex or repeated str_replace) so every token is
-     * replaced in a single pass with no cascading-replacement risk.
+     * What the admin form starts from: their text where they have written some, the built-in wording elsewhere.
      *
-     * @param  array<string, string>  $tokens  e.g. ['{{order_number}}' => '482']
-     * @return array{subject: string, body_html: string}
+     * @return array<string, mixed>
      */
-    public function render(array $tokens): array
+    public function formState(): array
     {
+        $defaults = TemplateDefinitions::defaults($this->key);
+
         return [
-            'subject' => strtr($this->subject ?? '', $tokens),
-            'body_html' => strtr($this->body_html ?? '', $tokens),
+            'is_active' => $this->is_active,
+            'subject' => filled($this->subject) ? $this->subject : $defaults['subject'],
+            'intro_html' => filled($this->intro_html) ? $this->intro_html : $defaults['intro_html'],
+            'closing_html' => $this->closing_html ?? $defaults['closing_html'],
+            'footer_note' => $this->footer_note ?? $defaults['footer_note'],
+            'use_custom_html' => $this->use_custom_html,
+            'custom_html' => $this->custom_html,
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Support\Email\TransactionalEmails;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -58,6 +59,11 @@ class SocialAuthController extends Controller
                 'password' => Str::random(32),
             ]
         );
+
+        // A first sign-in creates the account, which is when the welcome goes out; coming back sends nothing.
+        if ($customer->wasRecentlyCreated) {
+            TransactionalEmails::welcome($customer);
+        }
 
         $token = $customer->createToken('storefront')->plainTextToken;
 

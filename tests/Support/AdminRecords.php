@@ -10,6 +10,7 @@ use App\Models\ContactSubmission;
 use App\Models\CorporateEnquiry;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\EmailTemplate;
 use App\Models\Faq;
 use App\Models\HomepageSection;
 use App\Models\MediaItem;
@@ -49,6 +50,13 @@ class AdminRecords
             'sku' => 'SKU-'.uniqid(),
             'is_active' => true,
         ], $overrides));
+    }
+
+    private static function emailTemplate(): EmailTemplate
+    {
+        EmailTemplate::ensureAll();
+
+        return EmailTemplate::query()->where('key', 'order_shipped')->firstOrFail();
     }
 
     public static function customer(array $overrides = []): Customer
@@ -114,6 +122,7 @@ class AdminRecords
             CorporateEnquiry::class => CorporateEnquiry::create(['name' => 'Rafi', 'company' => 'Northwind Ltd', 'phone' => '01710000001', 'email' => 'rafi@example.com', 'quantity' => 40]),
             Coupon::class => Coupon::create(['code' => 'WELCOME10', 'discount_type' => 'percent', 'amount' => 10]),
             Customer::class => self::customer(),
+            EmailTemplate::class => self::emailTemplate(),
             Faq::class => Faq::create(['question' => 'How long is delivery?', 'answer' => '1-3 days.']),
             HomepageSection::class => HomepageSection::create(['type' => array_key_first(HomepageSection::TYPES), 'position' => 1, 'is_enabled' => true]),
             MediaItem::class => MediaItem::create(['disk' => 'public', 'path' => 'media/example.jpg', 'original_name' => 'example.jpg', 'mime_type' => 'image/jpeg', 'size' => 1024]),

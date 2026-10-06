@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginCustomerRequest;
 use App\Http\Requests\RegisterCustomerRequest;
 use App\Models\Customer;
+use App\Support\Email\TransactionalEmails;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,8 @@ class AuthController extends Controller
     public function register(RegisterCustomerRequest $request)
     {
         $customer = Customer::create($request->validated());
+
+        TransactionalEmails::welcome($customer);
 
         $token = $customer->createToken('storefront')->plainTextToken;
 

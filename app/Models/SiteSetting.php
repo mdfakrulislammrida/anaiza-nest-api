@@ -40,6 +40,7 @@ class SiteSetting extends Model
         'newsletter_text',
         'tagline',
         'logo_navy',
+        'logo_mono',
         'logo_ivory',
         'monogram',
         'low_stock_threshold',

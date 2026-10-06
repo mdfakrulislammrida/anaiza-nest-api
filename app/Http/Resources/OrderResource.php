@@ -21,6 +21,9 @@ class OrderResource extends JsonResource
             // cod, awaiting_verification, verified or failed. The sender number, transaction ID and the
             // admin's note stay inside the admin.
             'payment_status' => $this->payment_status,
+            // Set by the shop when the order ships; null until then.
+            'courier_name' => $this->courier_name,
+            'tracking_number' => $this->tracking_number,
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,
             'total' => $this->total,

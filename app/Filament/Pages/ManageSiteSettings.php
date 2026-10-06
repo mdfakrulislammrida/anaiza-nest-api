@@ -189,6 +189,12 @@ class ManageSiteSettings extends Page implements HasForms
                             ->image()
                             ->disk('public')
                             ->directory('site'),
+                        FileUpload::make('logo_mono')
+                            ->label('Logo, one colour (black, for invoices)')
+                            ->helperText('The one-colour master, used on the invoice PDF, which carries no colour or decoration. Without one, the navy logo is used.')
+                            ->image()
+                            ->disk('public')
+                            ->directory('site'),
                         FileUpload::make('logo_ivory')
                             ->label('Logo, ivory (for dark areas)')
                             ->helperText('The ivory master, used on deep ink areas such as the footer.')

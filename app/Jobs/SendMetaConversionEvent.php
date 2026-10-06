@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -19,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  * Purchase event (see tracking.ts) so Meta deduplicates the two rather than
  * double-counting the sale.
  */
-class SendMetaConversionEvent implements ShouldQueue
+class SendMetaConversionEvent
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
 

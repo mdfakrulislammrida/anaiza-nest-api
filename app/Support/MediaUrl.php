@@ -28,4 +28,29 @@ class MediaUrl
 
         return Storage::disk('public')->url($value);
     }
+
+    /**
+     * An image for the invoice PDF: a file on the public disk is embedded (so the PDF needs no network access and never
+     * shows a broken image), anything else is passed through as its URL.
+     */
+    public static function forPdf(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($value)) {
+            return null;
+        }
+
+        $mime = $disk->mimeType($value) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode((string) $disk->get($value));
+    }
 }

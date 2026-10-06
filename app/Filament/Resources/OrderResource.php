@@ -14,6 +14,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class OrderResource extends Resource
 {
@@ -75,6 +76,13 @@ class OrderResource extends Resource
                     ->options(self::STATUSES)
                     ->default('pending')
                     ->required(),
+                Forms\Components\TextInput::make('courier_name')
+                    ->label('Courier')
+                    ->maxLength(100)
+                    ->helperText('Shown in the "Order shipped" email and on the Track order page.'),
+                Forms\Components\TextInput::make('tracking_number')
+                    ->label('Tracking number')
+                    ->maxLength(100),
                 Forms\Components\Select::make('payment_method')
                     ->label('Payment Method')
                     ->options(self::PAYMENT_METHODS)
@@ -296,6 +304,19 @@ class OrderResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('changeStatus')
+                        ->label('Change status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->form([
+                            Forms\Components\Select::make('status')
+                                ->options(self::STATUSES)
+                                ->required()
+                                ->native(false)
+                                ->helperText('Moving orders to Shipped, Delivered or Cancelled sends each customer that email, once per order.'),
+                        ])
+                        // Saved one order at a time, so each order's status email fires exactly as it does from its own page.
+                        ->action(fn (Collection $records, array $data) => $records->each(fn (Order $order) => $order->update(['status' => $data['status']])))
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
