@@ -31,9 +31,14 @@ class SiteSettingResource extends JsonResource
             'address' => $this->address,
             'promo_text' => $this->resource->promoTextOrDefault(),
             'show_categories_menu' => (bool) $this->show_categories_menu,
-            'nav_links' => $this->nav_links ?: SiteSetting::defaultNavLinks(),
+            'nav_auto_categories' => (bool) $this->nav_auto_categories,
+            // Menus with ids already turned into today's URLs (a renamed slug never breaks them). Header items
+            // may carry one level of children.
+            'nav_links' => $this->resource->resolvedNavLinks(),
             'footer_about' => $this->footer_about ?: SiteSetting::defaultFooterAbout(),
-            'footer_links' => $this->footer_links ?: SiteSetting::defaultFooterLinks(),
+            // Up to three titled columns; footer_links is the same links flattened, for older storefront builds.
+            'footer_columns' => $this->resource->resolvedFooterColumns(),
+            'footer_links' => collect($this->resource->resolvedFooterColumns())->pluck('items')->flatten(1)->values()->all(),
             'social_links' => $this->social_links ?? [],
             'footer_copyright_text' => $this->footer_copyright_text ?: SiteSetting::defaultCopyrightText(),
             // The admin's text, or the brand kit's short boilerplate when blank.

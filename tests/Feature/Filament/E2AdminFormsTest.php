@@ -251,8 +251,8 @@ class E2AdminFormsTest extends TestCase
             ->fillForm([
                 'corporate_intro' => 'Tell us what you need.',
                 'corporate_notify_email' => 'team@example.com',
-                'footer_links' => [['label' => 'Ask for a corporate quotation', 'url' => '/corporate-gifting']],
-                'nav_links' => [['label' => 'Corporate gifting', 'url' => '/corporate-gifting']],
+                'footer_columns' => [['title' => 'Customer care', 'items' => [['type' => 'custom', 'label' => 'Ask for a corporate quotation', 'url' => '/corporate-gifting']]]],
+                'nav_links' => [['type' => 'custom', 'label' => 'Corporate gifting', 'url' => '/corporate-gifting']],
             ])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -260,6 +260,6 @@ class E2AdminFormsTest extends TestCase
         $settings = SiteSetting::first();
         $this->assertSame('Tell us what you need.', $settings->corporate_intro);
         $this->assertSame('team@example.com', $settings->corporate_notify_email);
-        $this->assertSame('/corporate-gifting', $settings->footer_links[0]['url']);
+        $this->assertSame('/corporate-gifting', $settings->footer_columns[0]['items'][0]['url']);
     }
 }

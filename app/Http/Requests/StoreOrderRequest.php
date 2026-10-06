@@ -88,6 +88,8 @@ class StoreOrderRequest extends FormRequest
             'payment_trx_id' => ['nullable', 'required_if:payment_method,bkash,nagad,rocket', 'regex:/^[A-Za-z0-9]{6,20}$/', Rule::unique('orders', 'payment_trx_id')],
             'gift_note' => ['nullable', 'string', 'max:1000'],
             'is_gift' => ['nullable', 'boolean'],
+            // Whether the visitor allowed marketing cookies when they ordered (see Cookie consent).
+            'marketing_consent' => ['nullable', 'boolean'],
             // Counted in characters, so Bangla text gets the same 200 as English.
             'gift_message' => ['nullable', 'string', 'max:200'],
             'utm_source' => ['nullable', 'string', 'max:255'],

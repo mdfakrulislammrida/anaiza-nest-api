@@ -9,6 +9,7 @@ use App\Jobs\SendMetaConversionEvent;
 use App\Jobs\SendTikTokConversionEvent;
 use App\Mail\OrderConfirmationMail;
 use App\Mail\WalletPaymentReceivedMail;
+use App\Models\CookieConsentSetting;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\PaymentSetting;
@@ -48,8 +49,11 @@ class OrderController extends Controller
         // Meta/TikTok must never delay or break this response. IP/user
         // agent are captured here, from the request itself, since neither
         // is available any more once the job actually runs.
-        SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
-        SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        // In opt-in cookie mode a visitor who has not allowed marketing cookies is not sent to Meta or TikTok.
+        if (! CookieConsentSetting::current()->requiresOptIn() || $request->boolean('marketing_consent')) {
+            SendMetaConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+            SendTikTokConversionEvent::dispatch($order, $request->ip(), $request->userAgent());
+        }
 
         return OrderResource::make($order)
             ->response()
@@ -162,6 +166,7 @@ class OrderController extends Controller
                 'payment_sender_number' => $request->input('payment_sender_number'),
                 'gift_note' => $request->input('gift_note'),
                 // A message only counts when the order is marked as a gift; free, no price change.
+                'marketing_consent' => $request->boolean('marketing_consent'),
                 'is_gift' => $request->boolean('is_gift'),
                 'gift_message' => $request->boolean('is_gift') ? (trim((string) $request->input('gift_message')) ?: null) : null,
                 'utm_source' => $request->input('utm_source'),

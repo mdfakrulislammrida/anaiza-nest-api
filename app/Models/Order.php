@@ -23,6 +23,7 @@ class Order extends Model
         'gift_note',
         'is_gift',
         'gift_message',
+        'marketing_consent',
         'payment_status',
         'payment_trx_id',
         'payment_sender_number',
@@ -43,6 +44,7 @@ class Order extends Model
             'delivery_fee' => 'integer',
             'total' => 'integer',
             'is_gift' => 'boolean',
+            'marketing_consent' => 'boolean',
             'payment_verified_at' => 'datetime',
         ];
     }

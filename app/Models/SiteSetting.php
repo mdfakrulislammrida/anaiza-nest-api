@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MenuLinks;
 use Illuminate\Database\Eloquent\Model;
 
 class SiteSetting extends Model
@@ -16,6 +17,8 @@ class SiteSetting extends Model
         'nav_links',
         'footer_about',
         'footer_links',
+        'footer_columns',
+        'nav_auto_categories',
         'social_links',
         'footer_copyright_text',
         'brand_description',
@@ -62,6 +65,7 @@ class SiteSetting extends Model
         'return_window_days' => 7,
         'site_name' => 'Anaiza Nest',
         'show_categories_menu' => true,
+        'nav_auto_categories' => false,
         'tagline' => 'Gifted, beautifully.',
         'low_stock_threshold' => 5,
     ];
@@ -71,6 +75,8 @@ class SiteSetting extends Model
         return [
             'nav_links' => 'array',
             'footer_links' => 'array',
+            'footer_columns' => 'array',
+            'nav_auto_categories' => 'boolean',
             'social_links' => 'array',
             'free_delivery_threshold' => 'integer',
             'delivery_fee_dhaka' => 'integer',
@@ -118,13 +124,44 @@ class SiteSetting extends Model
     public static function defaultNavLinks(): array
     {
         return [
-            ['label' => 'Home', 'url' => '/'],
-            ['label' => 'Shop', 'url' => '/shop'],
-            ['label' => 'Special prices', 'url' => '/hot-deals'],
-            ['label' => 'Gift finder', 'url' => '/gift-finder'],
-            ['label' => 'Blog', 'url' => '/blog'],
-            ['label' => 'Contact', 'url' => '/contact'],
+            ['type' => 'custom', 'label' => 'Home', 'url' => '/'],
+            ['type' => 'custom', 'label' => 'Shop', 'url' => '/shop'],
+            ['type' => 'custom', 'label' => 'Special prices', 'url' => '/hot-deals'],
+            ['type' => 'custom', 'label' => 'Gift finder', 'url' => '/gift-finder'],
+            ['type' => 'blog', 'label' => '', 'url' => ''],
+            ['type' => 'custom', 'label' => 'Contact', 'url' => '/contact'],
         ];
+    }
+
+    /**
+     * The header menu as the storefront shows it: ids turned into current URLs, deleted targets dropped, and
+     * (when the switch is on) every category under Shop.
+     *
+     * @return list<array{label: string, url: string, children: list<array{label: string, url: string}>}>
+     */
+    public function resolvedNavLinks(): array
+    {
+        $links = MenuLinks::resolve($this->nav_links ?: self::defaultNavLinks());
+
+        return $this->nav_auto_categories ? MenuLinks::withAutoCategories($links) : $links;
+    }
+
+    /**
+     * The footer link columns as the storefront shows them.
+     *
+     * @return list<array{title: string, items: list<array{label: string, url: string}>}>
+     */
+    public function resolvedFooterColumns(): array
+    {
+        return MenuLinks::resolveColumns($this->footer_columns ?: self::defaultFooterColumns());
+    }
+
+    /**
+     * @return list<array{title: string, items: list<array<string, string>>}>
+     */
+    public static function defaultFooterColumns(): array
+    {
+        return [['title' => 'Customer care', 'items' => self::defaultFooterLinks()]];
     }
 
     /**
@@ -147,11 +184,11 @@ class SiteSetting extends Model
     public static function defaultFooterLinks(): array
     {
         return [
-            ['label' => 'Track order', 'url' => '/track-order'],
-            ['label' => 'Shipping policy', 'url' => '/pages/shipping'],
-            ['label' => 'Returns & refunds', 'url' => '/pages/returns'],
-            ['label' => 'FAQs', 'url' => '/faq'],
-            ['label' => 'Contact us', 'url' => '/contact'],
+            ['type' => 'custom', 'label' => 'Track order', 'url' => '/track-order'],
+            ['type' => 'custom', 'label' => 'Shipping policy', 'url' => '/pages/shipping'],
+            ['type' => 'custom', 'label' => 'Returns & refunds', 'url' => '/pages/returns'],
+            ['type' => 'custom', 'label' => 'FAQs', 'url' => '/faq'],
+            ['type' => 'custom', 'label' => 'Contact us', 'url' => '/contact'],
         ];
     }
 

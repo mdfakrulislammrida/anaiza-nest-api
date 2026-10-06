@@ -3,8 +3,12 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Support\BrandVoiceNote;
+use App\Models\Category;
+use App\Models\Page as CmsPage;
 use App\Models\SiteSetting;
 use App\Support\BrandVoice;
+use App\Support\MenuLinks;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -78,9 +82,91 @@ class ManageSiteSettings extends Page implements HasForms
             'promo_text' => $settings->promoTextOrDefault(),
             'nav_links' => $settings->nav_links ?: SiteSetting::defaultNavLinks(),
             'footer_about' => $settings->footer_about ?: SiteSetting::defaultFooterAbout(),
-            'footer_links' => $settings->footer_links ?: SiteSetting::defaultFooterLinks(),
+            'footer_columns' => $settings->footer_columns ?: SiteSetting::defaultFooterColumns(),
             'footer_copyright_text' => $settings->footer_copyright_text ?: SiteSetting::defaultCopyrightText(),
         ]);
+    }
+
+    /**
+     * The fields of one menu item: its type, the page, category or URL that goes with the type, and a label
+     * (optional for pages and categories, which then use their own name).
+     *
+     * @return array<int, Component>
+     */
+    private function menuItemFields(bool $withChildren): array
+    {
+        $fields = [
+            Select::make('type')
+                ->label('Type')
+                ->options(MenuLinks::TYPES)
+                ->default('custom')
+                ->required()
+                ->native(false)
+                ->live(),
+            Select::make('page_id')
+                ->label('Page')
+                ->options(fn (): array => CmsPage::query()->orderBy('title')->pluck('title', 'id')->all())
+                ->searchable()
+                ->required(fn (Get $get): bool => $get('type') === 'page')
+                ->visible(fn (Get $get): bool => $get('type') === 'page'),
+            Select::make('category_id')
+                ->label('Category')
+                ->options(fn (): array => Category::query()->orderBy('name')->pluck('name', 'id')->all())
+                ->searchable()
+                ->required(fn (Get $get): bool => $get('type') === 'category')
+                ->visible(fn (Get $get): bool => $get('type') === 'category'),
+            TextInput::make('url')
+                ->label('URL')
+                ->maxLength(255)
+                ->datalist(self::LINK_SUGGESTIONS)
+                ->required(fn (Get $get): bool => ($get('type') ?? 'custom') === 'custom')
+                ->visible(fn (Get $get): bool => ($get('type') ?? 'custom') === 'custom')
+                ->helperText('A relative path like /shop, or a full https:// URL. Pick /corporate-gifting for the corporate quotation page.'),
+            TextInput::make('label')
+                ->label('Label')
+                ->maxLength(60)
+                ->datalist(['Ask for a corporate quotation'])
+                ->required(fn (Get $get): bool => ($get('type') ?? 'custom') === 'custom')
+                ->helperText(fn (Get $get): ?string => in_array($get('type'), ['page', 'category', 'blog'], true)
+                    ? 'Leave blank to use the name of the page or category.'
+                    : null),
+        ];
+
+        if ($withChildren) {
+            $fields[] = Repeater::make('children')
+                ->label('Sub-items (shown as a dropdown)')
+                ->schema($this->menuItemFields(withChildren: false))
+                ->columns(2)
+                ->maxItems(12)
+                ->defaultItems(0)
+                ->reorderable()
+                ->reorderableWithButtons()
+                ->collapsed()
+                ->itemLabel(fn (array $state): ?string => $this->menuItemLabel($state))
+                ->addActionLabel('Add sub-item')
+                ->columnSpanFull();
+        }
+
+        return $fields;
+    }
+
+    /**
+     * What a collapsed menu item is called in the admin: its label, or the name of the page or category it points at.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function menuItemLabel(array $state): ?string
+    {
+        if (filled($state['label'] ?? null)) {
+            return $state['label'];
+        }
+
+        return match ($state['type'] ?? 'custom') {
+            'page' => ($title = CmsPage::query()->whereKey($state['page_id'] ?? 0)->value('title')) ? $title : '(page no longer exists)',
+            'category' => ($name = Category::query()->whereKey($state['category_id'] ?? 0)->value('name')) ? $name : '(category no longer exists)',
+            'blog' => 'Blog',
+            default => null,
+        };
     }
 
     public function form(Form $form): Form
@@ -261,24 +347,19 @@ class ManageSiteSettings extends Page implements HasForms
                             ->label('Show a Categories menu in the header')
                             ->helperText('Lists the categories marked "Show in the storefront Categories menu" (Categories > edit). Needs at least one such category to appear.')
                             ->columnSpanFull(),
+                        Toggle::make('nav_auto_categories')
+                            ->label('Auto-list all categories under Shop')
+                            ->helperText('Adds every category marked "Show in the storefront Categories menu" as a sub-item of the Shop item, so you do not have to add them one by one. It replaces the separate Categories dropdown above. Needs an item that points at /shop.')
+                            ->columnSpanFull(),
                         Repeater::make('nav_links')
                             ->label('Main Navigation Links')
-                            ->schema([
-                                TextInput::make('label')
-                                    ->required()
-                                    ->maxLength(60),
-                                TextInput::make('url')
-                                    ->label('URL')
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->datalist(self::LINK_SUGGESTIONS)
-                                    ->helperText('A relative path like /shop, or a full https:// URL. Pick /corporate-gifting for the corporate quotation page.'),
-                            ])
+                            ->helperText('Each item is a page, a category, the blog or a custom URL. Pages and categories follow their current address, so renaming a slug never breaks the menu. Add sub-items to give an item a dropdown (an accordion on phones).')
+                            ->schema($this->menuItemFields(withChildren: true))
                             ->columns(2)
                             ->reorderable()
                             ->reorderableWithButtons()
                             ->collapsed()
-                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
+                            ->itemLabel(fn (array $state): ?string => $this->menuItemLabel($state))
                             ->addActionLabel('Add nav link')
                             ->columnSpanFull(),
                     ]),
@@ -291,26 +372,31 @@ class ManageSiteSettings extends Page implements HasForms
                             ->rows(3)
                             ->maxLength(500)
                             ->columnSpanFull(),
-                        Repeater::make('footer_links')
-                            ->label('Customer Care Links')
+                        Repeater::make('footer_columns')
+                            ->label('Link columns')
+                            ->helperText('Up to three columns, each with a title and links. A page or category link follows its current address.')
                             ->schema([
-                                TextInput::make('label')
+                                TextInput::make('title')
+                                    ->label('Column title')
                                     ->required()
-                                    ->datalist(['Ask for a corporate quotation'])
                                     ->maxLength(60),
-                                TextInput::make('url')
-                                    ->label('URL')
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->datalist(self::LINK_SUGGESTIONS)
-                                    ->helperText('A relative path like /faq, or a full https:// URL. Pick /corporate-gifting for the corporate quotation page.'),
+                                Repeater::make('items')
+                                    ->label('Links')
+                                    ->schema($this->menuItemFields(withChildren: false))
+                                    ->columns(2)
+                                    ->reorderable()
+                                    ->reorderableWithButtons()
+                                    ->collapsed()
+                                    ->itemLabel(fn (array $state): ?string => $this->menuItemLabel($state))
+                                    ->addActionLabel('Add link')
+                                    ->columnSpanFull(),
                             ])
-                            ->columns(2)
+                            ->maxItems(3)
                             ->reorderable()
                             ->reorderableWithButtons()
                             ->collapsed()
-                            ->itemLabel(fn (array $state): ?string => $state['label'] ?? null)
-                            ->addActionLabel('Add link')
+                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                            ->addActionLabel('Add column')
                             ->columnSpanFull(),
                         Repeater::make('social_links')
                             ->label('Social Media Links')
