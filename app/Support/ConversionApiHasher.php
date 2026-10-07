@@ -45,4 +45,32 @@ class ConversionApiHasher
 
         return hash('sha256', $digits);
     }
+
+    /**
+     * Lower case, letters only (no spaces, punctuation or digits), then hashed: Meta's rule for names, cities and states.
+     * Bangla letters are kept. The browser applies the same rule (see userData.ts), so both sides hash to the same value.
+     */
+    public static function text(?string $value): ?string
+    {
+        $clean = preg_replace('/[^\p{L}\p{M}]/u', '', mb_strtolower(trim((string) $value)));
+
+        return $clean === null || $clean === '' ? null : hash('sha256', $clean);
+    }
+
+    /**
+     * The first word of a full name and everything after it, each hashed. A one-word name has no last name.
+     *
+     * @return array{first: ?string, last: ?string}
+     */
+    public static function fullName(?string $name): array
+    {
+        $parts = preg_split('/\s+/u', trim((string) $name), 2) ?: [];
+
+        return ['first' => self::text($parts[0] ?? null), 'last' => self::text($parts[1] ?? null)];
+    }
+
+    public static function country(string $code = 'bd'): string
+    {
+        return hash('sha256', strtolower($code));
+    }
 }

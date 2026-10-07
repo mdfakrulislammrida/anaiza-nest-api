@@ -20,6 +20,7 @@ use App\Models\Page;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductLabel;
+use App\Models\ProductReview;
 use App\Models\ProductTag;
 use App\Models\Role;
 use App\Models\ShippingZone;
@@ -57,6 +58,13 @@ class AdminRecords
         EmailTemplate::ensureAll();
 
         return EmailTemplate::query()->where('key', 'order_shipped')->firstOrFail();
+    }
+
+    private static function productReview(): ProductReview
+    {
+        $product = self::for(Product::class);
+
+        return ProductReview::create(['product_id' => $product->id, 'name' => 'Rafi', 'rating' => 5, 'body' => 'Lovely set, packed beautifully.']);
     }
 
     public static function customer(array $overrides = []): Customer
@@ -123,6 +131,7 @@ class AdminRecords
             Coupon::class => Coupon::create(['code' => 'WELCOME10', 'discount_type' => 'percent', 'amount' => 10]),
             Customer::class => self::customer(),
             EmailTemplate::class => self::emailTemplate(),
+            ProductReview::class => self::productReview(),
             Faq::class => Faq::create(['question' => 'How long is delivery?', 'answer' => '1-3 days.']),
             HomepageSection::class => HomepageSection::create(['type' => array_key_first(HomepageSection::TYPES), 'position' => 1, 'is_enabled' => true]),
             MediaItem::class => MediaItem::create(['disk' => 'public', 'path' => 'media/example.jpg', 'original_name' => 'example.jpg', 'mime_type' => 'image/jpeg', 'size' => 1024]),

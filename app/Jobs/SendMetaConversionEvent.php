@@ -52,6 +52,12 @@ class SendMetaConversionEvent
         $userData = array_filter([
             'em' => ConversionApiHasher::email($customer->email) ? [ConversionApiHasher::email($customer->email)] : null,
             'ph' => ConversionApiHasher::phone($customer->phone) ? [ConversionApiHasher::phone($customer->phone)] : null,
+            // Advanced matching: the same hashed fields the browser sends with its own Purchase event.
+            'fn' => ($name = ConversionApiHasher::fullName($customer->name))['first'] ? [$name['first']] : null,
+            'ln' => $name['last'] ? [$name['last']] : null,
+            'ct' => ConversionApiHasher::text($customer->district) ? [ConversionApiHasher::text($customer->district)] : null,
+            'st' => ConversionApiHasher::text($customer->division) ? [ConversionApiHasher::text($customer->division)] : null,
+            'country' => [ConversionApiHasher::country()],
             'client_ip_address' => $this->clientIp,
             'client_user_agent' => $this->clientUserAgent,
         ]);

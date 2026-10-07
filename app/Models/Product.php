@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -116,6 +117,22 @@ class Product extends Model
     public function faqs(): HasMany
     {
         return $this->hasMany(ProductFaq::class)->orderBy('sort_order');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    /**
+     * Adds rating_count and rating_average, from approved reviews only, to the products being loaded (one query for the
+     * whole list, not one per product).
+     */
+    public function scopeWithRatings(Builder $query): Builder
+    {
+        return $query
+            ->withCount(['reviews as rating_count' => fn ($reviews) => $reviews->where('status', ProductReview::APPROVED)])
+            ->withAvg(['reviews as rating_average' => fn ($reviews) => $reviews->where('status', ProductReview::APPROVED)], 'rating');
     }
 
     public function orderItems(): HasMany

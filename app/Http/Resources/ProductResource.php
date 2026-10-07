@@ -39,6 +39,9 @@ class ProductResource extends JsonResource
                 ->values(),
             'care_instructions' => filled($this->care_instructions) ? trim($this->care_instructions) : null,
             'gift_box_included' => (bool) $this->gift_box_included,
+            // From approved reviews only. The average is null until there is a review, so nothing shows a rating by default.
+            'rating_count' => (int) ($this->rating_count ?? 0),
+            'rating_average' => ($this->rating_count ?? 0) > 0 ? round((float) $this->rating_average, 1) : null,
             'gtin' => $this->gtin,
             'mpn' => $this->mpn,
             'price' => $this->price,

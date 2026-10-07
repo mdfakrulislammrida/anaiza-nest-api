@@ -13,6 +13,7 @@ class ProductController extends Controller
     {
         $products = Product::query()
             ->where('is_active', true)
+            ->withRatings()
             ->with(['category', 'brand', 'images', 'tags', 'labels'])
             ->when($request->filled('category'), fn ($query) => $query->whereHas(
                 'category',
@@ -55,6 +56,8 @@ class ProductController extends Controller
         abort_unless($product->is_active, 404);
 
         $product->load(['category', 'brand', 'images', 'variants.image', 'tags', 'labels', 'attributeValues.attribute', 'faqs']);
+        $product->loadCount(['reviews as rating_count' => fn ($reviews) => $reviews->where('status', 'approved')]);
+        $product->loadAvg(['reviews as rating_average' => fn ($reviews) => $reviews->where('status', 'approved')], 'rating');
 
         // Avoids an N+1: each variant's effective_price/effective_stock/etc.
         // accessor falls back to $this->product, so every variant needs it

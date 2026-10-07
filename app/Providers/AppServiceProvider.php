@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Corporate enquiries carry no CAPTCHA, so they are limited per visitor instead (plus a honeypot).
+        // A review needs an order to back it, but the number and phone are only five or six digits to guess, so attempts
+        // are limited per address.
+        RateLimiter::for('product-reviews', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
+
         RateLimiter::for('corporate-enquiries', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
         ProductImage::observe(ProductImageObserver::class);

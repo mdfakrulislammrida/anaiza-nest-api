@@ -35,6 +35,7 @@ class Role extends Model
         'contact_submissions.manage' => 'View Contact Submissions',
         'corporate_enquiries.manage' => 'Manage Corporate Enquiries',
         'cookie_consent.manage' => 'Manage Cookie Consent',
+        'product_reviews.manage' => 'Manage Product Reviews',
         'newsletter.view' => 'View Newsletter Subscribers',
         'site_settings.manage' => 'Manage Site Settings',
         'payment_settings.manage' => 'Manage Payment Settings',
