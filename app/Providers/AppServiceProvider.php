@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Banner;
 use App\Models\Category;
 use App\Models\HomepageSection;
 use App\Models\Order;
 use App\Models\ProductImage;
+use App\Observers\BannerObserver;
 use App\Observers\CategoryObserver;
 use App\Observers\HomepageSectionObserver;
 use App\Observers\OrderObserver;
@@ -39,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
 
         ProductImage::observe(ProductImageObserver::class);
         Category::observe(CategoryObserver::class);
+        Banner::observe(BannerObserver::class);
         HomepageSection::observe(HomepageSectionObserver::class);
         Order::observe(OrderObserver::class);
     }

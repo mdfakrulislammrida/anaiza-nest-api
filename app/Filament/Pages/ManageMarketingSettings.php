@@ -83,6 +83,22 @@ class ManageMarketingSettings extends Page implements HasForms
                             ->maxLength(2000),
                     ])
                     ->columns(2),
+
+                Section::make('Test event codes')
+                    ->description('Optional. While one is filled in, the matching server-side Purchase event also carries it, so it appears under Test events in that platform. Remove the code once you have finished testing: events sent with a test code are not counted for real.')
+                    ->schema([
+                        TextInput::make('meta_test_event_code')
+                            ->label('Meta test event code')
+                            ->helperText('From Events Manager > Test events, like TEST12345. Remove it after testing.')
+                            ->maxLength(60)
+                            ->autocomplete('off'),
+                        TextInput::make('tiktok_test_event_code')
+                            ->label('TikTok test event code')
+                            ->helperText('From Events Manager > Test events, like TEST12345. Remove it after testing.')
+                            ->maxLength(60)
+                            ->autocomplete('off'),
+                    ])
+                    ->columns(2),
             ])
             ->statePath('data');
     }

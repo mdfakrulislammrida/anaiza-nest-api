@@ -333,6 +333,17 @@ class ManageSiteSettings extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Product feeds')
+                    ->description('The Google, Meta and TikTok product feeds live under Settings > Product feeds.')
+                    ->schema([
+                        TextInput::make('feed_storefront_url')
+                            ->label('Storefront URL for feeds')
+                            ->url()
+                            ->maxLength(255)
+                            ->placeholder(fn (): string => (string) config('app.frontend_url'))
+                            ->helperText('The address product links in the feeds start with. Leave blank to use the site address the server was set up with (FRONTEND_URL). Change it here when the shop moves to its real domain, and the feeds follow within the hour.'),
+                    ]),
+
                 Section::make('Product pages')
                     ->schema([
                         TextInput::make('low_stock_threshold')

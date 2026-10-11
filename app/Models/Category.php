@@ -30,6 +30,8 @@ class Category extends Model
         'meta_description',
         'show_in_menu',
         'menu_order',
+        'google_product_category',
+        'product_type',
     ];
 
     /**

@@ -45,6 +45,14 @@ class CategoryResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('google_product_category')
+                    ->label('Google product category (optional)')
+                    ->helperText('For the product feeds: a category from Google\'s list, as text or its number, for example "Home & Garden > Kitchen & Dining > Tableware". Leave blank to send none.')
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('product_type')
+                    ->label('Product type for feeds (optional)')
+                    ->helperText('Leave blank to use the category name.')
+                    ->maxLength(255),
                 Forms\Components\Toggle::make('show_in_menu')
                     ->label('Show in the storefront Categories menu')
                     ->helperText('The menu itself can be switched off in Site Settings > Header. The storefront is a static build, so menu changes appear after the next storefront build.')
@@ -198,7 +206,7 @@ class CategoryResource extends Resource
      * different from the recommended one -- mirrors ImagesRelationManager's
      * product-image warning, generalized for an arbitrary target ratio.
      */
-    private static function dimensionWarning(int $recommendedWidth, int $recommendedHeight, string $label): \Closure
+    public static function dimensionWarning(int $recommendedWidth, int $recommendedHeight, string $label): \Closure
     {
         return function ($state) use ($recommendedWidth, $recommendedHeight, $label) {
             if (! $state instanceof TemporaryUploadedFile) {

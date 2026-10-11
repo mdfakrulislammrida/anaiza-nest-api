@@ -40,6 +40,7 @@ class Product extends Model
         'is_new',
         'is_featured',
         'is_active',
+        'exclude_from_feeds',
     ];
 
     protected function casts(): array
@@ -54,6 +55,7 @@ class Product extends Model
             'is_new' => 'boolean',
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
+            'exclude_from_feeds' => 'boolean',
         ];
     }
 

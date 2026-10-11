@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\MenuLinks;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class SiteSetting extends Model
 {
@@ -46,6 +47,11 @@ class SiteSetting extends Model
         'low_stock_threshold',
         'corporate_intro',
         'corporate_notify_email',
+        'feed_storefront_url',
+        'feed_token',
+        'feeds_include_out_of_stock',
+        'slider_autoplay',
+        'slider_interval',
     ];
 
     /**
@@ -69,6 +75,9 @@ class SiteSetting extends Model
         'nav_auto_categories' => false,
         'tagline' => 'Gifted, beautifully.',
         'low_stock_threshold' => 5,
+        'feeds_include_out_of_stock' => true,
+        'slider_autoplay' => false,
+        'slider_interval' => 7,
     ];
 
     protected function casts(): array
@@ -89,6 +98,9 @@ class SiteSetting extends Model
             'return_window_days' => 'integer',
             'show_categories_menu' => 'boolean',
             'low_stock_threshold' => 'integer',
+            'feeds_include_out_of_stock' => 'boolean',
+            'slider_autoplay' => 'boolean',
+            'slider_interval' => 'integer',
         ];
     }
 
@@ -120,6 +132,44 @@ class SiteSetting extends Model
         $threshold = number_format(($settings ?? new self)->free_delivery_threshold);
 
         return "Free delivery inside Dhaka on orders over ৳{$threshold}";
+    }
+
+    /** The slowest-allowed pace for an autoplaying slider, in seconds: never faster than this. */
+    public const SLIDER_MIN_INTERVAL = 6;
+
+    /** Seconds each slide stays, never under the minimum. */
+    public static function sliderInterval(?self $settings = null): int
+    {
+        $settings ??= self::query()->first();
+
+        return max(self::SLIDER_MIN_INTERVAL, (int) ($settings?->slider_interval ?? 7));
+    }
+
+    /**
+     * Where the product feeds say the products live: the address set for feeds, else FRONTEND_URL. No trailing slash.
+     */
+    public function feedStorefrontUrl(): string
+    {
+        return rtrim(filled($this->feed_storefront_url) ? trim($this->feed_storefront_url) : (string) config('app.frontend_url'), '/');
+    }
+
+    /**
+     * The token every feed address carries; made the first time it is asked for.
+     */
+    public function feedToken(): string
+    {
+        if (blank($this->feed_token)) {
+            $this->forceFill(['feed_token' => Str::random(40)])->save();
+        }
+
+        return $this->feed_token;
+    }
+
+    public function regenerateFeedToken(): string
+    {
+        $this->forceFill(['feed_token' => Str::random(40)])->save();
+
+        return $this->feed_token;
     }
 
     public static function defaultNavLinks(): array

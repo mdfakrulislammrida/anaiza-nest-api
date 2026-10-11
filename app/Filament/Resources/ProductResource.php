@@ -154,6 +154,9 @@ class ProductResource extends Resource
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active (visible in store)')
                     ->default(true),
+                Forms\Components\Toggle::make('exclude_from_feeds')
+                    ->label('Exclude from product feeds')
+                    ->helperText('Keeps this product out of the Google, Meta and TikTok feeds. It stays in the shop.'),
 
                 Forms\Components\Section::make('Merchandising')
                     ->collapsible()

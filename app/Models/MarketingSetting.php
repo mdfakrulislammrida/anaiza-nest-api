@@ -13,6 +13,8 @@ class MarketingSetting extends Model
         'ga4_id',
         'tiktok_pixel_id',
         'tiktok_events_api_access_token',
+        'meta_test_event_code',
+        'tiktok_test_event_code',
     ];
 
     protected function casts(): array

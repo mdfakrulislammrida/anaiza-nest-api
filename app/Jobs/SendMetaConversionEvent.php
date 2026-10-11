@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
+use App\Support\Redact;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -74,14 +75,21 @@ class SendMetaConversionEvent
                     'currency' => 'BDT',
                     'value' => (float) $this->order->total,
                     'content_type' => 'product',
+                    // The ids the catalog feed uses (the SKU, else the product id), which is what a dynamic ad matches on.
+                    'content_ids' => $this->order->items->map(fn ($item) => $item->sku ?: (string) $item->product_id)->values()->all(),
                     'contents' => $this->order->items->map(fn ($item) => [
-                        'id' => (string) $item->product_id,
+                        'id' => $item->sku ?: (string) $item->product_id,
                         'quantity' => $item->quantity,
                         'item_price' => (float) $item->price,
                     ])->all(),
                 ],
             ]],
         ];
+
+        // With a test event code set, the event shows under Test events in Events Manager (remove the code once testing is done).
+        if (filled($settings->meta_test_event_code)) {
+            $payload['test_event_code'] = trim($settings->meta_test_event_code);
+        }
 
         try {
             $response = Http::asJson()
@@ -94,13 +102,13 @@ class SendMetaConversionEvent
                 Log::error('Meta Conversions API request failed.', [
                     'order_id' => $this->order->id,
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'body' => Redact::secrets($response->body(), [$settings->meta_capi_access_token]),
                 ]);
             }
         } catch (\Throwable $e) {
             Log::error('Meta Conversions API request threw an exception.', [
                 'order_id' => $this->order->id,
-                'error' => $e->getMessage(),
+                'error' => Redact::secrets($e->getMessage(), [$settings->meta_capi_access_token]),
             ]);
         }
     }

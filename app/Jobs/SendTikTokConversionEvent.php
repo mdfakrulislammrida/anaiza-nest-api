@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
+use App\Support\Redact;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -68,7 +69,8 @@ class SendTikTokConversionEvent
                     'currency' => 'BDT',
                     'value' => (float) $this->order->total,
                     'contents' => $this->order->items->map(fn ($item) => [
-                        'content_id' => (string) $item->product_id,
+                        // The id the catalog feed uses (the SKU, else the product id), which is what a dynamic ad matches on.
+                        'content_id' => $item->sku ?: (string) $item->product_id,
                         'content_type' => 'product',
                         'quantity' => $item->quantity,
                         'price' => (float) $item->price,
@@ -80,6 +82,11 @@ class SendTikTokConversionEvent
             ]],
         ];
 
+        // With a test event code set, the event shows under Test events in Events Manager (remove the code once testing is done).
+        if (filled($settings->tiktok_test_event_code)) {
+            $payload['test_event_code'] = trim($settings->tiktok_test_event_code);
+        }
+
         try {
             $response = Http::withHeaders([
                 'Access-Token' => $settings->tiktok_events_api_access_token,
@@ -89,13 +96,13 @@ class SendTikTokConversionEvent
                 Log::error('TikTok Events API request failed.', [
                     'order_id' => $this->order->id,
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'body' => Redact::secrets($response->body(), [$settings->tiktok_events_api_access_token]),
                 ]);
             }
         } catch (\Throwable $e) {
             Log::error('TikTok Events API request threw an exception.', [
                 'order_id' => $this->order->id,
-                'error' => $e->getMessage(),
+                'error' => Redact::secrets($e->getMessage(), [$settings->tiktok_events_api_access_token]),
             ]);
         }
     }
