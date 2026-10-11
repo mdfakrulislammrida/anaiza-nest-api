@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductReview;
 use App\Support\ReviewEligibility;
 use App\Support\ReviewPhotos;
+use App\Support\Reviews\ReviewLinks;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,30 @@ class ProductReviewController extends Controller
     }
 
     /**
+     * What a review link says, so the form can skip the order number and phone: whether it is still good, and the name
+     * to start the review with. Reveals nothing else about the order.
+     */
+    public function link(Request $request, Product $product): JsonResponse
+    {
+        abort_unless($product->is_active, 404);
+
+        $line = ReviewLinks::resolve((string) $request->query('token'));
+
+        if ($line === null || $line->product_id !== $product->id || $line->order?->status === 'cancelled' || $line->order?->payment_status === 'failed') {
+            return response()->json(['valid' => false, 'reason' => 'ended']);
+        }
+
+        if (ReviewLinks::isUsed($line)) {
+            return response()->json(['valid' => false, 'reason' => 'used']);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'name' => $line->order?->customer?->name,
+        ]);
+    }
+
+    /**
      * A new review. It comes from a signed-in customer who has ordered the piece, or from someone who gives the order number
      * and the phone number on that order. Either way it is saved pending, and the admin decides whether it is shown.
      */
@@ -59,7 +84,9 @@ class ProductReviewController extends Controller
         $customer = $request->user('sanctum');
         $customer = $customer instanceof Customer ? $customer : null;
 
-        $line = ReviewEligibility::lineFor($product, $customer, $request->input('order_number'), $request->input('phone'));
+        $line = filled($request->input('review_token'))
+            ? ReviewEligibility::lineFromToken($product, (string) $request->input('review_token'))
+            : ReviewEligibility::lineFor($product, $customer, $request->input('order_number'), $request->input('phone'));
 
         $photos = [];
         if ($request->hasFile('photos')) {

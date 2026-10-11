@@ -52,7 +52,7 @@ class EmailTemplatesAdminTest extends TestCase
         return EmailTemplate::query()->where('key', $key)->firstOrFail();
     }
 
-    public function test_the_list_shows_the_five_emails_even_on_a_fresh_install(): void
+    public function test_the_list_shows_every_email_even_on_a_fresh_install(): void
     {
         Livewire::test(ListEmailTemplates::class)
             ->assertSee('Order confirmation')
@@ -60,9 +60,12 @@ class EmailTemplatesAdminTest extends TestCase
             ->assertSee('Order delivered')
             ->assertSee('Order cancelled')
             ->assertSee('Welcome')
+            ->assertSee('Review request')
+            ->assertSee('Cart reminder')
+            ->assertSee('Cart offer')
             ->assertSee('Built-in');
 
-        $this->assertSame(5, EmailTemplate::count());
+        $this->assertSame(9, EmailTemplate::count());
     }
 
     public function test_the_old_single_page_is_gone_and_the_area_is_in_settings(): void

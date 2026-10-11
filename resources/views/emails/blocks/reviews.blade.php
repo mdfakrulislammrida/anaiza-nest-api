@@ -5,7 +5,7 @@
             <td style="border-bottom:1px solid #EDE4D3;padding:8px 0;font-size:15px;line-height:24px;color:#1B2A41;">{{ $item->product_name }}</td>
             <td align="right" style="border-bottom:1px solid #EDE4D3;padding:8px 0;font-size:15px;line-height:24px;">
                 @if ($item->product?->slug)
-                    <a href="{{ $frontend }}/product/{{ $item->product->slug }}#reviews" style="color:#1B2A41;text-decoration:underline;">Review your purchase</a>
+                    <a href="{{ \App\Support\Reviews\ReviewLinks::url($item) }}" style="color:#1B2A41;text-decoration:underline;">Review your purchase</a>
                 @endif
             </td>
         </tr>

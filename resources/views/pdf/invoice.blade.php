@@ -101,6 +101,12 @@
             <td>Subtotal</td>
             <td align="right">৳{{ number_format($order->subtotal) }}</td>
         </tr>
+        @if ((int) $order->discount_amount > 0)
+        <tr>
+            <td>Code {{ $order->coupon_code }}</td>
+            <td align="right">-৳{{ number_format($order->discount_amount) }}</td>
+        </tr>
+        @endif
         <tr>
             <td>Delivery fee</td>
             <td align="right">৳{{ number_format($order->delivery_fee) }}</td>

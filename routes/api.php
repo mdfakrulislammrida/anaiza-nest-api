@@ -4,10 +4,13 @@ use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CartRecoveryController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CheckoutSessionController;
 use App\Http\Controllers\Api\ContactSubmissionController;
 use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\CorporateEnquiryController;
+use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HomepageSectionController;
 use App\Http\Controllers\Api\MarketingSettingController;
@@ -35,6 +38,7 @@ Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product:slug}', [ProductController::class, 'show']);
 Route::get('/products/{product:slug}/reviews', [ProductReviewController::class, 'index']);
 Route::post('/products/{product:slug}/reviews', [ProductReviewController::class, 'store'])->middleware('throttle:product-reviews');
+Route::get('/products/{product:slug}/review-link', [ProductReviewController::class, 'link'])->middleware('throttle:product-reviews');
 Route::get('/brands', [BrandController::class, 'index']);
 Route::get('/tags', [ProductTagController::class, 'index']);
 Route::get('/attributes', [ProductAttributeController::class, 'index']);
@@ -42,6 +46,13 @@ Route::get('/attributes', [ProductAttributeController::class, 'index']);
 // Checkout (guest-friendly: creates/updates the customer record from the details submitted)
 Route::post('/orders', [OrderController::class, 'store']);
 Route::get('/orders/lookup', [OrderController::class, 'lookup']);
+
+// Coupons are only ever checked on the server: this is a preview for the checkout field, and the order checks again.
+Route::post('/coupons/validate', [CouponController::class, 'validateCode'])->middleware('throttle:30,1');
+
+// Cart recovery: where a visitor has got to (stored only when there is a way to reach them), and a saved cart for a link.
+Route::post('/checkout-sessions', [CheckoutSessionController::class, 'store'])->middleware('throttle:90,1');
+Route::get('/recover/{token}', [CartRecoveryController::class, 'show'])->middleware('throttle:30,1');
 
 Route::post('/contact-submissions', [ContactSubmissionController::class, 'store']);
 Route::post('/corporate-enquiries', [CorporateEnquiryController::class, 'store'])->middleware('throttle:corporate-enquiries');

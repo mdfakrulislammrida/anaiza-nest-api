@@ -136,6 +136,7 @@ class EmailTemplateResource extends Resource
                                         'use_custom_html' => $get('use_custom_html'),
                                         'custom_html' => $get('custom_html'),
                                     ]),
+                                    SampleData::context($record->key),
                                 );
 
                                 return new HtmlString(

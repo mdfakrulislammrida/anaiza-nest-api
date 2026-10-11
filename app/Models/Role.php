@@ -44,6 +44,9 @@ class Role extends Model
         'integration_settings.manage' => 'Manage Integration Settings',
         'popup_settings.manage' => 'Manage Popup Settings',
         'email_templates.manage' => 'Manage Email Templates',
+        'review_requests.manage' => 'Manage Review Requests',
+        'cart_recovery.manage' => 'Manage Cart Recovery',
+        'abandoned_checkouts.manage' => 'Manage Abandoned Checkouts',
         'staff.manage' => 'Manage Staff & Roles',
     ];
 

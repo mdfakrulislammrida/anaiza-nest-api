@@ -52,6 +52,10 @@ class SiteSetting extends Model
         'feeds_include_out_of_stock',
         'slider_autoplay',
         'slider_interval',
+        'whatsapp_number',
+        'whatsapp_default_message',
+        'whatsapp_show_bubble',
+        'whatsapp_hidden_paths',
     ];
 
     /**
@@ -78,6 +82,7 @@ class SiteSetting extends Model
         'feeds_include_out_of_stock' => true,
         'slider_autoplay' => false,
         'slider_interval' => 7,
+        'whatsapp_show_bubble' => true,
     ];
 
     protected function casts(): array
@@ -101,6 +106,8 @@ class SiteSetting extends Model
             'feeds_include_out_of_stock' => 'boolean',
             'slider_autoplay' => 'boolean',
             'slider_interval' => 'integer',
+            'whatsapp_show_bubble' => 'boolean',
+            'whatsapp_hidden_paths' => 'array',
         ];
     }
 
@@ -132,6 +139,30 @@ class SiteSetting extends Model
         $threshold = number_format(($settings ?? new self)->free_delivery_threshold);
 
         return "Free delivery inside Dhaka on orders over ৳{$threshold}";
+    }
+
+    public const DEFAULT_WHATSAPP_MESSAGE = 'Hello, I would like some help choosing a gift.';
+
+    /** The number the WhatsApp bubble and every chat link use: the WhatsApp number, else the contact phone. */
+    public function whatsappNumber(): ?string
+    {
+        return filled($this->whatsapp_number) ? trim($this->whatsapp_number) : (filled($this->contact_phone) ? trim($this->contact_phone) : null);
+    }
+
+    public function whatsappMessage(): string
+    {
+        return filled($this->whatsapp_default_message) ? trim($this->whatsapp_default_message) : self::DEFAULT_WHATSAPP_MESSAGE;
+    }
+
+    /** @return list<string> path prefixes, each starting with a slash, no trailing slash (except the home page, "/") */
+    public function whatsappHiddenPaths(): array
+    {
+        return collect((array) $this->whatsapp_hidden_paths)
+            ->map(fn ($path) => '/'.trim((string) $path, "/ \t"))
+            ->map(fn (string $path) => $path === '/' ? '/' : rtrim($path, '/'))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /** The slowest-allowed pace for an autoplaying slider, in seconds: never faster than this. */

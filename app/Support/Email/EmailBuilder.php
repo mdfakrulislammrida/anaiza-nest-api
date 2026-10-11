@@ -21,16 +21,17 @@ final class EmailBuilder
 {
     /**
      * @param  array<string, mixed>|null  $override  unsaved form state (preview and test emails); used as if the template were switched on
+     * @param  array{plain?: array<string, string>, blocks?: array<string, string>, cta_url?: string, unsubscribe_url?: string}  $context  placeholders and links that do not come from an order (review and cart emails)
      * @return array{subject: string, html: string, text: string}
      */
-    public static function build(string $key, ?Order $order, ?Customer $customer, ?SiteSetting $site, ?array $override = null): array
+    public static function build(string $key, ?Order $order, ?Customer $customer, ?SiteSetting $site, ?array $override = null, array $context = []): array
     {
         $site ??= SiteSetting::query()->first() ?? new SiteSetting;
         $customer ??= $order?->customer;
 
         $parts = self::parts($key, $override);
-        $plain = self::plainTokens($order, $customer, $site);
-        $blocks = self::blockTokens($order, $site);
+        $plain = array_merge(self::plainTokens($order, $customer, $site), $context['plain'] ?? []);
+        $blocks = array_merge(self::blockTokens($order, $site), $context['blocks'] ?? []);
 
         $htmlTokens = array_merge(array_map(fn (string $value): string => e($value), $plain), $blocks);
         $definition = TemplateDefinitions::all()[$key];
@@ -50,7 +51,7 @@ final class EmailBuilder
                 }
             }
 
-            $body = $intro.$blockHtml.self::button($definition['cta_label'], rtrim((string) config('app.frontend_url'), '/').$definition['cta_path']);
+            $body = $intro.$blockHtml.self::button($definition['cta_label'], $context['cta_url'] ?? rtrim((string) config('app.frontend_url'), '/').$definition['cta_path']);
 
             if (trim(strip_tags($closing)) !== '') {
                 $body .= '<div style="margin:0 0 16px;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:18px;line-height:28px;color:#1B2A41;">'.$closing.'</div>';
@@ -70,12 +71,15 @@ final class EmailBuilder
             'siteName' => $plain['{{site_name}}'],
             'logo' => MediaUrl::resolve($site->logo_navy ?: $site->logo_url),
             'tagline' => $site->tagline ?: 'Gifted, beautifully.',
+            'unsubscribeUrl' => $context['unsubscribe_url'] ?? null,
         ])->render();
 
         return [
             'subject' => $subject,
             'html' => $html,
-            'text' => trim(html_entity_decode(strip_tags(preg_replace('#</(p|div|tr|h\d|li)>#i', "$0\n", $body) ?? $body))),
+            'text' => trim(html_entity_decode(strip_tags(preg_replace('#</(p|div|tr|h\d|li)>#i', "$0\n", $body) ?? $body)))
+                // The plain-text copy carries the unsubscribe link too.
+                .(empty($context['unsubscribe_url']) ? '' : "\n\nTo stop these emails: ".$context['unsubscribe_url']),
         ];
     }
 
@@ -137,7 +141,7 @@ final class EmailBuilder
     public static function blockTokens(?Order $order, SiteSetting $site): array
     {
         if ($order === null) {
-            return array_fill_keys(['{{order_items_table}}', '{{order_totals}}', '{{shipping_details}}', '{{review_links}}', '{{order_details}}'], '');
+            return array_fill_keys(['{{order_items_table}}', '{{order_totals}}', '{{shipping_details}}', '{{review_links}}', '{{order_details}}', '{{cart_items_block}}'], '');
         }
 
         $phone = (string) $site->contact_phone;
@@ -149,6 +153,7 @@ final class EmailBuilder
             '{{review_links}}' => view('emails.blocks.reviews', ['order' => $order, 'frontend' => rtrim((string) config('app.frontend_url'), '/')])->render(),
             // Fixed (not in the list admins see): who it is going to, how it is paid, and where the payment stands.
             '{{order_details}}' => view('emails.blocks.details', ['order' => $order, 'phone' => $phone])->render(),
+            '{{cart_items_block}}' => '',
         ];
     }
 

@@ -7,8 +7,11 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Filament\Support\PaymentActions;
 use App\Models\Order;
+use App\Models\ReviewRequestSetting;
 use App\Models\ShippingZone;
+use App\Support\Reviews\ReviewRequests;
 use App\Support\WalletPayments;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -116,6 +119,13 @@ class OrderResource extends Resource
                     ->numeric()
                     ->minValue(0)
                     ->suffix('৳'),
+                Forms\Components\TextInput::make('discount_amount')
+                    ->label('Coupon discount (BDT)')
+                    ->helperText(fn (?Order $record): string => $record?->coupon_code ? 'Code '.$record->coupon_code.'. Set by the shop when the order was placed.' : 'No coupon was used.')
+                    ->numeric()
+                    ->suffix('৳')
+                    ->disabled()
+                    ->dehydrated(false),
                 Forms\Components\Textarea::make('gift_note')
                     ->label('Order notes')
                     ->columnSpanFull(),
@@ -250,6 +260,20 @@ class OrderResource extends Resource
                     ->placeholder('—')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('coupon_code')
+                    ->label('Coupon')
+                    ->placeholder('—')
+                    ->description(fn (Order $record): ?string => $record->discount_amount > 0 ? '−৳'.number_format($record->discount_amount) : null)
+                    ->searchable()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('review_request')
+                    ->label('Review asked')
+                    ->state(fn (Order $record): string => match (true) {
+                        $record->review_request_sent_at !== null => 'Email '.$record->review_request_sent_at->timezone('Asia/Dhaka')->format('j M'),
+                        $record->review_whatsapp_clicked_at !== null => 'WhatsApp '.$record->review_whatsapp_clicked_at->timezone('Asia/Dhaka')->format('j M'),
+                        default => '—',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('shippingZone.name')
                     ->label('Shipping Zone')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -274,6 +298,10 @@ class OrderResource extends Resource
                 Tables\Filters\SelectFilter::make('payment_method')
                     ->label('Payment Method')
                     ->options(self::PAYMENT_METHODS),
+                Tables\Filters\Filter::make('review_request_due')
+                    ->label('Review request due')
+                    ->toggle()
+                    ->query(fn ($query) => ReviewRequests::scopeAwaiting($query, ReviewRequestSetting::current())),
                 Tables\Filters\SelectFilter::make('utm_source')
                     ->label('UTM Source')
                     ->options(fn (): array => Order::query()
@@ -301,6 +329,7 @@ class OrderResource extends Resource
                     ->url(fn (Order $record): string => route('orders.gift-note', $record))
                     ->openUrlInNewTab()
                     ->visible(fn (Order $record): bool => (bool) $record->is_gift),
+                self::whatsappReviewAction(Tables\Actions\Action::class),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -320,6 +349,26 @@ class OrderResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * "Send WhatsApp review request": opens WhatsApp with the message and the review links ready (the click is recorded by
+     * the shop). It is only offered for a delivered order with a phone number, while WhatsApp requests are switched on.
+     *
+     * @param  class-string<Tables\Actions\Action|Action>  $action
+     */
+    public static function whatsappReviewAction(string $action): Tables\Actions\Action|Action
+    {
+        return $action::make('whatsappReview')
+            ->label('Send WhatsApp review request')
+            ->icon('heroicon-o-chat-bubble-left-right')
+            ->color('success')
+            ->url(fn (?Order $record = null): ?string => $record ? route('orders.whatsapp-review', $record) : null)
+            ->openUrlInNewTab()
+            ->visible(fn (?Order $record = null): bool => $record !== null
+                && $record->status === 'delivered'
+                && filled($record->customer?->phone)
+                && ReviewRequestSetting::current()->whatsapp_enabled);
     }
 
     public static function getRelations(): array

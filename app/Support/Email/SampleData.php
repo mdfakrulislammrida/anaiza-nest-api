@@ -26,6 +26,39 @@ final class SampleData
         ]);
     }
 
+    /**
+     * The placeholders and links the review and cart emails get from the shop, made up for the admin's preview and test email.
+     *
+     * @return array{plain: array<string, string>, blocks: array<string, string>, cta_url: string, unsubscribe_url: string}
+     */
+    public static function context(string $key): array
+    {
+        $frontend = rtrim((string) config('app.frontend_url'), '/');
+        $items = [
+            ['name' => 'Sample tea set for two', 'variant' => null, 'quantity' => 1, 'price' => 2200],
+            ['name' => 'Sample ceramic mug', 'variant' => 'Colour: Ivory', 'quantity' => 2, 'price' => 350],
+        ];
+
+        return [
+            'plain' => [
+                '{{customer_name}}' => 'Sample customer',
+                '{{product_names}}' => 'Sample tea set for two, Sample ceramic mug',
+                '{{recovery_link}}' => $frontend.'/cart?recover=sample',
+                '{{coupon_code}}' => $key === TemplateDefinitions::CART_OFFER ? 'ANZ-7K3M9' : '',
+                '{{coupon_value}}' => $key === TemplateDefinitions::CART_OFFER ? '10%' : '',
+                '{{coupon_expires_at}}' => $key === TemplateDefinitions::CART_OFFER ? now()->addHours(48)->timezone('Asia/Dhaka')->format('j F Y, g:i a') : '',
+                '{{minimum_order}}' => $key === TemplateDefinitions::CART_OFFER ? 'It applies to orders of ৳1,500 or more.' : '',
+            ],
+            'blocks' => [
+                '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => $items])->render(),
+            ],
+            'cta_url' => in_array($key, [TemplateDefinitions::REVIEW_REQUEST, TemplateDefinitions::REVIEW_REMINDER], true)
+                ? $frontend.'/product/sample-tea-set?review=sample#reviews'
+                : $frontend.'/cart?recover=sample',
+            'unsubscribe_url' => $frontend.'/unsubscribe/sample',
+        ];
+    }
+
     public static function order(): Order
     {
         $customer = self::customer();

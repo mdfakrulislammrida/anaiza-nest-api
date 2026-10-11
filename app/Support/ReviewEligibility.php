@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductReview;
+use App\Support\Reviews\ReviewLinks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
@@ -54,6 +55,31 @@ final class ReviewEligibility
         }
 
         return $open;
+    }
+
+    /**
+     * The order line a signed review link stands for. The link proves the purchase, so no order number or phone is asked for.
+     *
+     * @throws ValidationException
+     */
+    public static function lineFromToken(Product $product, string $token): OrderItem
+    {
+        $line = ReviewLinks::resolve($token);
+
+        if ($line === null || $line->product_id !== $product->id
+            || $line->order === null || $line->order->status === 'cancelled' || $line->order->payment_status === 'failed') {
+            throw ValidationException::withMessages([
+                'rating' => 'This review link has ended or is not for this piece. You can still review it with your order number and phone number.',
+            ]);
+        }
+
+        if (ReviewLinks::isUsed($line)) {
+            throw ValidationException::withMessages([
+                'rating' => 'You have already reviewed this piece from that order. Thank you.',
+            ]);
+        }
+
+        return $line;
     }
 
     /**

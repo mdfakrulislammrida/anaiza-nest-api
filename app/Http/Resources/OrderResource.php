@@ -26,6 +26,9 @@ class OrderResource extends JsonResource
             'tracking_number' => $this->tracking_number,
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,
+            // What a coupon took off, and the code. Zero and null when none was used.
+            'discount_amount' => (int) $this->discount_amount,
+            'coupon_code' => $this->coupon_code,
             'total' => $this->total,
             'gift_note' => $this->gift_note,
             'is_gift' => (bool) $this->is_gift,

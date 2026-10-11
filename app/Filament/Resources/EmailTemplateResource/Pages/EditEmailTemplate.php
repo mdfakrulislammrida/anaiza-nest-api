@@ -77,6 +77,7 @@ class EditEmailTemplate extends EditRecord
                 SampleData::customer(),
                 SiteSetting::query()->first() ?? new SiteSetting,
                 $wording,
+                SampleData::context($this->record->key),
             ));
         } catch (\Throwable $e) {
             Notification::make()

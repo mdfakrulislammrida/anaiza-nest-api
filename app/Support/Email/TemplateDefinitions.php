@@ -20,7 +20,21 @@ final class TemplateDefinitions
 
     public const WELCOME = 'welcome';
 
-    public const KEYS = [self::CONFIRMATION, self::SHIPPED, self::DELIVERED, self::CANCELLED, self::WELCOME];
+    public const REVIEW_REQUEST = 'review_request';
+
+    public const REVIEW_REMINDER = 'review_request_reminder';
+
+    public const CART_REMINDER = 'cart_reminder';
+
+    public const CART_OFFER = 'cart_offer';
+
+    public const KEYS = [
+        self::CONFIRMATION, self::SHIPPED, self::DELIVERED, self::CANCELLED, self::WELCOME,
+        self::REVIEW_REQUEST, self::REVIEW_REMINDER, self::CART_REMINDER, self::CART_OFFER,
+    ];
+
+    /** The emails that go to someone who has not placed an order: each carries a one-click unsubscribe link. */
+    public const MARKETING = [self::REVIEW_REQUEST, self::REVIEW_REMINDER, self::CART_REMINDER, self::CART_OFFER];
 
     /** Order status => the template sent when an order changes to it. */
     public const STATUS_TEMPLATES = [
@@ -49,6 +63,13 @@ final class TemplateDefinitions
         '{{order_totals}}' => 'block: subtotal, delivery and total',
         '{{shipping_details}}' => 'block: the courier and tracking number, only when there is one',
         '{{review_links}}' => 'block: "How was it? Review your purchase" for each item',
+        '{{product_names}}' => 'review requests: the names of what was ordered',
+        '{{cart_items_block}}' => 'cart emails: block with the pieces left in the cart',
+        '{{recovery_link}}' => 'cart emails: the link that opens the saved cart',
+        '{{coupon_code}}' => 'cart offer: the code made for this customer',
+        '{{coupon_value}}' => 'cart offer: what the code takes off, like 10% or ৳200',
+        '{{coupon_expires_at}}' => 'cart offer: the exact end of the code, in Dhaka time',
+        '{{minimum_order}}' => 'cart offer: the minimum order sentence (blank when there is none)',
     ];
 
     /**
@@ -85,6 +106,34 @@ final class TemplateDefinitions
                 'cta_label' => 'Shop tea sets',
                 'cta_path' => '/shop',
                 'blocks' => ['{{order_items_table}}'],
+            ],
+            self::REVIEW_REQUEST => [
+                'label' => 'Review request',
+                'description' => 'Sent once, a few days after an order is delivered (see Review requests). Each piece has its own review link.',
+                'cta_label' => 'Write a review',
+                'cta_path' => '/shop',
+                'blocks' => ['{{review_links}}'],
+            ],
+            self::REVIEW_REMINDER => [
+                'label' => 'Review request reminder',
+                'description' => 'One gentle reminder, only when the review request has not been answered.',
+                'cta_label' => 'Write a review',
+                'cta_path' => '/shop',
+                'blocks' => ['{{review_links}}'],
+            ],
+            self::CART_REMINDER => [
+                'label' => 'Cart reminder',
+                'description' => 'Sent when a cart or checkout was left (see Cart recovery). No offer.',
+                'cta_label' => 'Open your cart',
+                'cta_path' => '/cart',
+                'blocks' => ['{{cart_items_block}}'],
+            ],
+            self::CART_OFFER => [
+                'label' => 'Cart offer',
+                'description' => 'The second cart email, with one plain offer and its real end time.',
+                'cta_label' => 'Open your cart',
+                'cta_path' => '/cart',
+                'blocks' => ['{{cart_items_block}}'],
             ],
             self::WELCOME => [
                 'label' => 'Welcome',
@@ -138,6 +187,39 @@ final class TemplateDefinitions
                 'intro_html' => '<p>Welcome, {{customer_name}}. Thank you for creating your account.</p>'
                     .'<p>Anaiza Nest is a Dhaka gifting house for tea sets, gift boxes and homeware, packed by hand and ready to give.</p>',
                 'closing_html' => '',
+                'footer_note' => '',
+            ],
+            self::REVIEW_REQUEST => [
+                'subject' => 'How has it settled in? Order #{{order_number}}',
+                'intro_html' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>We hope your order #{{order_number}} has found its place. If you have a minute, a few honest words help the next person choose well.</p>'
+                    .'{{review_links}}',
+                'closing_html' => '<p>Packed by hand, sent with care.</p>',
+                'footer_note' => '',
+            ],
+            self::REVIEW_REMINDER => [
+                'subject' => 'A quiet reminder about order #{{order_number}}',
+                'intro_html' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>A gentle note, in case the first one slipped past: we would love to hear how order #{{order_number}} is getting on.</p>'
+                    .'{{review_links}}',
+                'closing_html' => '<p>Thank you for choosing us.</p>',
+                'footer_note' => '',
+            ],
+            self::CART_REMINDER => [
+                'subject' => 'Something you chose is still waiting',
+                'intro_html' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>You chose something lovely, and we have kept it for you. Your cart is saved, so you can pick up exactly where you left off.</p>'
+                    .'{{cart_items_block}}',
+                'closing_html' => '<p>Order now, pay on delivery.</p>',
+                'footer_note' => '',
+            ],
+            self::CART_OFFER => [
+                'subject' => 'A little something for your cart, {{customer_name}}',
+                'intro_html' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>The pieces you chose are still in your cart. To make the choice a little easier, here is {{coupon_value}} off your order with the code <strong>{{coupon_code}}</strong>.</p>'
+                    .'{{cart_items_block}}'
+                    .'<p>The code is yours alone, works once, and ends on {{coupon_expires_at}}. {{minimum_order}}</p>',
+                'closing_html' => '<p>Order now, pay on delivery.</p>',
                 'footer_note' => '',
             ],
             default => ['subject' => '', 'intro_html' => '', 'closing_html' => '', 'footer_note' => ''],

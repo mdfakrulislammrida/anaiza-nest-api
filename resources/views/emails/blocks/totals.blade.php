@@ -3,6 +3,12 @@
         <td style="padding:4px 0;font-size:15px;line-height:24px;color:#6F675C;">Subtotal</td>
         <td align="right" style="padding:4px 0;font-size:15px;line-height:24px;color:#1B2A41;">৳{{ number_format($order->subtotal) }}</td>
     </tr>
+    @if ((int) $order->discount_amount > 0)
+        <tr>
+            <td style="padding:4px 0;font-size:15px;line-height:24px;color:#6F675C;">Code {{ $order->coupon_code }}</td>
+            <td align="right" style="padding:4px 0;font-size:15px;line-height:24px;color:#1B2A41;">&minus;৳{{ number_format($order->discount_amount) }}</td>
+        </tr>
+    @endif
     <tr>
         <td style="padding:4px 0;font-size:15px;line-height:24px;color:#6F675C;">Delivery</td>
         <td align="right" style="padding:4px 0;font-size:15px;line-height:24px;color:#1B2A41;">{{ $order->delivery_fee > 0 ? '৳'.number_format($order->delivery_fee) : 'Free' }}</td>

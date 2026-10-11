@@ -44,6 +44,14 @@ class SiteSettingResource extends JsonResource
             // The admin's text, or the brand kit's short boilerplate when blank.
             'brand_description' => $this->brand_description ?: SiteSetting::defaultBrandDescription(),
             'low_stock_threshold' => (int) $this->low_stock_threshold,
+            // The WhatsApp bubble and every chat link: the number (the contact phone when none is set), the first message,
+            // whether the bubble shows, and the pages that hide it.
+            'whatsapp' => [
+                'number' => $this->resource->whatsappNumber(),
+                'message' => $this->resource->whatsappMessage(),
+                'show_bubble' => (bool) ($this->whatsapp_show_bubble ?? true),
+                'hidden_paths' => $this->resource->whatsappHiddenPaths(),
+            ],
             // The intro on /corporate-gifting; null means the storefront's own default sentence.
             'corporate_intro' => filled($this->corporate_intro) ? trim($this->corporate_intro) : null,
             // Whether the storefront may say "cash on delivery" (the Payment Settings toggle).

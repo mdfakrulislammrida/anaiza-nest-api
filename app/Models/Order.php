@@ -40,6 +40,14 @@ class Order extends Model
         'utm_campaign',
         'utm_content',
         'utm_term',
+        'coupon_code',
+        'coupon_id',
+        'discount_amount',
+        'delivered_at',
+        'review_request_sent_at',
+        'review_request_status',
+        'review_reminder_sent_at',
+        'review_whatsapp_clicked_at',
     ];
 
     protected function casts(): array
@@ -52,6 +60,11 @@ class Order extends Model
             'marketing_consent' => 'boolean',
             'payment_verified_at' => 'datetime',
             'conversion_sent_at' => 'datetime',
+            'discount_amount' => 'integer',
+            'delivered_at' => 'datetime',
+            'review_request_sent_at' => 'datetime',
+            'review_reminder_sent_at' => 'datetime',
+            'review_whatsapp_clicked_at' => 'datetime',
             'emails_sent' => 'array',
         ];
     }

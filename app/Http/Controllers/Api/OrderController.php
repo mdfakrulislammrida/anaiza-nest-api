@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Mail\WalletPaymentReceivedMail;
+use App\Models\AbandonedCheckout;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\PaymentSetting;
@@ -13,8 +14,11 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
 use App\Support\ConversionEvents;
+use App\Support\Coupons\CouponRejected;
+use App\Support\Coupons\CouponService;
 use App\Support\DeliveryFeeCalculator;
 use App\Support\Email\TransactionalEmails;
+use App\Support\Recovery\CheckoutTracker;
 use App\Support\WalletPayments;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
@@ -38,6 +42,20 @@ class OrderController extends Controller
         }
 
         $order->load(['customer', 'items']);
+
+        // Any left cart this order belongs to is closed, and no reminder is sent for it any more. It can never hold up an
+        // order, so a problem here is only logged.
+        try {
+            CheckoutTracker::markOrdered(
+                $order,
+                $request->input('checkout_session'),
+                $request->input('customer_email'),
+                $request->input('customer_phone'),
+                $request->input('recovery_token'),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Closing the abandoned checkout failed.', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
 
         // Sent right after this response (there is no queue worker), and a mail problem can never fail checkout.
         TransactionalEmails::orderConfirmation($order);
@@ -157,14 +175,41 @@ class OrderController extends Controller
                 }
             }
 
+            // The delivery fee follows the cart as it stands (before any coupon), so a discount never costs a customer free
+            // delivery. The coupon is checked again here, under lock, whatever the browser showed.
             $deliveryFee = DeliveryFeeCalculator::forDivision($request->string('division')->toString(), $subtotal);
+
+            $coupon = null;
+            $discount = 0;
+
+            if (filled($request->input('coupon_code'))) {
+                try {
+                    ['coupon' => $coupon, 'discount' => $discount] = CouponService::evaluate(
+                        (string) $request->input('coupon_code'),
+                        $subtotal,
+                        $request->input('customer_email'),
+                        $request->input('customer_phone'),
+                        now(),
+                        true,
+                    );
+                } catch (CouponRejected $e) {
+                    throw ValidationException::withMessages(['coupon_code' => $e->getMessage()]);
+                }
+            }
+
+            // An order that arrives through a recovery link is marked as coming from it, so it can be told apart in reports.
+            $fromRecovery = filled($request->input('recovery_token'))
+                && AbandonedCheckout::query()->where('recovery_token', $request->input('recovery_token'))->exists();
 
             $order = Order::create([
                 'customer_id' => $customer->id,
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'delivery_fee' => $deliveryFee,
-                'total' => $subtotal + $deliveryFee,
+                'total' => $subtotal - $discount + $deliveryFee,
+                'discount_amount' => $discount,
+                'coupon_code' => $coupon?->code,
+                'coupon_id' => $coupon?->id,
                 'payment_method' => $request->input('payment_method'),
                 'payment_status' => WalletPayments::initialStatus($request->input('payment_method')),
                 'payment_trx_id' => $request->input('payment_trx_id'),
@@ -177,14 +222,19 @@ class OrderController extends Controller
                 'client_user_agent' => $this->keepsVisitorDetails($request) ? mb_substr((string) $request->userAgent(), 0, 500) : null,
                 'is_gift' => $request->boolean('is_gift'),
                 'gift_message' => $request->boolean('is_gift') ? (trim((string) $request->input('gift_message')) ?: null) : null,
-                'utm_source' => $request->input('utm_source'),
-                'utm_medium' => $request->input('utm_medium'),
-                'utm_campaign' => $request->input('utm_campaign'),
+                'utm_source' => $fromRecovery ? 'cart_recovery' : $request->input('utm_source'),
+                'utm_medium' => $fromRecovery ? 'email' : $request->input('utm_medium'),
+                'utm_campaign' => $fromRecovery ? 'abandoned_cart' : $request->input('utm_campaign'),
                 'utm_content' => $request->input('utm_content'),
                 'utm_term' => $request->input('utm_term'),
             ]);
 
             $order->items()->createMany($itemsToCreate);
+
+            // Used up inside the same transaction as the order, so two orders can never share a single-use code.
+            if ($coupon !== null) {
+                $coupon->forceFill(['used_count' => $coupon->used_count + 1, 'used_at' => now(), 'used_order_id' => $order->id])->save();
+            }
 
             return $order;
         });

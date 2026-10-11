@@ -34,6 +34,8 @@ class TransactionalMail extends Mailable
         public ?Customer $customer,
         public ?SiteSetting $siteSetting,
         public ?array $override = null,
+        /** @var array{plain?: array<string, string>, blocks?: array<string, string>, cta_url?: string, unsubscribe_url?: string} */
+        public array $context = [],
     ) {}
 
     /**
@@ -41,7 +43,7 @@ class TransactionalMail extends Mailable
      */
     private function built(): array
     {
-        return $this->built ??= EmailBuilder::build($this->templateKey, $this->order, $this->customer, $this->siteSetting, $this->override);
+        return $this->built ??= EmailBuilder::build($this->templateKey, $this->order, $this->customer, $this->siteSetting, $this->override, $this->context);
     }
 
     public function envelope(): Envelope
@@ -56,6 +58,12 @@ class TransactionalMail extends Mailable
     {
         $this->withSymfonyMessage(function (Email $message): void {
             $message->text($this->built()['text']);
+
+            // One-click unsubscribe, for mail clients that offer it (RFC 8058).
+            if (! empty($this->context['unsubscribe_url'])) {
+                $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$this->context['unsubscribe_url'].'>');
+                $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+            }
         });
 
         return new Content(htmlString: $this->built()['html']);

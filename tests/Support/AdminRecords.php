@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use App\Models\AbandonedCheckout;
 use App\Models\Article;
 use App\Models\Banner;
 use App\Models\Brand;
@@ -122,6 +123,11 @@ class AdminRecords
     public static function for(string $model): Model
     {
         return match ($model) {
+            AbandonedCheckout::class => AbandonedCheckout::create([
+                'session_token' => 'sess-admin-records-000001', 'name' => 'Priya Rahman', 'email' => 'priya@example.com', 'phone' => '01711111111',
+                'stage' => 'contact_filled', 'cart_total' => 1450, 'first_activity_at' => now()->subHours(2), 'last_activity_at' => now()->subHour(),
+                'items' => [['product_id' => 1, 'name' => 'Burgundy Tea Set', 'price' => 1450, 'quantity' => 1]],
+            ]),
             Article::class => Article::create(['title' => 'Care guide', 'slug' => 'care-guide', 'content' => '<h2>Care</h2><p>Hand wash.</p>', 'author_name' => 'A. Writer', 'published_at' => now()->subDay()]),
             Banner::class => Banner::create(['image_url' => 'banners/sale.jpg', 'title' => 'Sale']),
             Brand::class => Brand::create(['name' => 'Anaiza', 'slug' => 'anaiza']),

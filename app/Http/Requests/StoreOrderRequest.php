@@ -97,6 +97,11 @@ class StoreOrderRequest extends FormRequest
             'utm_campaign' => ['nullable', 'string', 'max:255'],
             'utm_content' => ['nullable', 'string', 'max:255'],
             'utm_term' => ['nullable', 'string', 'max:255'],
+            // A coupon code (checked again here, on the server, whatever the browser showed), the browser's checkout session,
+            // and the token from a cart recovery link, which marks the order as coming from it.
+            'coupon_code' => ['nullable', 'string', 'max:40'],
+            'checkout_session' => ['nullable', 'string', 'max:64'],
+            'recovery_token' => ['nullable', 'string', 'max:64'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],

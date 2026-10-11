@@ -16,6 +16,7 @@ class EditOrder extends EditRecord
         return [
             PaymentActions::verify(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             PaymentActions::fail(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
+            OrderResource::whatsappReviewAction(Actions\Action::class)->record($this->record),
             Actions\Action::make('printGiftNote')
                 ->label('Print gift note')
                 ->icon('heroicon-o-printer')

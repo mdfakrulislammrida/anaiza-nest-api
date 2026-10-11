@@ -39,6 +39,9 @@
                             @if ($site->address)
                                 <p style="margin:0;font-size:13px;line-height:20px;color:#6F675C;">{{ $site->address }}</p>
                             @endif
+                            @if (! empty($unsubscribeUrl))
+                                <p style="margin:16px 0 0;font-size:13px;line-height:20px;color:#6F675C;">Not for you? <a href="{{ $unsubscribeUrl }}" style="color:#6F675C;text-decoration:underline;">Unsubscribe</a> and we will not write about carts or reviews again.</p>
+                            @endif
                         </td>
                     </tr>
                 </table>

@@ -283,7 +283,8 @@ class TransactionalEmailsTest extends TestCase
 
         $html = $this->sent('order_delivered')->first()->render();
         $this->assertStringContainsString('How was it?', $html);
-        $this->assertStringContainsString('/product/porcelain-tea-set#reviews', $html);
+        // Each link is signed and proves the purchase, so the buyer needs no order number or phone.
+        $this->assertMatchesRegularExpression('#/product/porcelain-tea-set\?review=[A-Za-z0-9_\-.]+\#reviews#', $html);
         $this->assertStringContainsString('Review your purchase', $html);
         $this->assertSame(2, substr_count($html, 'Review your purchase'));
     }

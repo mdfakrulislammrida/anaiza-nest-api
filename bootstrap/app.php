@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // The product feeds: plain GET routes on the API's own domain. No session, cookies or CSRF, since an ad platform fetches them.
             Route::middleware('throttle:120,1')->group(base_path('routes/feeds.php'));
+
+            // Links in emails (one-click unsubscribe): opened without a session, so outside the web group.
+            Route::middleware('throttle:60,1')->group(base_path('routes/mailbox.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

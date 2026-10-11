@@ -25,6 +25,8 @@ class StoreProductReviewRequest extends FormRequest
             // How a visitor who is not signed in proves they ordered it.
             'order_number' => ['nullable', 'string', 'max:20'],
             'phone' => ['nullable', 'string', 'max:30'],
+            // Or the signed link from a review request, which proves it on its own.
+            'review_token' => ['nullable', 'string', 'max:200'],
             'photos' => ['nullable', 'array', 'max:'.ProductReview::MAX_PHOTOS],
             'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
         ];

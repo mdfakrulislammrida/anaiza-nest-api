@@ -8,11 +8,13 @@ use App\Models\Page as CmsPage;
 use App\Models\SiteSetting;
 use App\Support\BrandVoice;
 use App\Support\MenuLinks;
+use App\Support\WhatsApp;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -332,6 +334,38 @@ class ManageSiteSettings extends Page implements HasForms
                             ->helperText('An email is sent here when someone submits the form. Leave blank to send none: enquiries are always saved under Corporate enquiries either way.')
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('WhatsApp')
+                    ->description('The chat bubble and every "message us on WhatsApp" link on the shop read from here, so a change shows within a minute and needs no rebuild. The phone number shown on the shop is the Contact Phone above.')
+                    ->schema([
+                        TextInput::make('whatsapp_number')
+                            ->label('WhatsApp number')
+                            ->placeholder('+8801XXXXXXXXX')
+                            ->helperText('International format: a + and the country code, like +8801XXXXXXXXX. Leave blank to use the Contact Phone.')
+                            ->maxLength(20)
+                            ->rule(fn () => function (string $attribute, $value, \Closure $fail): void {
+                                if (filled($value) && ! WhatsApp::isInternational(preg_replace('/[\s\-()]/', '', (string) $value))) {
+                                    $fail('Please use international format, like +8801XXXXXXXXX: a + then the country code and number, digits only.');
+                                }
+                            })
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? preg_replace('/[\s\-()]/', '', trim($state)) : null),
+                        Toggle::make('whatsapp_show_bubble')
+                            ->label('Show the WhatsApp bubble')
+                            ->helperText('The round button in the corner of every page. The links elsewhere stay.')
+                            ->default(true),
+                        Textarea::make('whatsapp_default_message')
+                            ->label('First message in the chat')
+                            ->rows(2)
+                            ->maxLength(300)
+                            ->helperText('What the customer\'s message box starts with. Write it as you would say it: plain, warm, no shouting. Blank: "'.SiteSetting::DEFAULT_WHATSAPP_MESSAGE.'"')
+                            ->columnSpanFull(),
+                        TagsInput::make('whatsapp_hidden_paths')
+                            ->label('Pages where the bubble is hidden')
+                            ->placeholder('/checkout')
+                            ->helperText('Type a path and press Enter, like /checkout or /cart. A path also covers the pages under it. Leave empty to show the bubble everywhere.')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
 
                 Section::make('Product feeds')
                     ->description('The Google, Meta and TikTok product feeds live under Settings > Product feeds.')
