@@ -91,6 +91,15 @@ class PasswordResetTest extends TestCase
         });
     }
 
+    public function test_the_email_is_sent_even_when_the_shop_has_no_site_settings_row_yet(): void
+    {
+        SiteSetting::query()->delete();
+
+        $this->ask('priya@example.com')->assertOk();
+
+        Mail::assertSent(TransactionalMail::class, 1);
+    }
+
     public function test_an_email_in_capitals_finds_the_same_account(): void
     {
         $this->ask('  Priya@Example.COM ')->assertOk();

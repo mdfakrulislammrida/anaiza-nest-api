@@ -85,7 +85,7 @@ Route::get('/sitemap', [SitemapController::class, 'index']);
 // Customer authentication
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:customer-login');
 
     // Choosing a new password: the link in the email proves ownership of the address. Every answer to a request for a link
     // is the same, whether or not there is an account.

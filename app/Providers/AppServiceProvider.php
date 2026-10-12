@@ -40,6 +40,13 @@ class AppServiceProvider extends ServiceProvider
         // Asking for a reset link, or using one: by address, so guessing at links or at accounts is slow.
         RateLimiter::for('password-reset', fn (Request $request) => Limit::perHour(20)->by($request->ip()));
 
+        // Logging in by phone number costs a little more to look up than by email, and a password can be guessed: attempts
+        // are limited per address and per account name typed.
+        RateLimiter::for('customer-login', fn (Request $request) => [
+            Limit::perMinute(10)->by('login-ip:'.$request->ip()),
+            Limit::perMinute(5)->by('login-who:'.sha1(mb_strtolower(trim((string) $request->input('email'))))),
+        ]);
+
         RateLimiter::for('corporate-enquiries', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
         ProductImage::observe(ProductImageObserver::class);

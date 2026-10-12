@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\TransactionalMail;
 use App\Models\Customer;
 use App\Models\SiteSetting;
-use App\Support\Contact;
+use App\Support\CustomerLookup;
 use App\Support\Email\TemplateDefinitions;
 use App\Support\Email\TransactionalEmails;
 use App\Support\PasswordReset;
@@ -40,7 +40,8 @@ class PasswordResetController extends Controller
             3600,
         )) {
             $link = PasswordReset::url($customer);
-            $site = SiteSetting::query()->first() ?? new SiteSetting;
+            // The saved row, or null (the mail then uses its defaults): an unsaved model must not ride inside the closure.
+            $site = SiteSetting::query()->first();
 
             // Sent after the response (there is no queue worker), and a mail problem is logged, never shown.
             TransactionalEmails::afterResponse(
@@ -109,23 +110,6 @@ class PasswordResetController extends Controller
      */
     private function find(string $login): ?Customer
     {
-        $email = Contact::email($login);
-
-        if ($email !== null) {
-            return Customer::query()->where('email', $email)->first()
-                ?? Customer::query()->whereRaw('lower(email) = ?', [$email])->first();
-        }
-
-        $phone = Contact::phone($login);
-
-        if ($phone === null) {
-            return null;
-        }
-
-        return Customer::query()
-            ->whereNotNull('email')
-            ->where(fn ($q) => $q->where('phone', $phone)->orWhere('phone', '+88'.$phone)->orWhere('phone', '88'.$phone))
-            ->orderBy('id')
-            ->first();
+        return CustomerLookup::byLogin($login)->first(fn (Customer $customer): bool => filled($customer->email));
     }
 }

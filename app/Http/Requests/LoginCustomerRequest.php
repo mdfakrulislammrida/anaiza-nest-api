@@ -23,8 +23,20 @@ class LoginCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
+            // What the form calls "Email or Phone": an email address or a Bangladeshi mobile number.
+            'email' => ['required', 'string', 'max:255'],
+            'password' => ['required', 'string', 'max:200'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'Please enter your email address or phone number.',
+            'password.required' => 'Please enter your password.',
         ];
     }
 }
