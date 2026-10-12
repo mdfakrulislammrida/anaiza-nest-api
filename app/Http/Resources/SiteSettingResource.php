@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\IntegrationSetting;
 use App\Models\PaymentSetting;
 use App\Models\SiteSetting;
 use App\Support\MediaUrl;
@@ -44,6 +45,9 @@ class SiteSettingResource extends JsonResource
             // The admin's text, or the brand kit's short boilerplate when blank.
             'brand_description' => $this->brand_description ?: SiteSetting::defaultBrandDescription(),
             'low_stock_threshold' => (int) $this->low_stock_threshold,
+            // Which "continue with" providers are on (switched on in Integrations, with their credentials filled in). Only
+            // the on/off state: the credentials never leave the server.
+            'social_login' => IntegrationSetting::socialLogin(),
             // The WhatsApp bubble and every chat link: the number (the contact phone when none is set), the first message,
             // whether the bubble shows, and the pages that hide it.
             'whatsapp' => [

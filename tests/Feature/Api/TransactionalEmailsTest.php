@@ -6,6 +6,7 @@ use App\Mail\OrderConfirmationMail;
 use App\Mail\TransactionalMail;
 use App\Models\Category;
 use App\Models\EmailTemplate;
+use App\Models\IntegrationSetting;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Models\Product;
@@ -335,6 +336,10 @@ class TransactionalEmailsTest extends TestCase
     public function test_a_first_social_sign_in_sends_a_welcome_and_a_return_visit_does_not(): void
     {
         Mail::fake();
+        // Google login is on (switched on in Integrations, with its credentials), which is what lets the callback run.
+        IntegrationSetting::query()->create([
+            'google_client_id' => 'g-id', 'google_client_secret' => 'g-secret', 'google_login_enabled' => true,
+        ]);
         $social = \Mockery::mock(User::class);
         $social->shouldReceive('getEmail')->andReturn('social@example.com');
         $social->shouldReceive('getName')->andReturn('Social Person');
