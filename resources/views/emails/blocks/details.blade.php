@@ -1,12 +1,13 @@
 @php($paymentNote = \App\Support\WalletPayments::message($order->payment_status))
+@php($to = $order->recipient())
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;">
     <tr>
         <td width="50%" valign="top" style="padding-right:16px;font-size:15px;line-height:24px;color:#1B2A41;">
             <span style="font-size:13px;color:#6F675C;">Delivery address</span><br>
-            {{ $order->customer->name }}<br>
-            {{ $order->customer->phone }}<br>
-            {{ $order->customer->address }}<br>
-            {{ implode(', ', array_filter([$order->customer->thana, $order->customer->district, $order->customer->division])) }}
+            {{ $to['name'] }}<br>
+            {{ $to['phone'] }}<br>
+            {{ $to['address'] }}<br>
+            {{ implode(', ', array_filter([$to['thana'], $to['district'], $to['division']])) }}
         </td>
         <td width="50%" valign="top" style="font-size:15px;line-height:24px;color:#1B2A41;">
             <span style="font-size:13px;color:#6F675C;">Payment</span><br>

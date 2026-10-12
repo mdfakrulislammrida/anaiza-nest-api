@@ -98,7 +98,8 @@ final class ReviewEligibility
         $order = Order::query()->with('customer')->find((int) trim((string) $orderNumber));
 
         // Compared as phone numbers, not as text: +8801712345678, 8801712345678 and 01712345678 are the same number.
-        if ($order === null || ! self::samePhone((string) $order->customer?->phone, (string) $phone)) {
+        if ($order === null || ! (self::samePhone((string) $order->recipient()['phone'], (string) $phone)
+            || self::samePhone((string) $order->customer?->phone, (string) $phone))) {
             return $query->whereRaw('1 = 0');
         }
 

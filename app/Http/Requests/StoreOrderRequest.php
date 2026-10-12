@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\PaymentSetting;
+use App\Support\Contact;
 use App\Support\WalletPayments;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -64,6 +65,8 @@ class StoreOrderRequest extends FormRequest
             'payment_sender_number.regex' => 'That does not look like a Bangladeshi mobile number. It has 11 digits and starts with 01.',
             'payment_trx_id.required_if' => 'Please enter the transaction ID from your payment message.',
             'payment_trx_id.regex' => 'A transaction ID is 6 to 20 letters and digits, with no spaces or symbols.',
+            'items.max' => 'That is a lot of pieces for one order. Please send us a corporate enquiry and we will help.',
+            'items.*.quantity.max' => 'That is more of one piece than we can add to a single order. Please send us a corporate enquiry and we will help.',
             'payment_trx_id.unique' => 'This transaction ID has already been used on another order. Please check it, or contact us.',
         ];
     }
@@ -78,7 +81,12 @@ class StoreOrderRequest extends FormRequest
         return [
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_email' => ['nullable', 'email', 'max:255'],
-            'customer_phone' => ['required', 'string', 'max:30'],
+            // A mobile number we can call: 01712345678, +8801712345678 and "01712 345678" are all fine.
+            'customer_phone' => ['required', 'string', 'max:30', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (Contact::phone((string) $value) === null) {
+                    $fail('Please enter a Bangladeshi mobile number, like 01712 345678, so our courier can reach you.');
+                }
+            }],
             'customer_address' => ['required', 'string', 'max:500'],
             'division' => ['required', 'string', 'max:60'],
             'district' => ['required', 'string', 'max:60'],
@@ -102,9 +110,9 @@ class StoreOrderRequest extends FormRequest
             'coupon_code' => ['nullable', 'string', 'max:40'],
             'checkout_session' => ['nullable', 'string', 'max:64'],
             'recovery_token' => ['nullable', 'string', 'max:64'],
-            'items' => ['required', 'array', 'min:1'],
+            'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99'],
             'items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
         ];
     }

@@ -41,11 +41,12 @@ final class TransactionalEmails
     {
         $order->loadMissing('customer');
 
-        if (blank($order->customer?->email)) {
+        $email = $order->recipient()['email'];
+
+        if (blank($email)) {
             return;
         }
 
-        $email = $order->customer->email;
         $site = SiteSetting::query()->first();
 
         self::afterResponse(
@@ -64,7 +65,7 @@ final class TransactionalEmails
         $template = TemplateDefinitions::STATUS_TEMPLATES[$order->status] ?? null;
         $order->loadMissing('customer');
 
-        if ($template === null || blank($order->customer?->email)) {
+        if ($template === null || blank($order->recipient()['email'])) {
             return;
         }
 
@@ -90,7 +91,7 @@ final class TransactionalEmails
             return;
         }
 
-        $email = $order->customer->email;
+        $email = $order->recipient()['email'];
         $site = SiteSetting::query()->first();
 
         self::afterResponse(function () use ($order, $template, $email, $site, $status): void {

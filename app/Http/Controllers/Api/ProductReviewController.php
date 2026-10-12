@@ -68,7 +68,7 @@ class ProductReviewController extends Controller
 
         return response()->json([
             'valid' => true,
-            'name' => $line->order?->customer?->name,
+            'name' => $line->order?->recipient()['name'],
         ]);
     }
 

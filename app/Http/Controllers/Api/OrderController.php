@@ -7,12 +7,13 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Mail\WalletPaymentReceivedMail;
 use App\Models\AbandonedCheckout;
-use App\Models\Customer;
 use App\Models\Order;
 use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
+use App\Support\Checkout\CustomerResolver;
+use App\Support\Contact;
 use App\Support\ConversionEvents;
 use App\Support\Coupons\CouponRejected;
 use App\Support\Coupons\CouponService;
@@ -20,26 +21,21 @@ use App\Support\DeliveryFeeCalculator;
 use App\Support\Email\TransactionalEmails;
 use App\Support\Recovery\CheckoutTracker;
 use App\Support\WalletPayments;
+use Illuminate\Database\DeadlockException;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
     public function store(StoreOrderRequest $request)
     {
-        try {
-            $order = $this->placeOrder($request);
-        } catch (UniqueConstraintViolationException) {
-            // Two orders arrived at once with the same transaction ID; the database let only one through.
-            throw ValidationException::withMessages([
-                'payment_trx_id' => 'This transaction ID has already been used on another order. Please check it, or contact us.',
-            ]);
-        }
+        $order = $this->placeWithRetry($request);
 
         $order->load(['customer', 'items']);
 
@@ -78,6 +74,59 @@ class OrderController extends Controller
             ->setStatusCode(201);
     }
 
+    /**
+     * Places the order, trying again when the database is briefly busy with another writer (an order arriving at the same
+     * moment, the scheduler, an admin save). SQLite has one writer at a time; a second one waits its turn here instead of
+     * showing the customer an error.
+     */
+    private function placeWithRetry(StoreOrderRequest $request): Order
+    {
+        $attempts = 4;
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                return $this->placeOrder($request);
+            } catch (UniqueConstraintViolationException $e) {
+                // Only the transaction ID can be told apart for the customer. Two orders arrived at once with the same ID and
+                // the database let one through; anything else is not the customer's mistake and is not blamed on them.
+                if (str_contains($e->getMessage(), 'payment_trx_id')) {
+                    throw ValidationException::withMessages([
+                        'payment_trx_id' => 'This transaction ID has already been used on another order. Please check it, or contact us.',
+                    ]);
+                }
+
+                throw $e;
+            } catch (QueryException|DeadlockException $e) {
+                if (! self::isBusy($e)) {
+                    throw $e;
+                }
+
+                if ($attempt === $attempts) {
+                    Log::warning('Order placement kept finding the database busy.', ['attempts' => $attempts]);
+
+                    throw new HttpResponseException(response()->json([
+                        'message' => 'We are a little busy just now and could not place your order. Nothing has been taken. Please press the button again in a moment.',
+                    ], 503, ['Retry-After' => '2']));
+                }
+
+                usleep(random_int(120, 350) * 1000 * $attempt);
+            }
+        }
+
+        throw new \LogicException('Unreachable.');
+    }
+
+    /** SQLite "database is locked" / "table is locked" (SQLSTATE HY000, codes 5 and 6), and MySQL deadlocks. */
+    private static function isBusy(\Throwable $e): bool
+    {
+        $message = mb_strtolower($e->getMessage());
+
+        return str_contains($message, 'database is locked')
+            || str_contains($message, 'database table is locked')
+            || str_contains($message, 'deadlock')
+            || str_contains($message, 'lock wait timeout');
+    }
+
     private function keepsVisitorDetails(StoreOrderRequest $request): bool
     {
         return WalletPayments::isWallet($request->input('payment_method')) && ConversionEvents::allowed($request->boolean('marketing_consent'));
@@ -86,31 +135,19 @@ class OrderController extends Controller
     private function placeOrder(StoreOrderRequest $request): Order
     {
         return DB::transaction(function () use ($request) {
-            $customer = Customer::where('phone', $request->string('customer_phone'))->first();
-
-            $contactDetails = [
-                'name' => $request->string('customer_name'),
-                'phone' => $request->string('customer_phone'),
-                'address' => $request->string('customer_address'),
-                'division' => $request->string('division'),
-                'district' => $request->string('district'),
-                'thana' => $request->string('thana'),
+            // What was typed is kept on the order. An existing customer is never rewritten by a guest checkout (see
+            // CustomerResolver), so a later order cannot change this one, or anyone's account.
+            $typed = [
+                'name' => trim($request->string('customer_name')->toString()),
+                'phone' => Contact::phone($request->string('customer_phone')->toString()) ?? trim($request->string('customer_phone')->toString()),
+                'email' => Contact::email($request->input('customer_email')),
+                'address' => trim($request->string('customer_address')->toString()),
+                'division' => trim($request->string('division')->toString()),
+                'district' => trim($request->string('district')->toString()),
+                'thana' => trim($request->string('thana')->toString()),
             ];
 
-            if ($request->filled('customer_email')) {
-                $contactDetails['email'] = $request->string('customer_email');
-            }
-
-            if ($customer) {
-                // Keep the customer's address/contact details in sync with their latest order,
-                // but never touch their password here.
-                $customer->update($contactDetails);
-            } else {
-                $customer = Customer::create([
-                    ...$contactDetails,
-                    'password' => Str::random(32),
-                ]);
-            }
+            $customer = CustomerResolver::forOrder($typed);
 
             $products = Product::query()
                 ->whereIn('id', collect($request->input('items'))->pluck('product_id'))
@@ -203,6 +240,13 @@ class OrderController extends Controller
 
             $order = Order::create([
                 'customer_id' => $customer->id,
+                'ship_name' => $typed['name'],
+                'ship_email' => $typed['email'],
+                'ship_phone' => $typed['phone'],
+                'ship_address' => $typed['address'],
+                'ship_division' => $typed['division'],
+                'ship_district' => $typed['district'],
+                'ship_thana' => $typed['thana'],
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'delivery_fee' => $deliveryFee,
@@ -283,10 +327,16 @@ class OrderController extends Controller
         $order = Order::query()
             ->with(['customer', 'items'])
             ->where('id', $request->integer('order_id'))
-            ->whereHas('customer', fn ($query) => $query->where('phone', $request->string('phone')))
             ->first();
 
-        if (! $order) {
+        // The phone number is compared as a number (01712345678 and +8801712345678 are the same), against the one typed
+        // at checkout and, for older orders, the customer's.
+        $matches = $order !== null && (
+            Contact::samePhone($order->recipient()['phone'], $request->string('phone')->toString())
+            || Contact::samePhone($order->customer?->phone, $request->string('phone')->toString())
+        );
+
+        if (! $matches) {
             return response()->json([
                 'message' => 'No order found with that ID and phone number.',
             ], 404);

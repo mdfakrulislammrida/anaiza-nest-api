@@ -160,8 +160,20 @@ return new class extends Migration
         Schema::dropIfExists('checkout_daily_counts');
         Schema::dropIfExists('abandoned_checkouts');
 
+        // An index has to go before its column (SQLite refuses otherwise).
+        Schema::table('coupons', function (Blueprint $table) {
+            $table->dropIndex(['bound_email']);
+            $table->dropIndex(['bound_phone']);
+            $table->dropIndex(['abandoned_checkout_id']);
+        });
+
         Schema::table('coupons', function (Blueprint $table) {
             $table->dropColumn(['valid_from', 'valid_until', 'min_order', 'single_use', 'bound_email', 'bound_phone', 'used_count', 'used_at', 'used_order_id', 'source', 'abandoned_checkout_id']);
+        });
+
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropIndex(['coupon_id']);
+            $table->dropIndex(['delivered_at']);
         });
 
         Schema::table('orders', function (Blueprint $table) {

@@ -27,7 +27,7 @@ class GiftNoteController extends Controller
 
         return view('orders.gift-note', [
             'message' => trim((string) $order->gift_message),
-            'sender' => $order->customer?->name,
+            'sender' => $order->recipient()['name'],
         ]);
     }
 }

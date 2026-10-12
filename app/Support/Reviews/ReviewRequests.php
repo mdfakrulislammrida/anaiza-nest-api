@@ -116,7 +116,7 @@ final class ReviewRequests
     private static function requestFor(Order $order, bool $reminder, Carbon $now): string
     {
         $order->loadMissing(['customer', 'items.product']);
-        $email = $order->customer?->email;
+        $email = $order->recipient()['email'];
 
         if (blank($email)) {
             $order->forceFill(['review_request_status' => 'no_email'])->saveQuietly();
@@ -124,7 +124,7 @@ final class ReviewRequests
             return 'skipped';
         }
 
-        if (EmailOptOut::covers($email, $order->customer?->phone)) {
+        if (EmailOptOut::covers($email, $order->recipient()['phone'])) {
             $order->forceFill(['review_request_status' => 'opted_out'])->saveQuietly();
 
             return 'skipped';

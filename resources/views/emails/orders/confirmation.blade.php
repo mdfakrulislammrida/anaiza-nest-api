@@ -74,10 +74,10 @@
                                     <td width="50%" style="vertical-align:top;padding-right:8px;">
                                         <p style="margin:0 0 4px;font-size:12px;color:#71717a;text-transform:uppercase;">Delivery address</p>
                                         <p style="margin:0;font-size:14px;">
-                                            {{ $order->customer->name }}<br>
-                                            {{ $order->customer->phone }}<br>
-                                            {{ $order->customer->address }}<br>
-                                            {{ $order->customer->thana }}, {{ $order->customer->district }}, {{ $order->customer->division }}
+                                            {{ $order->recipient()['name'] }}<br>
+                                            {{ $order->recipient()['phone'] }}<br>
+                                            {{ $order->recipient()['address'] }}<br>
+                                            {{ $order->recipientAddressLine() }}
                                         </p>
                                     </td>
                                     <td width="50%" style="vertical-align:top;padding-left:8px;">

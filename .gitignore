@@ -4,6 +4,8 @@
 .env.backup
 .env.production
 /database/database.sqlite
+/database/database.sqlite-shm
+/database/database.sqlite-wal
 .phpactor.json
 .phpunit.result.cache
 /.codex

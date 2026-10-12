@@ -46,7 +46,8 @@ class SendMetaConversionEvent
         }
 
         $this->order->loadMissing(['customer', 'items']);
-        $customer = $this->order->customer;
+        // Who the order is for, as typed at checkout (name, email, phone, district, division).
+        $customer = (object) $this->order->recipient();
 
         // client_ip_address/client_user_agent are sent as plain values, not
         // hashed -- unlike em/ph, that's what Meta's spec requires for them.

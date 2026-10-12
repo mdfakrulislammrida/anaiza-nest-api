@@ -34,15 +34,16 @@ class OrderResource extends JsonResource
             'is_gift' => (bool) $this->is_gift,
             'gift_message' => $this->is_gift ? $this->gift_message : null,
             'created_at' => $this->created_at,
+            // Who it is for and where it goes, as typed when the order was placed (never a later order's details).
             'customer' => [
                 'id' => $this->customer->id,
-                'name' => $this->customer->name,
-                'email' => $this->customer->email,
-                'phone' => $this->customer->phone,
-                'address' => $this->customer->address,
-                'division' => $this->customer->division,
-                'district' => $this->customer->district,
-                'thana' => $this->customer->thana,
+                'name' => $this->resource->recipient()['name'],
+                'email' => $this->resource->recipient()['email'],
+                'phone' => $this->resource->recipient()['phone'],
+                'address' => $this->resource->recipient()['address'],
+                'division' => $this->resource->recipient()['division'],
+                'district' => $this->resource->recipient()['district'],
+                'thana' => $this->resource->recipient()['thana'],
             ],
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
                 'id' => $item->id,

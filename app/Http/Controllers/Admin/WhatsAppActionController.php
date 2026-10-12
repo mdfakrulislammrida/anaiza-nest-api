@@ -37,12 +37,12 @@ class WhatsAppActionController extends Controller
             ->implode("\n");
 
         $message = WhatsApp::fill($settings->whatsappMessage(), [
-            'name' => filled($order->customer?->name) ? $order->customer->name : 'there',
+            'name' => filled($order->recipient()['name']) ? $order->recipient()['name'] : 'there',
             'order' => $order->id,
             'link' => $links,
         ]);
 
-        $url = WhatsApp::link($order->customer?->phone, $message);
+        $url = WhatsApp::link($order->recipient()['phone'], $message);
         abort_if($url === null, 404);
 
         $order->forceFill(['review_whatsapp_clicked_at' => now()])->saveQuietly();

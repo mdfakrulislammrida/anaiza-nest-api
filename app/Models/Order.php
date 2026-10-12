@@ -48,6 +48,13 @@ class Order extends Model
         'review_request_status',
         'review_reminder_sent_at',
         'review_whatsapp_clicked_at',
+        'ship_name',
+        'ship_email',
+        'ship_phone',
+        'ship_address',
+        'ship_division',
+        'ship_district',
+        'ship_thana',
     ];
 
     protected function casts(): array
@@ -78,6 +85,36 @@ class Order extends Model
                 $order->payment_status = WalletPayments::initialStatus($order->payment_method);
             }
         });
+    }
+
+    /**
+     * Who the order is for and where it goes: the details typed at checkout and kept on the order, or (for an order made
+     * before they were) the customer's. Everything that addresses a parcel, an invoice or an email reads this, never the
+     * customer record, so a later order from the same phone can never change an earlier one.
+     *
+     * @return array{name: ?string, email: ?string, phone: ?string, address: ?string, division: ?string, district: ?string, thana: ?string}
+     */
+    public function recipient(): array
+    {
+        $customer = $this->customer;
+
+        return [
+            'name' => filled($this->ship_name) ? $this->ship_name : $customer?->name,
+            'email' => filled($this->ship_email) ? $this->ship_email : $customer?->email,
+            'phone' => filled($this->ship_phone) ? $this->ship_phone : $customer?->phone,
+            'address' => filled($this->ship_address) ? $this->ship_address : $customer?->address,
+            'division' => filled($this->ship_division) ? $this->ship_division : $customer?->division,
+            'district' => filled($this->ship_district) ? $this->ship_district : $customer?->district,
+            'thana' => filled($this->ship_thana) ? $this->ship_thana : $customer?->thana,
+        ];
+    }
+
+    /** "House 1, Banani, Dhaka, Dhaka" */
+    public function recipientAddressLine(): string
+    {
+        $to = $this->recipient();
+
+        return implode(', ', array_filter([$to['address'], $to['thana'], $to['district'], $to['division']]));
     }
 
     public function verifiedBy(): BelongsTo

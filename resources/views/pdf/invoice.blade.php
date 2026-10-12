@@ -55,11 +55,12 @@
         <tr>
             <td>
                 <p class="label">Bill to</p>
-                {{ $order->customer->name }}<br>
-                {{ $order->customer->phone }}<br>
-                @if ($order->customer->email){{ $order->customer->email }}<br>@endif
-                {{ $order->customer->address }}<br>
-                {{ $order->customer->thana }}, {{ $order->customer->district }}, {{ $order->customer->division }}
+                @php($to = $order->recipient())
+                {{ $to['name'] }}<br>
+                {{ $to['phone'] }}<br>
+                @if ($to['email']){{ $to['email'] }}<br>@endif
+                {{ $to['address'] }}<br>
+                {{ implode(', ', array_filter([$to['thana'], $to['district'], $to['division']])) }}
             </td>
             <td align="right">
                 <p class="label">Payment method</p>

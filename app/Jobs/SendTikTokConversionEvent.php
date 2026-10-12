@@ -46,7 +46,7 @@ class SendTikTokConversionEvent
         }
 
         $this->order->loadMissing(['customer', 'items']);
-        $customer = $this->order->customer;
+        $customer = (object) $this->order->recipient();
 
         // ip/user_agent are sent as plain values, not hashed -- unlike
         // email/phone, that's what TikTok's spec requires for them.

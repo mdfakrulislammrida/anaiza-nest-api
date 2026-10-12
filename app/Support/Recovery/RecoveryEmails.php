@@ -76,11 +76,11 @@ final class RecoveryEmails
 
         return [
             'plain' => [
-                '{{customer_name}}' => filled($order->customer?->name) ? trim($order->customer->name) : 'there',
+                '{{customer_name}}' => filled($order->recipient()['name']) ? trim((string) $order->recipient()['name']) : 'there',
                 '{{product_names}}' => $order->items->pluck('product_name')->filter()->implode(', '),
             ],
             'cta_url' => ($first ? ReviewLinks::url($first) : null) ?? rtrim((string) config('app.frontend_url'), '/').'/shop',
-            'unsubscribe_url' => Unsubscribe::url($order->customer?->email, $order->customer?->phone),
+            'unsubscribe_url' => Unsubscribe::url($order->recipient()['email'], $order->recipient()['phone']),
         ];
     }
 
@@ -88,7 +88,7 @@ final class RecoveryEmails
     {
         $order->loadMissing(['customer', 'items.product']);
 
-        Mail::to($order->customer->email)->send(new TransactionalMail(
+        Mail::to($order->recipient()['email'])->send(new TransactionalMail(
             $reminder ? TemplateDefinitions::REVIEW_REMINDER : TemplateDefinitions::REVIEW_REQUEST,
             $order,
             $order->customer,

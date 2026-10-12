@@ -123,12 +123,12 @@ final class EmailBuilder
         $method = $order?->payment_method;
 
         return [
-            '{{customer_name}}' => (string) ($customer?->name ?? ''),
+            '{{customer_name}}' => (string) ($order?->recipient()['name'] ?? $customer?->name ?? ''),
             '{{order_number}}' => (string) ($order?->id ?? ''),
             '{{order_total}}' => $order ? '৳'.number_format($order->total) : '',
             '{{order_date}}' => $order?->created_at ? $order->created_at->format('j F Y') : '',
             '{{payment_method}}' => $method === null ? '' : ($method === 'cod' ? 'Cash on delivery' : (WalletPayments::LABELS[$method] ?? strtoupper($method))),
-            '{{delivery_address}}' => $customer ? implode(', ', array_filter([$customer->address, $customer->thana, $customer->district, $customer->division])) : '',
+            '{{delivery_address}}' => $order ? $order->recipientAddressLine() : ($customer ? implode(', ', array_filter([$customer->address, $customer->thana, $customer->district, $customer->division])) : ''),
             '{{site_name}}' => (string) ($site->site_name ?: config('app.name')),
             '{{tracking_number}}' => (string) ($order?->tracking_number ?? ''),
             '{{courier_name}}' => (string) ($order?->courier_name ?? ''),

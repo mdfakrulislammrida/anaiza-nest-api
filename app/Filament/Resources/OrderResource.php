@@ -126,6 +126,19 @@ class OrderResource extends Resource
                     ->suffix('৳')
                     ->disabled()
                     ->dehydrated(false),
+                Forms\Components\Section::make('Delivery details')
+                    ->description('Who this order is for and where it goes, as the customer typed it when they ordered. It is kept on the order, so a later order never changes it. Correct it here if the customer asks.')
+                    ->schema([
+                        Forms\Components\TextInput::make('ship_name')->label('Name')->maxLength(255),
+                        Forms\Components\TextInput::make('ship_phone')->label('Phone')->maxLength(30),
+                        Forms\Components\TextInput::make('ship_email')->label('Email')->email()->maxLength(255),
+                        Forms\Components\TextInput::make('ship_address')->label('Street address')->maxLength(500),
+                        Forms\Components\TextInput::make('ship_thana')->label('Thana / area')->maxLength(60),
+                        Forms\Components\TextInput::make('ship_district')->label('District')->maxLength(60),
+                        Forms\Components\TextInput::make('ship_division')->label('Division')->maxLength(60),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
                 Forms\Components\Textarea::make('gift_note')
                     ->label('Order notes')
                     ->columnSpanFull(),
@@ -206,7 +219,11 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('id')
                     ->label('Order #')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('customer.name')
+                Tables\Columns\TextColumn::make('ship_name')
+                    ->label('Customer')
+                    ->state(fn (Order $record): ?string => $record->recipient()['name'])
+                    ->searchable(['ship_name'])
+                    ->placeholder('—')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
@@ -367,7 +384,7 @@ class OrderResource extends Resource
             ->openUrlInNewTab()
             ->visible(fn (?Order $record = null): bool => $record !== null
                 && $record->status === 'delivered'
-                && filled($record->customer?->phone)
+                && filled($record->recipient()['phone'])
                 && ReviewRequestSetting::current()->whatsapp_enabled);
     }
 
