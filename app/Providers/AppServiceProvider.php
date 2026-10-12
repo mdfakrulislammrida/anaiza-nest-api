@@ -37,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
         // are limited per address.
         RateLimiter::for('product-reviews', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
 
+        // Asking for a reset link, or using one: by address, so guessing at links or at accounts is slow.
+        RateLimiter::for('password-reset', fn (Request $request) => Limit::perHour(20)->by($request->ip()));
+
         RateLimiter::for('corporate-enquiries', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
         ProductImage::observe(ProductImageObserver::class);

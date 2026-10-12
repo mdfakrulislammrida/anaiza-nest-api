@@ -63,9 +63,10 @@ class EmailTemplatesAdminTest extends TestCase
             ->assertSee('Review request')
             ->assertSee('Cart reminder')
             ->assertSee('Cart offer')
+            ->assertSee('Password reset')
             ->assertSee('Built-in');
 
-        $this->assertSame(9, EmailTemplate::count());
+        $this->assertSame(10, EmailTemplate::count());
     }
 
     public function test_the_old_single_page_is_gone_and_the_area_is_in_settings(): void

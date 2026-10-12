@@ -28,9 +28,12 @@ final class TemplateDefinitions
 
     public const CART_OFFER = 'cart_offer';
 
+    public const PASSWORD_RESET = 'password_reset';
+
     public const KEYS = [
         self::CONFIRMATION, self::SHIPPED, self::DELIVERED, self::CANCELLED, self::WELCOME,
         self::REVIEW_REQUEST, self::REVIEW_REMINDER, self::CART_REMINDER, self::CART_OFFER,
+        self::PASSWORD_RESET,
     ];
 
     /** The emails that go to someone who has not placed an order: each carries a one-click unsubscribe link. */
@@ -70,6 +73,8 @@ final class TemplateDefinitions
         '{{coupon_value}}' => 'cart offer: what the code takes off, like 10% or ৳200',
         '{{coupon_expires_at}}' => 'cart offer: the exact end of the code, in Dhaka time',
         '{{minimum_order}}' => 'cart offer: the minimum order sentence (blank when there is none)',
+        '{{reset_link}}' => 'password reset: the link to choose a new password',
+        '{{reset_expires_in}}' => 'password reset: how long the link works, like "one hour"',
     ];
 
     /**
@@ -135,6 +140,13 @@ final class TemplateDefinitions
                 'cta_path' => '/cart',
                 'blocks' => ['{{cart_items_block}}'],
             ],
+            self::PASSWORD_RESET => [
+                'label' => 'Password reset',
+                'description' => 'Sent when a customer asks to choose a new password. The link works once and ends after one hour.',
+                'cta_label' => 'Choose a new password',
+                'cta_path' => '/account',
+                'blocks' => [],
+            ],
             self::WELCOME => [
                 'label' => 'Welcome',
                 'description' => 'Sent after a customer registers, or signs in with Google or Facebook for the first time.',
@@ -187,6 +199,13 @@ final class TemplateDefinitions
                 'intro_html' => '<p>Welcome, {{customer_name}}. Thank you for creating your account.</p>'
                     .'<p>Anaiza Nest is a Dhaka gifting house for tea sets, gift boxes and homeware, packed by hand and ready to give.</p>',
                 'closing_html' => '',
+                'footer_note' => '',
+            ],
+            self::PASSWORD_RESET => [
+                'subject' => 'Choose a new password - {{site_name}}',
+                'intro_html' => '<p>Hello {{customer_name}},</p>'
+                    .'<p>You asked to choose a new password for your {{site_name}} account. The button below works for {{reset_expires_in}}, and only once.</p>',
+                'closing_html' => '<p>If you did not ask for this, you can leave this email alone. Your password stays as it is.</p>',
                 'footer_note' => '',
             ],
             self::REVIEW_REQUEST => [

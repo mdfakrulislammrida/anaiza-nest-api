@@ -44,6 +44,8 @@ final class SampleData
                 '{{customer_name}}' => 'Sample customer',
                 '{{product_names}}' => 'Sample tea set for two, Sample ceramic mug',
                 '{{recovery_link}}' => $frontend.'/cart?recover=sample',
+                '{{reset_link}}' => $frontend.'/reset-password?token=sample',
+                '{{reset_expires_in}}' => 'one hour',
                 '{{coupon_code}}' => $key === TemplateDefinitions::CART_OFFER ? 'ANZ-7K3M9' : '',
                 '{{coupon_value}}' => $key === TemplateDefinitions::CART_OFFER ? '10%' : '',
                 '{{coupon_expires_at}}' => $key === TemplateDefinitions::CART_OFFER ? now()->addHours(48)->timezone('Asia/Dhaka')->format('j F Y, g:i a') : '',
@@ -52,9 +54,11 @@ final class SampleData
             'blocks' => [
                 '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => $items])->render(),
             ],
-            'cta_url' => in_array($key, [TemplateDefinitions::REVIEW_REQUEST, TemplateDefinitions::REVIEW_REMINDER], true)
-                ? $frontend.'/product/sample-tea-set?review=sample#reviews'
-                : $frontend.'/cart?recover=sample',
+            'cta_url' => match (true) {
+                in_array($key, [TemplateDefinitions::REVIEW_REQUEST, TemplateDefinitions::REVIEW_REMINDER], true) => $frontend.'/product/sample-tea-set?review=sample#reviews',
+                $key === TemplateDefinitions::PASSWORD_RESET => $frontend.'/reset-password?token=sample',
+                default => $frontend.'/cart?recover=sample',
+            },
             'unsubscribe_url' => $frontend.'/unsubscribe/sample',
         ];
     }

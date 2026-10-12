@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\MediaItemController;
 use App\Http\Controllers\Api\NewsletterSubscriberController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PaymentSettingController;
 use App\Http\Controllers\Api\PopupSettingController;
 use App\Http\Controllers\Api\ProductAttributeController;
@@ -85,6 +86,12 @@ Route::get('/sitemap', [SitemapController::class, 'index']);
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Choosing a new password: the link in the email proves ownership of the address. Every answer to a request for a link
+    // is the same, whether or not there is an account.
+    Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:password-reset');
+    Route::get('/reset-password/check', [PasswordResetController::class, 'check'])->middleware('throttle:password-reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
 
     Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
     Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
