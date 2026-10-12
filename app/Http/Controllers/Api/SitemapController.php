@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Article;
+use App\Models\LandingPage;
 use App\Models\Page;
 use App\Models\Product;
 
@@ -26,6 +27,12 @@ class SitemapController extends Controller
                 ->get(),
             'articles' => Article::query()
                 ->published()
+                ->select('slug', 'updated_at')
+                ->get(),
+            // Campaign pages are kept out of search unless someone switches "Do not index" off.
+            'landing_pages' => LandingPage::query()
+                ->live()
+                ->where('noindex', false)
                 ->select('slug', 'updated_at')
                 ->get(),
         ]);

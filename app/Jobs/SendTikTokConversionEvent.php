@@ -53,6 +53,7 @@ class SendTikTokConversionEvent
         $user = array_filter([
             'email' => ConversionApiHasher::email($customer->email) ? [ConversionApiHasher::email($customer->email)] : null,
             'phone' => ConversionApiHasher::phone($customer->phone) ? [ConversionApiHasher::phone($customer->phone)] : null,
+            'ttclid' => filled($this->order->ttclid) ? $this->order->ttclid : null,
             'ip' => $this->clientIp,
             'user_agent' => $this->clientUserAgent,
         ]);

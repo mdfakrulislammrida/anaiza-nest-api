@@ -15,6 +15,7 @@ use App\Models\Customer;
 use App\Models\EmailTemplate;
 use App\Models\Faq;
 use App\Models\HomepageSection;
+use App\Models\LandingPage;
 use App\Models\MediaItem;
 use App\Models\NewsletterSubscriber;
 use App\Models\Order;
@@ -142,6 +143,7 @@ class AdminRecords
             ProductReview::class => self::productReview(),
             Faq::class => Faq::create(['question' => 'How long is delivery?', 'answer' => '1-3 days.']),
             HomepageSection::class => HomepageSection::create(['type' => array_key_first(HomepageSection::TYPES), 'position' => 1, 'is_enabled' => true]),
+            LandingPage::class => LandingPage::create(['title' => 'Eid offer', 'slug' => 'eid-offer', 'status' => 'published', 'blocks' => [['type' => 'hero', 'data' => ['is_visible' => true, 'headline' => 'A gift for Eid']]]]),
             MediaItem::class => MediaItem::create(['disk' => 'public', 'path' => 'media/example.jpg', 'original_name' => 'example.jpg', 'mime_type' => 'image/jpeg', 'size' => 1024]),
             NewsletterSubscriber::class => NewsletterSubscriber::create(['email' => 'subscriber@example.com']),
             Order::class => self::order(),

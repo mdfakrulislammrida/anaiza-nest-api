@@ -49,6 +49,8 @@ class Role extends Model
         'abandoned_checkouts.manage' => 'Manage Abandoned Checkouts',
         'blocked_contacts.manage' => 'Manage Blocked Buyers',
         'system.manage' => 'View System Health & Backups',
+        'landing_pages.manage' => 'Manage Landing Pages',
+        'landing_pages.allow_scripts' => 'Allow scripts in landing page HTML (risky)',
         'staff.manage' => 'Manage Staff & Roles',
     ];
 

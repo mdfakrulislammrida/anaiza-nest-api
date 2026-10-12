@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomepageSectionController;
+use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\Api\MarketingSettingController;
 use App\Http\Controllers\Api\MediaItemController;
 use App\Http\Controllers\Api\NewsletterSubscriberController;
@@ -82,6 +83,11 @@ Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 
 // Sitemap data (products, pages, articles) for the frontend to build sitemap.xml from
 Route::get('/sitemap', [SitemapController::class, 'index']);
+
+// Landing pages built in the admin (/lp/<slug> on the storefront).
+Route::get('/landing-pages', [LandingPageController::class, 'index']);
+Route::get('/landing-pages/{slug}', [LandingPageController::class, 'show']);
+Route::post('/landing-pages/{slug}/events', [LandingPageController::class, 'event'])->middleware('throttle:landing-events');
 
 // For an outside uptime monitor: answers ok or down, and nothing else.
 Route::get('/health', [HealthController::class, 'show'])->middleware('throttle:60,1');

@@ -79,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('contact-form', fn (Request $request) => $perIp($request, 'contact', Limit::perHour(8)) ?: Limit::none());
         RateLimiter::for('newsletter', fn (Request $request) => $perIp($request, 'newsletter', Limit::perHour(10)) ?: Limit::none());
         RateLimiter::for('register', fn (Request $request) => $perIp($request, 'register', Limit::perHour(10)) ?: Limit::none());
+        RateLimiter::for('landing-events', fn (Request $request) => $perIp($request, 'landing', Limit::perMinute(120)) ?: Limit::none());
         RateLimiter::for('social-login', fn (Request $request) => $perIp($request, 'social', Limit::perMinute(20)) ?: Limit::none());
 
         ProductImage::observe(ProductImageObserver::class);

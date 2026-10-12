@@ -68,6 +68,9 @@ class UserResource extends Resource
                     ->helperText('Leave empty to grant unrestricted super-admin access.')
                     ->searchable()
                     ->preload(),
+                Forms\Components\Toggle::make('landing_scripts_allowed')
+                    ->label('May allow scripts in landing page HTML')
+                    ->helperText('Off by default, and only a super-admin sees this. Scripts in a landing page run in every visitor\'s browser, so switch it on only for someone you trust with that. A role can also be given the "Allow scripts in landing page HTML" permission.'),
                 Forms\Components\TextInput::make('password')
                     ->password()
                     ->revealable()

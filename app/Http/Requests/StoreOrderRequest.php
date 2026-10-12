@@ -144,6 +144,12 @@ class StoreOrderRequest extends FormRequest
             'utm_campaign' => ['nullable', 'string', 'max:255'],
             'utm_content' => ['nullable', 'string', 'max:255'],
             'utm_term' => ['nullable', 'string', 'max:255'],
+            // The ad click ids, kept with the order and passed to the platforms' server-side events.
+            'fbclid' => ['nullable', 'string', 'max:255'],
+            'gclid' => ['nullable', 'string', 'max:255'],
+            'ttclid' => ['nullable', 'string', 'max:255'],
+            // The landing page the order was placed from (its slug). Never fails an order: an unknown one is ignored.
+            'landing_page' => ['nullable', 'string', 'max:160'],
             // A coupon code (checked again here, on the server, whatever the browser showed), the browser's checkout session,
             // and the token from a cart recovery link, which marks the order as coming from it.
             'coupon_code' => ['nullable', 'string', 'max:40'],

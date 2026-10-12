@@ -193,6 +193,11 @@ class OrderResource extends Resource
                 Forms\Components\Section::make('Marketing Attribution')
                     ->description('Captured from the checkout URL\'s UTM parameters at the time the order was placed -- read-only.')
                     ->schema([
+                        Forms\Components\TextInput::make('landing_slug')
+                            ->label('Landing page')
+                            ->formatStateUsing(fn (?string $state): ?string => $state ? '/lp/'.$state : null)
+                            ->placeholder('Not from a landing page')
+                            ->disabled(),
                         Forms\Components\TextInput::make('utm_source')
                             ->label('Source')
                             ->disabled(),
@@ -266,6 +271,12 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->formatStateUsing(fn (string $state): string => self::PAYMENT_METHODS[$state] ?? $state)
                     ->badge(),
+                Tables\Columns\TextColumn::make('landing_slug')
+                    ->label('Landing page')
+                    ->formatStateUsing(fn (?string $state): ?string => $state ? '/lp/'.$state : null)
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('utm_source')
                     ->label('UTM Source')
                     ->placeholder('Direct/organic')
@@ -323,6 +334,15 @@ class OrderResource extends Resource
                     ->label('Review request due')
                     ->toggle()
                     ->query(fn ($query) => ReviewRequests::scopeAwaiting($query, ReviewRequestSetting::current())),
+                Tables\Filters\SelectFilter::make('landing_slug')
+                    ->label('Landing page')
+                    ->options(fn (): array => Order::query()
+                        ->whereNotNull('landing_slug')
+                        ->distinct()
+                        ->orderBy('landing_slug')
+                        ->pluck('landing_slug', 'landing_slug')
+                        ->map(fn (string $slug): string => '/lp/'.$slug)
+                        ->all()),
                 Tables\Filters\SelectFilter::make('utm_source')
                     ->label('UTM Source')
                     ->options(fn (): array => Order::query()

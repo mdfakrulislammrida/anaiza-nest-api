@@ -60,6 +60,8 @@ class SendMetaConversionEvent
             'ct' => ConversionApiHasher::text($customer->district) ? [ConversionApiHasher::text($customer->district)] : null,
             'st' => ConversionApiHasher::text($customer->division) ? [ConversionApiHasher::text($customer->division)] : null,
             'country' => [ConversionApiHasher::country()],
+            // The ad click, in Meta's fbc format, so the sale is matched to the click that brought the visitor.
+            'fbc' => filled($this->order->fbclid) ? 'fb.1.'.($this->order->created_at->timestamp * 1000).'.'.$this->order->fbclid : null,
             'client_ip_address' => $this->clientIp,
             'client_user_agent' => $this->clientUserAgent,
         ]);

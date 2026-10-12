@@ -7,6 +7,7 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Mail\WalletPaymentReceivedMail;
 use App\Models\AbandonedCheckout;
+use App\Models\LandingPage;
 use App\Models\Order;
 use App\Models\PaymentSetting;
 use App\Models\Product;
@@ -150,6 +151,11 @@ class OrderController extends Controller
                 'thana' => trim($request->string('thana')->toString()),
             ];
 
+            // The campaign page it came from, if any. An unknown or removed page is simply not recorded.
+            $landing = filled($request->input('landing_page'))
+                ? LandingPage::query()->where('slug', $request->string('landing_page')->toString())->first()
+                : null;
+
             $customer = CustomerResolver::forOrder($typed);
 
             $products = Product::query()
@@ -274,6 +280,11 @@ class OrderController extends Controller
                 'utm_campaign' => $fromRecovery ? 'abandoned_cart' : $request->input('utm_campaign'),
                 'utm_content' => $request->input('utm_content'),
                 'utm_term' => $request->input('utm_term'),
+                'fbclid' => $request->input('fbclid'),
+                'gclid' => $request->input('gclid'),
+                'ttclid' => $request->input('ttclid'),
+                'landing_page_id' => $landing?->id,
+                'landing_slug' => $landing?->slug,
             ]);
 
             $order->items()->createMany($itemsToCreate);

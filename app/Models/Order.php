@@ -55,6 +55,11 @@ class Order extends Model
         'ship_division',
         'ship_district',
         'ship_thana',
+        'landing_page_id',
+        'landing_slug',
+        'fbclid',
+        'gclid',
+        'ttclid',
     ];
 
     protected function casts(): array
