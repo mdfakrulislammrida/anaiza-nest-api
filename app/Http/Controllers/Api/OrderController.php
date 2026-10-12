@@ -20,6 +20,8 @@ use App\Support\Coupons\CouponService;
 use App\Support\DeliveryFeeCalculator;
 use App\Support\Email\TransactionalEmails;
 use App\Support\Recovery\CheckoutTracker;
+use App\Support\System\ShopAlerts;
+use App\Support\System\SystemEvents;
 use App\Support\WalletPayments;
 use Illuminate\Database\DeadlockException;
 use Illuminate\Database\QueryException;
@@ -56,6 +58,7 @@ class OrderController extends Controller
         // Sent right after this response (there is no queue worker), and a mail problem can never fail checkout.
         TransactionalEmails::orderConfirmation($order);
         $this->announceWalletOrder($order);
+        ShopAlerts::newOrder($order);
 
         // Queued: each job no-ops on its own if that platform's pixel ID +
         // access token aren't both configured, and a slow/failed call to
@@ -308,6 +311,7 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'error' => $e->getMessage(),
                 ]);
+                SystemEvents::record('mail_failed', 'Wallet payment notification email: '.$e->getMessage());
             }
         })->afterResponse();
     }

@@ -48,6 +48,7 @@ class Role extends Model
         'cart_recovery.manage' => 'Manage Cart Recovery',
         'abandoned_checkouts.manage' => 'Manage Abandoned Checkouts',
         'blocked_contacts.manage' => 'Manage Blocked Buyers',
+        'system.manage' => 'View System Health & Backups',
         'staff.manage' => 'Manage Staff & Roles',
     ];
 

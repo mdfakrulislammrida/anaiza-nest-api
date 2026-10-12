@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\CorporateEnquiryController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\FaqController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomepageSectionController;
 use App\Http\Controllers\Api\MarketingSettingController;
 use App\Http\Controllers\Api\MediaItemController;
@@ -81,6 +82,9 @@ Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 
 // Sitemap data (products, pages, articles) for the frontend to build sitemap.xml from
 Route::get('/sitemap', [SitemapController::class, 'index']);
+
+// For an outside uptime monitor: answers ok or down, and nothing else.
+Route::get('/health', [HealthController::class, 'show'])->middleware('throttle:60,1');
 
 // Customer authentication
 Route::prefix('auth')->group(function () {

@@ -80,8 +80,8 @@ class SecurityCheck extends Command
 
         $this->newLine();
         $this->info('Logs and files');
-        $stack = (string) env('LOG_STACK', 'single');
-        $report(str_contains($stack, 'daily') || env('LOG_CHANNEL') === 'daily', 'Logs rotate', 'LOG_STACK is "'.$stack.'" (use daily)');
+        $stack = implode(',', (array) config('logging.channels.stack.channels'));
+        $report(str_contains($stack, 'daily') || config('logging.default') === 'daily', 'Logs rotate', 'the log channels are "'.$stack.'" (set LOG_STACK=daily)');
         $report(is_link(public_path('storage')) || is_dir(public_path('storage')), 'public/storage link exists', 'run php artisan storage:link');
 
         $this->newLine();

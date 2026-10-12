@@ -7,6 +7,7 @@ use App\Mail\TransactionalMail;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\SiteSetting;
+use App\Support\System\SystemEvents;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +34,7 @@ final class TransactionalEmails
                 $send();
             } catch (\Throwable $e) {
                 Log::error("{$what} failed.", $context + ['error' => $e->getMessage()]);
+                SystemEvents::record('mail_failed', "{$what}: ".$e->getMessage());
             }
         })->afterResponse();
     }

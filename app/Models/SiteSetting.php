@@ -53,6 +53,9 @@ class SiteSetting extends Model
         'slider_autoplay',
         'slider_interval',
         'max_orders_per_phone_per_day',
+        'alert_email',
+        'alert_new_orders',
+        'alert_low_stock',
         'whatsapp_number',
         'whatsapp_default_message',
         'whatsapp_show_bubble',
@@ -85,6 +88,8 @@ class SiteSetting extends Model
         'slider_interval' => 7,
         'whatsapp_show_bubble' => true,
         'max_orders_per_phone_per_day' => 5,
+        'alert_new_orders' => true,
+        'alert_low_stock' => true,
     ];
 
     protected function casts(): array
@@ -109,6 +114,8 @@ class SiteSetting extends Model
             'slider_autoplay' => 'boolean',
             'slider_interval' => 'integer',
             'max_orders_per_phone_per_day' => 'integer',
+            'alert_new_orders' => 'boolean',
+            'alert_low_stock' => 'boolean',
             'whatsapp_show_bubble' => 'boolean',
             'whatsapp_hidden_paths' => 'array',
         ];

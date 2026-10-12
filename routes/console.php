@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\System\SystemEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -13,3 +14,14 @@ Artisan::command('inspire', function () {
 Schedule::command('reviews:request')->everyFiveMinutes()->withoutOverlapping(10);
 Schedule::command('checkouts:recover')->everyFiveMinutes()->withoutOverlapping(10);
 Schedule::command('checkouts:tidy')->dailyAt('03:30')->timezone('Asia/Dhaka');
+
+// Proof that the cron line is alive, read by Settings > System health.
+Schedule::call(fn () => SystemEvents::mark('scheduler', 'ran'))->everyMinute()->name('scheduler-heartbeat');
+
+// A backup of the database and the uploaded pictures, kept on the server (see config/backup.php).
+Schedule::command('backup:run')->dailyAt('02:30')->timezone('Asia/Dhaka')->withoutOverlapping(120);
+
+// The morning note about products that are finished or running low.
+Schedule::command('stock:digest')->dailyAt('09:00')->timezone('Asia/Dhaka');
+
+Schedule::command('system:tidy')->dailyAt('03:45')->timezone('Asia/Dhaka');

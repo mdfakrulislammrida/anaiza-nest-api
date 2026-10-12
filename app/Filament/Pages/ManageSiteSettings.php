@@ -335,6 +335,22 @@ class ManageSiteSettings extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Shop alerts')
+                    ->description('Short emails from the shop to you, so nothing waits unseen.')
+                    ->schema([
+                        TextInput::make('alert_email')
+                            ->label('Send alerts to')
+                            ->email()
+                            ->maxLength(255)
+                            ->helperText('Leave blank to use the payment notification address, then the contact email.'),
+                        Toggle::make('alert_new_orders')
+                            ->label('Email me when a cash on delivery order arrives')
+                            ->helperText('With the customer\'s details and a WhatsApp link to confirm the address. Wallet orders already have their own "payment to verify" email.'),
+                        Toggle::make('alert_low_stock')
+                            ->label('Email me a morning note about products that are finished or running low')
+                            ->helperText('Once a day at 9 am, and only on days something needs a look.'),
+                    ]),
+
                 Section::make('Order protection')
                     ->description('Limits that stop a prank, a loop or a script filling the shop with orders it cannot deliver. People you want to turn away by name go under Sales > Blocked buyers.')
                     ->schema([
