@@ -12,6 +12,7 @@ use App\Observers\CategoryObserver;
 use App\Observers\HomepageSectionObserver;
 use App\Observers\OrderObserver;
 use App\Observers\ProductImageObserver;
+use App\Support\Contact;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -48,6 +49,37 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('corporate-enquiries', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
+
+        // Counted per visitor address, unless THROTTLE_BY_IP is off (see config/abuse.php): then only the per-person keys
+        // below remain and the address-based ones step aside.
+        $perIp = fn (Request $request, string $name, Limit $limit): array => config('abuse.throttle_by_ip')
+            ? [$limit->by($name.':'.$request->ip())]
+            : [];
+
+        // Everything else in the API: a ceiling no real shopper reaches, that stops a script hammering the catalogue.
+        RateLimiter::for('api', fn (Request $request) => $perIp($request, 'api', Limit::perMinute(300)) ?: Limit::none());
+
+        // Placing an order: a person orders now and then; a script orders in bursts.
+        RateLimiter::for('orders', fn (Request $request) => [
+            ...$perIp($request, 'orders-min', Limit::perMinute(6)),
+            ...$perIp($request, 'orders-hour', Limit::perHour(40)),
+        ] ?: Limit::none());
+
+        // Tracking an order takes its number and phone, so guessing is the only attack: limited per address, and per phone
+        // number however many addresses it comes from.
+        RateLimiter::for('order-lookup', function (Request $request) use ($perIp) {
+            $who = Contact::phone((string) $request->query('phone')) ?? mb_strtolower(trim((string) $request->query('phone')));
+
+            return [
+                ...$perIp($request, 'lookup-min', Limit::perMinute(10)),
+                Limit::perHour(20)->by('lookup-phone:'.sha1($who)),
+            ];
+        });
+
+        RateLimiter::for('contact-form', fn (Request $request) => $perIp($request, 'contact', Limit::perHour(8)) ?: Limit::none());
+        RateLimiter::for('newsletter', fn (Request $request) => $perIp($request, 'newsletter', Limit::perHour(10)) ?: Limit::none());
+        RateLimiter::for('register', fn (Request $request) => $perIp($request, 'register', Limit::perHour(10)) ?: Limit::none());
+        RateLimiter::for('social-login', fn (Request $request) => $perIp($request, 'social', Limit::perMinute(20)) ?: Limit::none());
 
         ProductImage::observe(ProductImageObserver::class);
         Category::observe(CategoryObserver::class);

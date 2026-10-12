@@ -50,7 +50,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // A customer's sign-in lasts 30 days, then they sign in again. (Was: never expired.) SANCTUM_EXPIRATION is in minutes.
+    'expiration' => env('SANCTUM_EXPIRATION') !== null ? (int) env('SANCTUM_EXPIRATION') : 60 * 24 * 30,
 
     /*
     |--------------------------------------------------------------------------

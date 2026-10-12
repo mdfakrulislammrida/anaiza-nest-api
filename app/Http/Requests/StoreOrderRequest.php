@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\BlockedContact;
+use App\Models\Order;
 use App\Models\PaymentSetting;
+use App\Models\SiteSetting;
 use App\Support\Contact;
 use App\Support\WalletPayments;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -48,6 +51,42 @@ class StoreOrderRequest extends FormRequest
 
                 if (WalletPayments::isWallet($method) && PaymentSetting::query()->first()?->numberFor($method) === null) {
                     $validator->errors()->add('payment_method', WalletPayments::LABELS[$method].' is not available just now. Please choose another way to pay.');
+                }
+
+                // Only worth looking at once the fields themselves are valid.
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $phone = Contact::phone((string) $this->input('customer_phone'));
+
+                // Numbers, emails and address fragments the shop has chosen not to take online orders from. The buyer is told
+                // where to go, not why.
+                $block = BlockedContact::matching([
+                    'phone' => $phone,
+                    'email' => $this->input('customer_email'),
+                    'address' => $this->input('customer_address'),
+                ]);
+
+                if ($block !== null) {
+                    $validator->errors()->add('customer_phone', 'We are not able to take this order online just now. Please message us on WhatsApp and we will help you place it.');
+
+                    return;
+                }
+
+                // One number, one day: a genuine buyer does not need more, and a prank or a loop does.
+                $limit = (int) (SiteSetting::query()->value('max_orders_per_phone_per_day') ?? 5);
+
+                if ($limit > 0 && $phone !== null) {
+                    $today = Order::query()
+                        ->where('ship_phone', $phone)
+                        ->where('status', '!=', 'cancelled')
+                        ->where('created_at', '>=', now()->subDay())
+                        ->count();
+
+                    if ($today >= $limit) {
+                        $validator->errors()->add('customer_phone', 'We already have a few orders from this number today. If you would like to order more, please message us on WhatsApp and we will help.');
+                    }
                 }
             },
         ];

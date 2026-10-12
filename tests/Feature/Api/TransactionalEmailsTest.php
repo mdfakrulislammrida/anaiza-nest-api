@@ -347,11 +347,11 @@ class TransactionalEmailsTest extends TestCase
         Socialite::shouldReceive('driver->stateless->user')->andReturn($social);
 
         $this->forgetTerminating();
-        $this->get('/api/auth/google/callback')->assertRedirect();
+        $this->withUnencryptedCookie('anaiza_oauth_state', 'test-nonce')->get('/api/auth/google/callback?state='.hash_hmac('sha256', 'oauth-state:test-nonce', (string) config('app.key')))->assertRedirect();
         $this->assertCount(1, $this->sent('welcome'));
 
         $this->forgetTerminating();
-        $this->get('/api/auth/google/callback')->assertRedirect();
+        $this->withUnencryptedCookie('anaiza_oauth_state', 'test-nonce')->get('/api/auth/google/callback?state='.hash_hmac('sha256', 'oauth-state:test-nonce', (string) config('app.key')))->assertRedirect();
         $this->assertCount(1, $this->sent('welcome'), 'Signing in again sends nothing.');
     }
 

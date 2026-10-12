@@ -41,6 +41,11 @@ class MediaItemResource extends Resource
                     ->label('File')
                     ->disk('public')
                     ->directory('media-library')
+                    // Pictures and PDFs only. Anything else (a script, an SVG that can carry one) would be served from the shop's own
+                    // address, so it is not accepted here.
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])
+                    ->maxSize(8192)
+                    ->helperText('JPG, PNG, WebP, GIF or PDF, up to 8 MB.')
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {

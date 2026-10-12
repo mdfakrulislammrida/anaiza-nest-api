@@ -18,10 +18,14 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // A sample admin with the factory's well-known password exists only while developing. It must never be created on a
+        // live server, where it would be an unrestricted account anyone could guess.
+        if (app()->environment(['local', 'testing'])) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         // Checkout requires at least one shipping zone to exist.
         ShippingZone::firstOrCreate(

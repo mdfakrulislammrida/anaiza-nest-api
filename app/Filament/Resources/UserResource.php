@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Models\Role;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,6 +12,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class UserResource extends Resource
 {
@@ -70,6 +70,11 @@ class UserResource extends Resource
                     ->preload(),
                 Forms\Components\TextInput::make('password')
                     ->password()
+                    ->revealable()
+                    ->autocomplete('new-password')
+                    ->helperText('At least 12 characters, with letters and numbers. Leave blank to keep the current password.')
+                    // An admin account can see every order and every customer's phone and address.
+                    ->rule(Password::min(12)->letters()->numbers())
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))

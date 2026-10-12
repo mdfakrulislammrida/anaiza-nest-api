@@ -5,6 +5,7 @@ namespace Tests\Support;
 use App\Models\AbandonedCheckout;
 use App\Models\Article;
 use App\Models\Banner;
+use App\Models\BlockedContact;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\ContactSubmission;
@@ -129,6 +130,7 @@ class AdminRecords
                 'items' => [['product_id' => 1, 'name' => 'Burgundy Tea Set', 'price' => 1450, 'quantity' => 1]],
             ]),
             Article::class => Article::create(['title' => 'Care guide', 'slug' => 'care-guide', 'content' => '<h2>Care</h2><p>Hand wash.</p>', 'author_name' => 'A. Writer', 'published_at' => now()->subDay()]),
+            BlockedContact::class => BlockedContact::create(['kind' => 'phone', 'value' => '01711111111', 'note' => 'Prank orders']),
             Banner::class => Banner::create(['image_url' => 'banners/sale.jpg', 'title' => 'Sale']),
             Brand::class => Brand::create(['name' => 'Anaiza', 'slug' => 'anaiza']),
             Category::class => self::category(),

@@ -6,18 +6,22 @@ use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Filament\Support\PaymentActions;
+use App\Models\BlockedContact;
 use App\Models\Order;
 use App\Models\ReviewRequestSetting;
 use App\Models\ShippingZone;
+use App\Support\Contact;
 use App\Support\Reviews\ReviewRequests;
 use App\Support\WalletPayments;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class OrderResource extends Resource
 {
@@ -347,6 +351,7 @@ class OrderResource extends Resource
                     ->openUrlInNewTab()
                     ->visible(fn (Order $record): bool => (bool) $record->is_gift),
                 self::whatsappReviewAction(Tables\Actions\Action::class),
+                self::blockPhoneAction(Tables\Actions\Action::class),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -386,6 +391,36 @@ class OrderResource extends Resource
                 && $record->status === 'delivered'
                 && filled($record->recipient()['phone'])
                 && ReviewRequestSetting::current()->whatsapp_enabled);
+    }
+
+    /**
+     * "Block this phone": no more online orders from this number (a fake or repeat cash on delivery order). The order itself
+     * is left as it is.
+     *
+     * @param  class-string<Tables\Actions\Action|Action>  $action
+     */
+    public static function blockPhoneAction(string $action): Tables\Actions\Action|Action
+    {
+        return $action::make('blockPhone')
+            ->label('Block this phone')
+            ->icon('heroicon-o-no-symbol')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Block this phone number?')
+            ->modalDescription('No further online orders will be taken from this number. Orders already placed are not touched. You can undo it under Sales > Blocked buyers.')
+            ->visible(fn (?Order $record = null): bool => $record !== null
+                && filled($record->recipient()['phone'])
+                && Contact::phone((string) $record->recipient()['phone']) !== null)
+            ->action(function (Order $record): void {
+                $block = BlockedContact::query()->firstOrCreate(
+                    ['kind' => BlockedContact::PHONE, 'value' => BlockedContact::normalise(BlockedContact::PHONE, (string) $record->recipient()['phone'])],
+                    ['note' => 'From order #'.$record->id, 'created_by' => Auth::id()],
+                );
+
+                Notification::make()->success()
+                    ->title($block->wasRecentlyCreated ? 'This phone number is blocked' : 'This phone number was already blocked')
+                    ->send();
+            });
     }
 
     public static function getRelations(): array

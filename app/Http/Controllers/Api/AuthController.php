@@ -57,6 +57,16 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out.']);
     }
 
+    /**
+     * Ends every sign-in this customer has, on every device (a lost phone, a shared computer).
+     */
+    public function logoutEverywhere(Request $request)
+    {
+        $request->user()->tokens()->delete();
+
+        return response()->json(['message' => 'You are signed out everywhere.']);
+    }
+
     public function me(Request $request)
     {
         return response()->json($request->user());

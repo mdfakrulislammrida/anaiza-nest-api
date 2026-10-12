@@ -38,15 +38,15 @@ Route::get('/categories/{category:slug}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product:slug}', [ProductController::class, 'show']);
 Route::get('/products/{product:slug}/reviews', [ProductReviewController::class, 'index']);
-Route::post('/products/{product:slug}/reviews', [ProductReviewController::class, 'store'])->middleware('throttle:product-reviews');
+Route::post('/products/{product:slug}/reviews', [ProductReviewController::class, 'store'])->middleware(['throttle:product-reviews', 'form-proof:form,reject']);
 Route::get('/products/{product:slug}/review-link', [ProductReviewController::class, 'link'])->middleware('throttle:product-reviews');
 Route::get('/brands', [BrandController::class, 'index']);
 Route::get('/tags', [ProductTagController::class, 'index']);
 Route::get('/attributes', [ProductAttributeController::class, 'index']);
 
 // Checkout (guest-friendly: creates/updates the customer record from the details submitted)
-Route::post('/orders', [OrderController::class, 'store']);
-Route::get('/orders/lookup', [OrderController::class, 'lookup']);
+Route::post('/orders', [OrderController::class, 'store'])->middleware(['throttle:orders', 'form-proof:order,reject']);
+Route::get('/orders/lookup', [OrderController::class, 'lookup'])->middleware('throttle:order-lookup');
 
 // Coupons are only ever checked on the server: this is a preview for the checkout field, and the order checks again.
 Route::post('/coupons/validate', [CouponController::class, 'validateCode'])->middleware('throttle:30,1');
@@ -55,7 +55,7 @@ Route::post('/coupons/validate', [CouponController::class, 'validateCode'])->mid
 Route::post('/checkout-sessions', [CheckoutSessionController::class, 'store'])->middleware('throttle:90,1');
 Route::get('/recover/{token}', [CartRecoveryController::class, 'show'])->middleware('throttle:30,1');
 
-Route::post('/contact-submissions', [ContactSubmissionController::class, 'store']);
+Route::post('/contact-submissions', [ContactSubmissionController::class, 'store'])->middleware(['throttle:contact-form', 'form-proof:form,pretend']);
 Route::post('/corporate-enquiries', [CorporateEnquiryController::class, 'store'])->middleware('throttle:corporate-enquiries');
 
 // Storefront content (mirrors what's managed in the Filament admin panel, so
@@ -70,7 +70,7 @@ Route::get('/payment-settings', [PaymentSettingController::class, 'show']);
 Route::get('/marketing-settings', [MarketingSettingController::class, 'show']);
 Route::get('/cookie-consent', [CookieConsentController::class, 'show']);
 Route::get('/popup-settings', [PopupSettingController::class, 'show']);
-Route::post('/newsletter-subscribers', [NewsletterSubscriberController::class, 'store']);
+Route::post('/newsletter-subscribers', [NewsletterSubscriberController::class, 'store'])->middleware(['throttle:newsletter', 'form-proof:newsletter,pretend']);
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 Route::get('/media-library', [MediaItemController::class, 'index']);
 Route::get('/homepage-sections', [HomepageSectionController::class, 'index']);
@@ -84,7 +84,7 @@ Route::get('/sitemap', [SitemapController::class, 'index']);
 
 // Customer authentication
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware(['throttle:register', 'form-proof:form,reject']);
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:customer-login');
 
     // Choosing a new password: the link in the email proves ownership of the address. Every answer to a request for a link
@@ -93,13 +93,20 @@ Route::prefix('auth')->group(function () {
     Route::get('/reset-password/check', [PasswordResetController::class, 'check'])->middleware('throttle:password-reset');
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
 
-    Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
-    Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
-    Route::get('/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
-    Route::get('/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+    Route::middleware('throttle:social-login')->group(function () {
+        Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
+        Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
+        Route::get('/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
+        Route::get('/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+
+        // The browser returns from a provider with a one-time code (never the sign-in token itself, which would sit in the
+        // address bar and the history); this exchanges the code for the token.
+        Route::post('/social/exchange', [SocialAuthController::class, 'exchange']);
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout-all', [AuthController::class, 'logoutEverywhere']);
         Route::get('/me', [AuthController::class, 'me']);
     });
 });

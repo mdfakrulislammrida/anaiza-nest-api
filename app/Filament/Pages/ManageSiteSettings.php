@@ -335,6 +335,15 @@ class ManageSiteSettings extends Page implements HasForms
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Order protection')
+                    ->description('Limits that stop a prank, a loop or a script filling the shop with orders it cannot deliver. People you want to turn away by name go under Sales > Blocked buyers.')
+                    ->schema([
+                        TextInput::make('max_orders_per_phone_per_day')
+                            ->label('Most orders from one phone number in 24 hours')
+                            ->helperText('0 means no limit. A genuine buyer rarely needs more than two or three; when the limit is reached they are asked to message you on WhatsApp.')
+                            ->numeric()->integer()->minValue(0)->maxValue(50)->required(),
+                    ]),
+
                 Section::make('WhatsApp')
                     ->description('The chat bubble and every "message us on WhatsApp" link on the shop read from here, so a change shows within a minute and needs no rebuild. The phone number shown on the shop is the Contact Phone above.')
                     ->schema([
