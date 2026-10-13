@@ -34,11 +34,17 @@ trait ReportsBrandVoice
             return $notification;
         }
 
-        $summary = BrandVoice::summary(array_map(
-            fn (string $attribute): string => (string) ($this->record->{$attribute} ?? ''),
-            $this->brandVoiceAttributes(),
-        ));
+        $parts = array_filter([
+            BrandVoice::summary(array_map(
+                fn (string $attribute): string => (string) ($this->record->{$attribute} ?? ''),
+                $this->brandVoiceAttributes(),
+            )),
+            // Content the shop cleans on save says so, so a removed script or class is never a surprise.
+            method_exists($this->record, 'contentHtmlReport') && $this->record->contentHtmlReport() !== []
+                ? 'HTML tidied: '.implode(' ', $this->record->contentHtmlReport())
+                : null,
+        ]);
 
-        return $summary === null ? $notification : $notification->body($summary);
+        return $parts === [] ? $notification : $notification->body(implode(' ', $parts));
     }
 }

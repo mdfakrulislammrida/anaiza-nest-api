@@ -7,10 +7,11 @@ use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\DeleteGuard;
+use App\Filament\Support\LongHtmlField;
+use App\Filament\Support\RawHtmlSection;
 use App\Models\Category;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -80,43 +81,8 @@ class CategoryResource extends Resource
                 Forms\Components\Section::make('Long SEO description')
                     ->description('Shown below the product grid, collapsed behind "Read more" on mobile. Typically 300-800 words.')
                     ->schema([
-                        Forms\Components\RichEditor::make('seo_description')
-                            ->live(onBlur: true)
-                            ->label('')
-                            ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the category name.'))
-                            ->columnSpanFull(),
-
-                        Forms\Components\Section::make('Paste or upload raw HTML instead')
-                            ->collapsible()
-                            ->collapsed()
-                            ->schema([
-                                Forms\Components\Textarea::make('raw_html_paste')
-                                    ->label('Raw HTML')
-                                    ->dehydrated(false)
-                                    ->rows(6)
-                                    ->helperText('Paste HTML here, then click "Use this HTML" to overwrite the description above with it exactly as typed.')
-                                    ->columnSpanFull(),
-                                Forms\Components\Actions::make([
-                                    Forms\Components\Actions\Action::make('useHtml')
-                                        ->label('Use this HTML')
-                                        ->action(function (Get $get, Set $set) {
-                                            $set('seo_description', $get('raw_html_paste'));
-                                        }),
-                                ]),
-                                Forms\Components\FileUpload::make('raw_html_file')
-                                    ->label('...or upload an .html file')
-                                    ->dehydrated(false)
-                                    ->live()
-                                    ->acceptedFileTypes(['text/html'])
-                                    ->helperText('Uploading a file here immediately fills the description above with its contents.')
-                                    ->afterStateUpdated(function ($state, Set $set) {
-                                        if ($state instanceof TemporaryUploadedFile) {
-                                            $set('seo_description', $state->get());
-                                        }
-                                    })
-                                    ->columnSpanFull(),
-                            ])
-                            ->columnSpanFull(),
+                        LongHtmlField::make('seo_description', AuthoringGuidance::html('Any <h1> pasted in here is automatically shown as an H2 on the storefront, so the page keeps exactly one true H1 -- the category name.', tablesKept: true)),
+                        RawHtmlSection::make('seo_description'),
                     ])
                     ->columnSpanFull(),
 

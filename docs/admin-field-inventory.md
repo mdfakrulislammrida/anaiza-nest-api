@@ -246,8 +246,8 @@ Source: `CategoryResource.php`; API `CategoryResource`; page `src/app/category/[
 | Menu order | Menu sort (then by name) | Yes | integer >= 0, default 0 | | |
 | Description | **Not shown anywhere** (internal note) | No | none | | |
 | Summary / intro (shown directly under the title) | Under the H1; also meta description fallback; `llms.txt` category line | No | max 600; helper states 50 to 100 words | 50 to 100 words **(code helper)** | Hidden |
-| Long SEO description | Below the product grid, headed "About {Name}"; phones show about 10 rem then "Read more"; any `<h1>` becomes `<h2>` | No | none in the form; helper says typically 300 to 800 words | 300 to 800 words **(code helper)** | Section hidden |
-| Raw HTML paste / upload (.html) | Overwrites the long description above | No | `text/html`; no size field limit | | |
+| Long SEO description | Below the product grid, headed "About {Name}" with the brand's prose styling; phones show about 360 px then "Read more" (the full text is in the page HTML); any `<h1>` becomes `<h2>`; tables are kept (stacked on phones). Edited in the visual editor or as HTML ("Edit this text as"); content with a table opens as HTML | No | none in the form; helper says typically 300 to 800 words; scripts, styles, classes and ids are removed on save | 300 to 800 words **(code helper)** | Section hidden |
+| Raw HTML paste / upload (.html) | Replaces the long description above, kept as written (not passed through the visual editor); a note lists what was removed | No | `text/html`; no size field limit; only the body of an uploaded file is used | | |
 | Category FAQ: Question | FAQ accordion near the bottom, and FAQPage JSON-LD | Yes per row | max 120 | Under 90 | Section hidden when no rows |
 | Category FAQ: Answer | Same | Yes per row | max 500; plain text | 2 to 4 sentences | |
 | (FAQ list) | | | max 8 rows | | |
@@ -361,8 +361,8 @@ Source: `PageResource.php`; storefront `/pages/{slug}`.
 | --- | --- | --- | --- | --- | --- |
 | Title | `<h1>`, breadcrumb, `<title>` fallback, menu label | Yes | max 255 | | |
 | Slug | `/pages/{slug}` | Yes | max 255, unique | | Auto from Title |
-| Content | Page body under the H1 (`max-w-3xl`); `<h1>` becomes `<h2>`; tables scroll sideways on phones | No | none | | Page shows its title only |
-| Raw HTML paste / upload | Overwrites Content | No | `text/html` | | |
+| Content | Page body under the H1, in the brand's prose styling; `<h1>` becomes `<h2>`; tables are kept (stacked on phones). Edited in the visual editor or as HTML ("Edit this text as"); content with a table opens as HTML | No | none; scripts, styles, classes and ids are removed on save | | Page shows its title only |
+| Raw HTML paste / upload | Replaces Content, kept as written; a note lists what was removed | No | `text/html`; only the body of an uploaded file is used | | |
 | Meta title | `<title>`, og:title | No | max 70 | 50 to 60 | Page title |
 | Meta description | `<meta description>` | No | max 160 | 120 to 155 | Site-wide default description (the page sets none) |
 | Social share image URL | og:image, twitter:image | No | **a URL typed as text**, max 255 (not an upload) | 1200 x 630 (advice) | No og:image |
@@ -384,8 +384,8 @@ Source: `ArticleResource.php`; `/blog`, `/blog/{slug}`.
 | Publish at | Date on card and article; JSON-LD datePublished; draft until set and in the past | No | date and time | | Draft (hidden) |
 | Author name (optional) | Byline "By {name}"; JSON-LD author | No | max 255 | | No byline, no author in JSON-LD |
 | Author bio (optional) | "About the author" box (needs a name); JSON-LD author description | No | max 500 | 1 to 2 sentences | Hidden |
-| Content | Article body; an "In this article" table of contents is built from `<h2>` headings (shown when there are 2 or more); `<h1>` becomes `<h2>`; card excerpt is taken from it | No | none | 600+ words (advice) | |
-| Raw HTML paste / upload | Overwrites Content | No | `text/html` | | |
+| Content | Article body in the brand's prose styling; an "In this article" table of contents is built from `<h2>` headings (shown when there are 2 or more); `<h1>` becomes `<h2>`; tables are kept (stacked on phones); card excerpt is taken from it. Edited in the visual editor or as HTML ("Edit this text as"); content with a table opens as HTML | No | none; scripts, styles, classes and ids are removed on save | 600+ words (advice) | |
+| Raw HTML paste / upload | Replaces Content, kept as written; a note lists what was removed | No | `text/html`; only the body of an uploaded file is used | | |
 | Meta title | `<title>`, og:title | No | max 255 | 50 to 60 | Title |
 | Meta description | `<meta description>`; JSON-LD description | No | max 255 (not 160) | 120 to 155 | Site-wide default description; JSON-LD has none (no excerpt fallback) |
 

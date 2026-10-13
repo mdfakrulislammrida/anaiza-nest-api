@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CleansContentHtml;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Article extends Model
 {
+    use CleansContentHtml;
     use HasFactory;
 
     protected $fillable = [
@@ -33,5 +35,10 @@ class Article extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->whereNotNull('published_at')->where('published_at', '<=', now());
+    }
+
+    protected function contentHtmlAttributes(): array
+    {
+        return ['content'];
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\CleansContentHtml;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
+    use CleansContentHtml;
     use HasFactory;
 
     protected $fillable = [
@@ -66,5 +68,10 @@ class Category extends Model
     public function faqs(): HasMany
     {
         return $this->hasMany(CategoryFaq::class)->orderBy('sort_order');
+    }
+
+    protected function contentHtmlAttributes(): array
+    {
+        return ['seo_description'];
     }
 }

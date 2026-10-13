@@ -6,6 +6,7 @@ use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\PageResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
+use App\Filament\Support\LongHtmlField;
 use App\Filament\Support\RawHtmlSection;
 use App\Models\Page;
 use Filament\Forms;
@@ -41,10 +42,7 @@ class PageResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->unique(ignoreRecord: true),
-                Forms\Components\RichEditor::make('content')
-                    ->live(onBlur: true)
-                    ->helperText(AuthoringGuidance::html('Any <h1> pasted in here is shown as an H2, because the page title is already the page\'s one H1. Link a page from the header or footer with Site Settings > Header / Footer, where it is a Page item.'))
-                    ->columnSpanFull(),
+                LongHtmlField::make('content', AuthoringGuidance::html('Any <h1> pasted in here is shown as an H2, because the page title is already the page\'s one H1. Link a page from the header or footer with Site Settings > Header / Footer, where it is a Page item.', tablesKept: true)),
                 BrandVoiceNote::under('content'),
                 RawHtmlSection::make('content'),
 

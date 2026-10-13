@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Support\HtmlSanitizer;
+use App\Support\ContentHtml;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -25,7 +25,7 @@ class CategoryResource extends JsonResource
             // Downgraded here, once, server-side, same as Product::description
             // -- every consumer gets HTML that can never introduce a second
             // <h1>, regardless of what an admin pastes into the rich editor.
-            'seo_description' => HtmlSanitizer::downgradeH1($this->seo_description),
+            'seo_description' => ContentHtml::forOutput($this->seo_description),
             'banner_desktop' => [
                 'url' => MediaUrl::resolve($this->banner_desktop),
                 'width' => $this->banner_desktop_width,

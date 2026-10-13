@@ -14,7 +14,7 @@ class AuthoringGuidance
     /**
      * @param  string  $extra  A sentence specific to the field, shown first.
      */
-    public static function html(string $extra = ''): HtmlString
+    public static function html(string $extra = '', bool $tablesKept = false): HtmlString
     {
         $example = e(<<<'HTML'
 <table>
@@ -35,8 +35,11 @@ HTML);
             'Write headings as the questions people actually ask (e.g. &ldquo;How do I care for a ceramic tea set?&rdquo;) '.
             'using <code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code>, and keep each section self-contained: '.
             'about 50&ndash;100 words that still make sense if read on their own. '.
-            'Comparison tables help readers and search engines &mdash; paste them as raw HTML below '.
-            '(the visual editor can&rsquo;t build tables) and they will be styled and scroll sideways on phones.'.
+            ($tablesKept
+                ? 'Comparison tables help readers and search engines. The visual editor can&rsquo;t build them: switch &ldquo;Edit this text as&rdquo; to HTML, or paste or upload HTML below. '.
+                    'Tables are kept as written and styled by the shop; on a phone each row is shown as a small stacked block. Scripts, styles and classes are removed.'
+                : 'Comparison tables help readers and search engines &mdash; paste them as raw HTML below '.
+                    '(the visual editor can&rsquo;t build tables) and they will be styled and scroll sideways on phones.').
             '<details style="margin-top:.5rem"><summary style="cursor:pointer">Show an example comparison table</summary>'.
             '<pre style="margin-top:.5rem;overflow-x:auto;font-size:.75rem"><code>'.$example.'</code></pre></details>'
         );

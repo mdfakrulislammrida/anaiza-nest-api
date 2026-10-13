@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources;
 
-use App\Support\HtmlSanitizer;
+use App\Support\ContentHtml;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -21,7 +21,7 @@ class ArticleResource extends JsonResource
             'title' => $this->title,
             'slug' => $this->slug,
             // Same one-H1 rule as products and categories: the page title is the H1.
-            'content' => HtmlSanitizer::downgradeH1($this->content),
+            'content' => ContentHtml::forOutput($this->content),
             'featured_image' => MediaUrl::resolve($this->featured_image),
             'author' => [
                 'name' => $this->author_name,

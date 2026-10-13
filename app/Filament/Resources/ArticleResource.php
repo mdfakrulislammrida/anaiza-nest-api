@@ -6,6 +6,7 @@ use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ArticleResource\Pages;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
+use App\Filament\Support\LongHtmlField;
 use App\Filament\Support\RawHtmlSection;
 use App\Models\Article;
 use Filament\Forms;
@@ -63,10 +64,7 @@ class ArticleResource extends Resource
                     ->helperText('One or two sentences on who the author is and why they know the topic.')
                     ->maxLength(500)
                     ->rows(2),
-                Forms\Components\RichEditor::make('content')
-                    ->live(onBlur: true)
-                    ->helperText(AuthoringGuidance::html('A table of contents is built automatically from your <h2> headings, and any <h1> is shown as an H2 (the article title is the page\'s one H1).'))
-                    ->columnSpanFull(),
+                LongHtmlField::make('content', AuthoringGuidance::html('A table of contents is built automatically from your <h2> headings, and any <h1> is shown as an H2 (the article title is the page\'s one H1).', tablesKept: true)),
                 BrandVoiceNote::under('content'),
                 RawHtmlSection::make('content'),
 
