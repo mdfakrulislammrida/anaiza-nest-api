@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Courier\CustomerStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,6 +25,9 @@ class OrderResource extends JsonResource
             // Set by the shop when the order ships; null until then.
             'courier_name' => $this->courier_name,
             'tracking_number' => $this->tracking_number,
+            // The courier's own tracking page, when the shop has set one up, and a plain sentence about where the parcel is.
+            'tracking_url' => $this->courier_tracking_url,
+            'delivery_update' => CustomerStatus::text($this->resource),
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,
             // What a coupon took off, and the code. Zero and null when none was used.

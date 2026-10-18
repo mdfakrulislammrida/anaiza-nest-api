@@ -78,6 +78,16 @@ class Order extends Model
             'review_reminder_sent_at' => 'datetime',
             'review_whatsapp_clicked_at' => 'datetime',
             'emails_sent' => 'array',
+            'courier_booked_at' => 'datetime',
+            'courier_booking_started_at' => 'datetime',
+            'courier_synced_at' => 'datetime',
+            'courier_next_sync_at' => 'datetime',
+            'courier_final_at' => 'datetime',
+            'courier_returned_at' => 'datetime',
+            'courier_last_error_at' => 'datetime',
+            'cod_collected_at' => 'datetime',
+            'cod_amount_sent' => 'integer',
+            'cod_collected_amount' => 'integer',
         ];
     }
 
@@ -122,6 +132,12 @@ class Order extends Model
         return implode(', ', array_filter([$to['address'], $to['thana'], $to['district'], $to['division']]));
     }
 
+    /** Booked with a courier (its consignment id may be missing only after a lost answer from Steadfast). */
+    public function isBooked(): bool
+    {
+        return $this->courier !== null && $this->courier_booked_at !== null;
+    }
+
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'payment_verified_by');
@@ -135,6 +151,11 @@ class Order extends Model
     public function shippingZone(): BelongsTo
     {
         return $this->belongsTo(ShippingZone::class);
+    }
+
+    public function courierEvents(): HasMany
+    {
+        return $this->hasMany(CourierEvent::class, 'order_id');
     }
 
     public function items(): HasMany

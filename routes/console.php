@@ -25,3 +25,9 @@ Schedule::command('backup:run')->dailyAt('02:30')->timezone('Asia/Dhaka')->witho
 Schedule::command('stock:digest')->dailyAt('09:00')->timezone('Asia/Dhaka');
 
 Schedule::command('system:tidy')->dailyAt('03:45')->timezone('Asia/Dhaka');
+
+// Follow every booked parcel (the fallback beside Steadfast's webhook, and the only way for Pathao). Built to be light: see CourierSync.
+Schedule::command('couriers:sync')->everyFifteenMinutes()->withoutOverlapping(14);
+
+// The morning note of courier bookings that failed or have gone quiet.
+Schedule::command('couriers:digest')->dailyAt('09:30')->timezone('Asia/Dhaka');

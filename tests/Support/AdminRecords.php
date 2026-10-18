@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\ContactSubmission;
 use App\Models\CorporateEnquiry;
 use App\Models\Coupon;
+use App\Models\CourierStatusMap;
 use App\Models\Customer;
 use App\Models\EmailTemplate;
 use App\Models\Faq;
@@ -138,6 +139,7 @@ class AdminRecords
             ContactSubmission::class => ContactSubmission::create(['name' => 'Fakrul', 'phone' => '01710000000', 'message' => 'Hello']),
             CorporateEnquiry::class => CorporateEnquiry::create(['name' => 'Rafi', 'company' => 'Northwind Ltd', 'phone' => '01710000001', 'email' => 'rafi@example.com', 'quantity' => 40]),
             Coupon::class => Coupon::create(['code' => 'WELCOME10', 'discount_type' => 'percent', 'amount' => 10]),
+            CourierStatusMap::class => CourierStatusMap::query()->firstOrFail(),
             Customer::class => self::customer(),
             EmailTemplate::class => self::emailTemplate(),
             ProductReview::class => self::productReview(),

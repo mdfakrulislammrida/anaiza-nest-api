@@ -3,7 +3,9 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Shows exactly what the server receives for YOUR request, so the client-IP and proxy settings are set from evidence, not
@@ -23,6 +25,36 @@ class NetworkCheck extends Page
     protected static string $view = 'filament.pages.network-check';
 
     protected static ?string $slug = 'network-check';
+
+    /** The courier hosts this server calls out to (read-only requests: nothing is booked, no key is sent). */
+    public const COURIER_HOSTS = [
+        'Steadfast' => 'https://portal.packzy.com/api/v1/ping',
+        'Pathao (live)' => 'https://api-hermes.pathao.com',
+        'Pathao (sandbox)' => 'https://courier-api-sandbox.pathao.com',
+    ];
+
+    /** @var list<array{name: string, url: string, ok: bool, detail: string}> */
+    public array $courierChecks = [];
+
+    /**
+     * Can this server reach each courier? Any answer at all (even a 404 from the bare host) means the way is open; a timeout or
+     * a refused connection means it is not.
+     */
+    public function checkCouriers(): void
+    {
+        $this->courierChecks = [];
+
+        foreach (self::COURIER_HOSTS as $name => $url) {
+            $started = microtime(true);
+
+            try {
+                $response = Http::connectTimeout(6)->timeout(8)->get($url);
+                $this->courierChecks[] = ['name' => $name, 'url' => $url, 'ok' => true, 'detail' => 'Answered (HTTP '.$response->status().') in '.round((microtime(true) - $started) * 1000).' ms'];
+            } catch (ConnectionException $e) {
+                $this->courierChecks[] = ['name' => $name, 'url' => $url, 'ok' => false, 'detail' => 'No answer: '.mb_substr($e->getMessage(), 0, 160)];
+            }
+        }
+    }
 
     public static function canAccess(): bool
     {

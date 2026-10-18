@@ -36,6 +36,29 @@
     </x-filament::section>
 
     <x-filament::section>
+        <x-slot name="heading">Can this server reach the couriers?</x-slot>
+        <x-slot name="description">
+            Booking and status checks call Steadfast and Pathao from this server. This sends one read-only request to each (no key, nothing is booked). The courier documentation we were given asks for no fixed outgoing address (IP whitelist); if either courier ever does, ask the host for this server's outgoing address.
+        </x-slot>
+
+        <x-filament::button wire:click="checkCouriers" wire:loading.attr="disabled">Check now</x-filament::button>
+
+        @if ($courierChecks !== [])
+            <table class="mt-4 w-full text-left text-sm">
+                <tbody>
+                    @foreach ($courierChecks as $check)
+                        <tr class="border-b border-gray-100 dark:border-white/5">
+                            <td class="py-2 pr-4 font-medium">{{ $check['name'] }}</td>
+                            <td class="py-2 pr-4 font-mono text-xs">{{ $check['url'] }}</td>
+                            <td class="py-2 {{ $check['ok'] ? 'text-success-600' : 'font-medium text-danger-600' }}">{{ $check['detail'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </x-filament::section>
+
+    <x-filament::section>
         <x-slot name="heading">Settings in force (.env)</x-slot>
 
         <table class="w-full text-left text-sm">

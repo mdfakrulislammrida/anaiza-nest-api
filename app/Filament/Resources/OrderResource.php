@@ -5,11 +5,14 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
+use App\Filament\Support\CourierActions;
 use App\Filament\Support\PaymentActions;
 use App\Models\BlockedContact;
+use App\Models\CourierSetting;
 use App\Models\Order;
 use App\Models\ReviewRequestSetting;
 use App\Models\ShippingZone;
+use App\Models\User;
 use App\Support\Contact;
 use App\Support\Reviews\ReviewRequests;
 use App\Support\WalletPayments;
@@ -22,6 +25,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class OrderResource extends Resource
 {
@@ -177,6 +181,15 @@ class OrderResource extends Resource
                     ])
                     ->columns(2)
                     ->visible(fn (?Order $record): bool => $record !== null && $record->payment_method !== 'cod'),
+                Forms\Components\Section::make('Courier')
+                    ->description('Use Send to courier at the top of this page. The courier\'s reports are checked every 15 minutes and, for Steadfast, arrive by webhook; the history is below.')
+                    ->schema([
+                        Forms\Components\Placeholder::make('courier_summary')
+                            ->hiddenLabel()
+                            ->content(fn (?Order $record): HtmlString => self::courierSummary($record)),
+                    ])
+                    ->visible(fn (?Order $record): bool => $record !== null)
+                    ->columnSpanFull(),
                 Forms\Components\Toggle::make('is_gift')
                     ->label('This is a gift')
                     ->helperText('Ticked by the customer at checkout. Free, and it never changes the price.')
@@ -262,6 +275,14 @@ class OrderResource extends Resource
                     ->searchable()
                     ->placeholder('—')
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('courier')
+                    ->label('Courier')
+                    ->formatStateUsing(fn (?string $state): string => CourierSetting::COURIERS[$state] ?? '')
+                    ->description(fn (Order $record): ?string => $record->courier_booked_at === null ? null : ($record->courier_status_text ?: 'Booked'))
+                    ->placeholder('Not sent')
+                    ->badge()
+                    ->color(fn (Order $record): string => $record->courier_returned_at !== null ? 'danger' : ($record->courier_booked_at !== null ? 'info' : 'gray'))
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('is_gift')
                     ->label('Gift')
                     ->boolean()
@@ -327,6 +348,16 @@ class OrderResource extends Resource
                 Tables\Filters\SelectFilter::make('payment_status')
                     ->label('Payment')
                     ->options(self::PAYMENT_STATUSES),
+                Tables\Filters\SelectFilter::make('courier_state')
+                    ->label('Courier')
+                    ->options(['not_sent' => 'Not sent to a courier', 'booked' => 'Booked', 'returned' => 'Returned or cancelled by the courier', 'failed' => 'Booking failed'])
+                    ->query(fn ($query, array $data) => match ($data['value'] ?? null) {
+                        'not_sent' => $query->whereNull('courier_booked_at'),
+                        'booked' => $query->whereNotNull('courier_booked_at'),
+                        'returned' => $query->whereNotNull('courier_returned_at'),
+                        'failed' => $query->whereNull('courier_booked_at')->whereNotNull('courier_last_error'),
+                        default => $query,
+                    }),
                 Tables\Filters\SelectFilter::make('payment_method')
                     ->label('Payment Method')
                     ->options(self::PAYMENT_METHODS),
@@ -362,6 +393,7 @@ class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                CourierActions::send(Tables\Actions\Action::class),
                 PaymentActions::verify(Tables\Actions\Action::class),
                 PaymentActions::fail(Tables\Actions\Action::class),
                 Tables\Actions\Action::make('printGiftNote')
@@ -388,9 +420,52 @@ class OrderResource extends Resource
                         // Saved one order at a time, so each order's status email fires exactly as it does from its own page.
                         ->action(fn (Collection $records, array $data) => $records->each(fn (Order $order) => $order->update(['status' => $data['status']])))
                         ->deselectRecordsAfterCompletion(),
+                    CourierActions::bulk(Tables\Actions\BulkAction::class),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** What the order page says about its courier booking, in plain words. */
+    public static function courierSummary(?Order $order): HtmlString
+    {
+        if ($order === null || $order->courier_booked_at === null) {
+            $html = '<p>Not sent to a courier yet.</p>';
+
+            if ($order?->courier_last_error) {
+                $html .= '<p style="color:#b91c1c;font-weight:600">The last try failed: '.e($order->courier_last_error).'</p><p>Nothing was saved from it. Use Send to courier to try again.</p>';
+            }
+
+            return new HtmlString($html);
+        }
+
+        $by = $order->courier_booked_by ? User::query()->find($order->courier_booked_by)?->name : null;
+        $when = fn ($time): string => $time?->timezone('Asia/Dhaka')->format('j M Y, g:i A') ?? '—';
+        $name = CourierSetting::COURIERS[$order->courier] ?? $order->courier;
+
+        $rows = [
+            'Booked' => e($name.', '.$when($order->courier_booked_at).($by ? ', by '.$by : ' (automatic)')),
+            'Consignment' => e($order->courier_consignment_id ?: 'not received: open it in the courier\'s panel'),
+            'Tracking code' => e($order->courier_tracking_code ?: '—').($order->courier_tracking_url ? ' &middot; <a href="'.e($order->courier_tracking_url).'" target="_blank" rel="noopener" style="text-decoration:underline">Open the courier\'s page</a>' : ''),
+            'Courier says' => e(($order->courier_status_text ?: '—').($order->courier_status ? ' ('.$order->courier_status.')' : '')).', last checked '.e($when($order->courier_synced_at)),
+            'Cash to collect' => e('৳'.number_format((int) $order->cod_amount_sent)).($order->cod_collected_at ? ', <strong>collected</strong> '.e($when($order->cod_collected_at)) : ''),
+        ];
+
+        $html = '<dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 16px">';
+        foreach ($rows as $label => $value) {
+            $html .= '<dt style="color:#6b7280">'.e($label).'</dt><dd>'.$value.'</dd>';
+        }
+        $html .= '</dl>';
+
+        if ($order->courier_returned_at) {
+            $html .= '<p style="color:#b91c1c;font-weight:600;margin-top:8px">Returned or cancelled by the courier ('.e($when($order->courier_returned_at)).').</p><p>Stock and refunds are not changed automatically: that is your decision.</p>';
+        }
+
+        if ($order->courier_last_error) {
+            $html .= '<p style="color:#b45309;margin-top:8px">'.e($order->courier_last_error).'</p>';
+        }
+
+        return new HtmlString($html);
     }
 
     /**
@@ -447,6 +522,7 @@ class OrderResource extends Resource
     {
         return [
             RelationManagers\ItemsRelationManager::class,
+            RelationManagers\CourierEventsRelationManager::class,
         ];
     }
 

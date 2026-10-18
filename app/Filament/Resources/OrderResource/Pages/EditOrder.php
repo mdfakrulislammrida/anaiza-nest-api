@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\OrderResource\Pages;
 
 use App\Filament\Resources\OrderResource;
+use App\Filament\Support\CourierActions;
 use App\Filament\Support\PaymentActions;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,7 @@ class EditOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            CourierActions::send(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshFormData(['status'])),
             PaymentActions::verify(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             PaymentActions::fail(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             OrderResource::whatsappReviewAction(Actions\Action::class)->record($this->record),

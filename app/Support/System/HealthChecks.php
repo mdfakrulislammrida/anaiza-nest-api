@@ -2,6 +2,7 @@
 
 namespace App\Support\System;
 
+use App\Models\CourierSetting;
 use App\Models\Order;
 use App\Support\Backup\BackupService;
 use App\Support\Dhaka;
@@ -34,6 +35,7 @@ final class HealthChecks
             self::orders(),
             self::logs(),
             self::storageLink(),
+            ...self::couriers(),
         ];
     }
 
@@ -60,6 +62,66 @@ final class HealthChecks
             $minutes < 60 * 48 => (int) round($minutes / 60).' hours ago',
             default => (int) round($minutes / 1440).' days ago',
         };
+    }
+
+    /**
+     * The couriers, when any is switched on: the last good call to each, how many booked parcels have not been checked
+     * lately, and the last Steadfast webhook. Nothing when no courier is in use, so a shop without one sees no noise.
+     *
+     * @return list<array{key: string, label: string, status: string, detail: string, hint: string}>
+     */
+    public static function couriers(): array
+    {
+        try {
+            $settings = CourierSetting::current();
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ([CourierSetting::STEADFAST => 'courier_steadfast_ok', CourierSetting::PATHAO => 'courier_pathao_ok'] as $courier => $event) {
+            if (! $settings->{$courier.'_enabled'}) {
+                continue;
+            }
+
+            $label = CourierSetting::COURIERS[$courier];
+            $failed = $settings->{$courier.'_auth_failed_at'};
+            $last = SystemEvents::latest($event);
+
+            $rows[] = match (true) {
+                $failed !== null => self::row('courier_'.$courier, $label, self::FAIL, 'Refused the login '.self::ago($failed).'. Nothing is sent to it until it is fixed.',
+                    'Save the correct details in Settings > Courier. ('.($courier === CourierSetting::STEADFAST ? 'Steadfast locks the account for an hour after ten refusals in five minutes.' : 'Check that sandbox or live matches the login.').')'),
+                $last === null => self::row('courier_'.$courier, $label, self::WARN, 'No successful call yet.', 'Press "Test '.$label.'" in Settings > Courier.'),
+                default => self::row('courier_'.$courier, $label, self::OK, 'Last successful call '.self::ago($last->updated_at).'.'),
+            };
+        }
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $unsynced = Order::query()
+            ->whereNotNull('courier_booked_at')
+            ->whereNull('courier_final_at')
+            ->whereNull('courier_returned_at')
+            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->where(fn ($query) => $query->where('courier_synced_at', '<', now()->subHours(2))
+                ->orWhere(fn ($inner) => $inner->whereNull('courier_synced_at')->where('courier_booked_at', '<', now()->subHours(2))))
+            ->count();
+
+        $rows[] = $unsynced > 0
+            ? self::row('courier_unsynced', 'Booked parcels not checked lately', self::WARN, $unsynced.' booked '.($unsynced === 1 ? 'parcel has' : 'parcels have').' had no status check for two hours.',
+                'The status check runs from the cron line every 15 minutes (php artisan couriers:sync). If the cron line is working, look at the courier lines above: a refused login or an outage stops the check.')
+            : self::row('courier_unsynced', 'Booked parcels not checked lately', self::OK, 'Every booked parcel has been checked in the last two hours.');
+
+        if ($settings->steadfast_enabled && filled($settings->steadfast_webhook_token)) {
+            $at = $settings->steadfast_webhook_last_at;
+            $rows[] = self::row('steadfast_webhook', 'Last Steadfast webhook', self::OK,
+                $at === null ? 'None received yet. The status check covers it.' : 'Received '.self::ago($at).'.');
+        }
+
+        return $rows;
     }
 
     public static function scheduler(): array

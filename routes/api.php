@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ContactSubmissionController;
 use App\Http\Controllers\Api\CookieConsentController;
 use App\Http\Controllers\Api\CorporateEnquiryController;
 use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Api\CourierWebhookController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomepageSectionController;
@@ -49,6 +50,9 @@ Route::get('/attributes', [ProductAttributeController::class, 'index']);
 // Checkout (guest-friendly: creates/updates the customer record from the details submitted)
 Route::post('/orders', [OrderController::class, 'store'])->middleware(['throttle:orders', 'form-proof:order,reject']);
 Route::get('/orders/lookup', [OrderController::class, 'lookup'])->middleware('throttle:order-lookup');
+
+// Couriers report back here. Steadfast signs every request; the receiver refuses anything it cannot verify (see App\Support\Courier\SteadfastWebhook).
+Route::post('/webhooks/steadfast', [CourierWebhookController::class, 'steadfast'])->middleware('throttle:courier-webhook');
 
 // Coupons are only ever checked on the server: this is a preview for the checkout field, and the order checks again.
 Route::post('/coupons/validate', [CouponController::class, 'validateCode'])->middleware('throttle:30,1');

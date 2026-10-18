@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Models\CourierSetting;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -47,6 +48,19 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
                 fn (): string => view('filament.admin.compact-styles')->render(),
+            )
+            // A banner on every page while Pathao is in its sandbox. Never allowed to break the admin (the table may not exist yet).
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                function (): string {
+                    try {
+                        $settings = CourierSetting::query()->first();
+
+                        return $settings?->pathao_enabled && $settings->pathao_sandbox ? view('filament.admin.courier-sandbox-banner')->render() : '';
+                    } catch (\Throwable) {
+                        return '';
+                    }
+                },
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')

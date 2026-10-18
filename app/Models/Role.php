@@ -22,6 +22,7 @@ class Role extends Model
         'product_labels.manage' => 'Manage Product Labels',
         'product_attributes.manage' => 'Manage Product Attributes',
         'orders.manage' => 'Manage Orders',
+        'orders.send_to_courier' => 'Send orders to a courier (Steadfast, Pathao)',
         'customers.manage' => 'Manage Customers',
         'coupons.manage' => 'Manage Coupons',
         'shipping_zones.manage' => 'Manage Shipping Zones',

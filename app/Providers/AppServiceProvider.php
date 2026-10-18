@@ -76,6 +76,9 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // A courier's webhook: a handful an hour in practice; this only stops a flood at the door.
+        RateLimiter::for('courier-webhook', fn (Request $request) => $perIp($request, 'courier-webhook', Limit::perMinute(240)) ?: Limit::none());
+
         RateLimiter::for('contact-form', fn (Request $request) => $perIp($request, 'contact', Limit::perHour(8)) ?: Limit::none());
         RateLimiter::for('newsletter', fn (Request $request) => $perIp($request, 'newsletter', Limit::perHour(10)) ?: Limit::none());
         RateLimiter::for('register', fn (Request $request) => $perIp($request, 'register', Limit::perHour(10)) ?: Limit::none());
