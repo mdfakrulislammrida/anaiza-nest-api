@@ -90,6 +90,22 @@ All optional, all `live` with brand-voice notes.
 
 Always present in the hero (hardcoded, not editable): the italic line "For the people you'd pour a second cup for.", the buttons "Shop tea sets" and "Find the right gift", the two tile titles "Special prices" and "New arrivals".
 
+### 1.3a Homepage pictures
+
+All optional. A picture shows on the site as soon as it is saved, with no rebuild (the page picks it up a moment after it opens; the next rebuild puts it straight into the page). JPEG, PNG or WebP only (no SVG, no GIF), 5 MB each and under about 36 megapixels. The shop converts each to WebP (quality 82), makes copies (never larger than the original), keeps their sizes, deletes the original, and serves a `srcset`. It never crops: the storefront fits the picture to its panel from the centre (`object-fit: cover`). A small or oddly shaped upload gets a heads-up, never a block.
+
+| Label | Recommended upload | Copies made (px wide) | Where it appears | When empty |
+| --- | --- | --- | --- | --- |
+| Hero picture, desktop | 1600 x 1000 (16:10) | 640, 1000, 1600 | Behind the hero panel from 640 px; text on a flat deep-ink panel over the left side (about 70% at 1280 px wide) | Plain deep-ink panel |
+| Hero picture, mobile | 900 x 1200 (3:4) | 450, 900 | Behind the hero panel under 640 px; text panel over the lower part. Used only with a desktop picture | Phones use the desktop picture, cut from its middle |
+| Hero picture description | max 160 characters | | `alt` text of the hero picture (desktop and mobile) | `alt=""` (decoration); never filled from the headline |
+| Special prices tile picture | 1200 x 750 (16:10) | 600, 1200 | Behind side tile 1; text on a flat panel along the bottom | Plain navy tile |
+| Special prices tile picture description | max 160 | | `alt` of that picture | `alt=""` |
+| New arrivals tile picture | 1200 x 750 (16:10) | 600, 1200 | Behind side tile 2; text on a flat panel along the bottom | Plain charcoal tile |
+| New arrivals tile picture description | max 160 | | `alt` of that picture | `alt=""` |
+
+Keep the subject on the right (wide screens), at the top (phones) and in the upper part (tiles): the text panels cover the rest.
+
 ### 1.4 Corporate gifting
 
 | Label | Where it appears | Req. | Limit | Recommended | When empty |

@@ -21,10 +21,11 @@ class HomepageWordingTest extends TestCase
         $homepage = $this->getJson('/api/site-settings')->assertOk()->json('data.homepage');
 
         $this->assertSame(
-            ['hero_badge', 'hero_title', 'hero_text', 'hot_deals_tile_text', 'new_arrivals_tile_text', 'newsletter_headline', 'newsletter_text'],
+            ['hero_badge', 'hero_title', 'hero_text', 'hot_deals_tile_text', 'new_arrivals_tile_text', 'newsletter_headline', 'newsletter_text', 'images'],
             array_keys($homepage),
         );
-        $this->assertSame([], array_filter($homepage, fn ($value) => $value !== null));
+        // The pictures are a block of their own (every picture null until uploaded); the wording is all null.
+        $this->assertSame([], array_filter($homepage, fn ($value, $key) => $key !== 'images' && $value !== null, ARRAY_FILTER_USE_BOTH));
     }
 
     public function test_written_wording_is_returned(): void

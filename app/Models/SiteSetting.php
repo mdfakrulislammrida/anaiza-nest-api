@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\HomepagePictures;
 use App\Support\MenuLinks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -60,6 +61,17 @@ class SiteSetting extends Model
         'whatsapp_default_message',
         'whatsapp_show_bubble',
         'whatsapp_hidden_paths',
+        'hero_image',
+        'hero_image_renditions',
+        'hero_image_mobile',
+        'hero_image_mobile_renditions',
+        'hot_deals_tile_image',
+        'hot_deals_tile_image_renditions',
+        'new_arrivals_tile_image',
+        'new_arrivals_tile_image_renditions',
+        'hero_image_alt',
+        'hot_deals_tile_image_alt',
+        'new_arrivals_tile_image_alt',
     ];
 
     /**
@@ -92,9 +104,19 @@ class SiteSetting extends Model
         'alert_low_stock' => true,
     ];
 
+    protected static function booted(): void
+    {
+        // A changed homepage picture is checked and converted here, wherever the save came from.
+        static::saving(fn (SiteSetting $settings) => HomepagePictures::process($settings));
+    }
+
     protected function casts(): array
     {
         return [
+            'hero_image_renditions' => 'array',
+            'hero_image_mobile_renditions' => 'array',
+            'hot_deals_tile_image_renditions' => 'array',
+            'new_arrivals_tile_image_renditions' => 'array',
             'nav_links' => 'array',
             'footer_links' => 'array',
             'footer_columns' => 'array',

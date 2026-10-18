@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\IntegrationSetting;
 use App\Models\PaymentSetting;
 use App\Models\SiteSetting;
+use App\Support\HomepagePictures;
 use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -70,6 +71,9 @@ class SiteSettingResource extends JsonResource
                 'new_arrivals_tile_text' => $this->hero_new_arrivals_text ?: null,
                 'newsletter_headline' => $this->newsletter_headline ?: null,
                 'newsletter_text' => $this->newsletter_text ?: null,
+                // The pictures behind the hero panel and its two tiles (absolute URLs, a srcset, the size, and the alt text:
+                // empty alt means decoration). Every picture is null until one is uploaded.
+                'images' => HomepagePictures::payload($this->resource),
             ],
             'policy' => [
                 'free_delivery_threshold' => $this->free_delivery_threshold,

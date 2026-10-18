@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Page as CmsPage;
 use App\Models\SiteSetting;
 use App\Support\BrandVoice;
+use App\Support\HomepagePictures;
 use App\Support\MenuLinks;
 use App\Support\WhatsApp;
 use Filament\Forms\Components\Component;
@@ -171,6 +172,24 @@ class ManageSiteSettings extends Page implements HasForms
         };
     }
 
+    private const ALT_HELP = 'Describe the picture in a few words, for example: Ivory tea set for two on a linen cloth. Leave empty if the picture is only decoration.';
+
+    /**
+     * One homepage picture: JPEG, PNG or WebP up to 5 MB, with a calm heads-up when it is small or the wrong shape.
+     */
+    private function pictureUpload(string $field, string $label, string $help): FileUpload
+    {
+        return FileUpload::make($field)
+            ->label($label)
+            ->helperText($help)
+            ->acceptedFileTypes(HomepagePictures::ALLOWED_TYPES)
+            ->maxSize(HomepagePictures::MAX_BYTES / 1024)
+            ->disk('public')
+            ->directory(HomepagePictures::UPLOAD_DIRECTORY)
+            ->live()
+            ->afterStateUpdated(HomepagePictures::uploadWarning($field));
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -313,6 +332,29 @@ class ManageSiteSettings extends Page implements HasForms
                             ->maxLength(240)
                             ->columnSpanFull(),
                         BrandVoiceNote::forFields(self::VOICE_FIELDS),
+                    ])
+                    ->columns(2),
+
+                Section::make('Homepage pictures')
+                    ->description('A photograph behind the big hero panel and behind its two side tiles. Every picture is optional: with none, the panels are plain colour, as before. A picture shows on the site as soon as you save, with no rebuild: the page picks it up a moment after it opens, and the next rebuild of the site puts it straight into the page. JPEG, PNG or WebP, up to 5 MB each. The shop converts each one to WebP, makes smaller copies for phones and never enlarges it. It does not crop: the panel shows the middle of the picture, so a wider or taller photo loses its edges.')
+                    ->schema([
+                        $this->pictureUpload('hero_image', 'Hero picture, desktop', 'Shown behind the hero panel from 640 px wide up. Upload about 1600 x 1000 (16:10). The headline and buttons sit on a dark panel over the left side (about the left 70% at 1280 px wide, more on narrower screens), so keep the subject on the right.'),
+                        $this->pictureUpload('hero_image_mobile', 'Hero picture, mobile', 'Shown behind the hero panel under 640 px wide, with the same description. Upload about 900 x 1200 (3:4). The text sits on a dark panel over the lower part, so keep the subject in the top part. Without one, phones use the desktop picture cut from its middle. It is used only together with a desktop picture.'),
+                        TextInput::make('hero_image_alt')
+                            ->label('Hero picture description')
+                            ->maxLength(160)
+                            ->helperText(self::ALT_HELP)
+                            ->columnSpanFull(),
+                        $this->pictureUpload('hot_deals_tile_image', 'Special prices tile picture', 'Behind the "Special prices" tile. Upload about 1200 x 750 (16:10). The tile text sits on a dark panel along the bottom, so keep the subject in the upper part.'),
+                        TextInput::make('hot_deals_tile_image_alt')
+                            ->label('Special prices tile picture description')
+                            ->maxLength(160)
+                            ->helperText(self::ALT_HELP),
+                        $this->pictureUpload('new_arrivals_tile_image', 'New arrivals tile picture', 'Behind the "New arrivals" tile. Upload about 1200 x 750 (16:10). The tile text sits on a dark panel along the bottom, so keep the subject in the upper part.'),
+                        TextInput::make('new_arrivals_tile_image_alt')
+                            ->label('New arrivals tile picture description')
+                            ->maxLength(160)
+                            ->helperText(self::ALT_HELP),
                     ])
                     ->columns(2),
 
@@ -526,6 +568,12 @@ class ManageSiteSettings extends Page implements HasForms
 
         $settings->update($data);
 
+        // A picture that was sent but could not be used (not a real JPEG, PNG or WebP, or too large) is left unset, never kept.
+        $refused = collect(HomepagePictures::PICTURES)
+            ->filter(fn (array $spec, string $field) => filled($data[$field] ?? null) && blank($settings->{$field}))
+            ->pluck('label')
+            ->all();
+
         $summary = BrandVoice::summary(array_map(
             fn (string $field): string => (string) ($settings->{$field} ?? ''),
             array_keys(self::VOICE_FIELDS),
@@ -536,5 +584,16 @@ class ManageSiteSettings extends Page implements HasForms
             ->body($summary)
             ->success()
             ->send();
+
+        if ($refused !== []) {
+            Notification::make()
+                ->title('A picture could not be used')
+                ->body('The '.implode(', ', $refused).' could not be read as a JPEG, PNG or WebP picture within the size limits, so it was not kept. Please try another file.')
+                ->warning()
+                ->send();
+        }
+
+        // Show what is stored now: an uploaded picture has been replaced by its converted copies.
+        $this->mount();
     }
 }

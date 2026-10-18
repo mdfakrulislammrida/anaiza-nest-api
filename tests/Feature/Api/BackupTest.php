@@ -217,6 +217,9 @@ class BackupTest extends TestCase
 
     public function test_the_nightly_command_records_success(): void
     {
+        // A weekday: on a Sunday the command also keeps a weekly copy, which the next test covers.
+        Carbon::setTestNow(Carbon::parse('2026-10-14 10:00:00', 'Asia/Dhaka'));
+
         $this->artisan('backup:run')->assertSuccessful();
 
         $last = SystemEvents::latest('backup');
