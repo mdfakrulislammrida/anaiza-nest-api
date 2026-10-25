@@ -52,7 +52,7 @@ final class SampleData
                 '{{minimum_order}}' => $key === TemplateDefinitions::CART_OFFER ? 'It applies to orders of ৳1,500 or more.' : '',
             ],
             'blocks' => [
-                '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => $items])->render(),
+                '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => CartLines::prepare($items)])->render(),
             ],
             'cta_url' => match (true) {
                 in_array($key, [TemplateDefinitions::REVIEW_REQUEST, TemplateDefinitions::REVIEW_REMINDER], true) => $frontend.'/product/sample-tea-set?review=sample#reviews',

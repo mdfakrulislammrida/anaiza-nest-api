@@ -74,7 +74,7 @@
     <table class="items">
         <thead>
             <tr>
-                <th>Item</th>
+                <th colspan="2">Item</th>
                 <th>Qty</th>
                 <th align="right">Unit price</th>
                 <th align="right">Line total</th>
@@ -83,6 +83,16 @@
         <tbody>
             @foreach ($order->items as $item)
                 <tr>
+                    <td style="width:72px;">
+                        {{-- The line's own small picture (kept when the order was placed), embedded so the PDF needs no network; with none, a linen tile with the first letter. --}}
+                        @php($thumb = \App\Support\EmailThumbs::dataUriForItem($item))
+                        @if ($thumb)
+                            <img src="{{ $thumb }}" width="64" height="64" style="width:64px;height:64px;">
+                        @else
+                            {{-- The invoice stays one colour (black on white), so the tile is an outline, not a fill. --}}
+                            <div style="width:62px;height:62px;border:1px solid #000;text-align:center;line-height:62px;font-size:24px;">{{ \App\Support\EmailThumbs::initial($item->product_name) }}</div>
+                        @endif
+                    </td>
                     <td>
                         {{ $item->product_name }}
                         @if ($item->variant_name)

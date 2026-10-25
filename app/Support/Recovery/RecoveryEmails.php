@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\SiteSetting;
 use App\Support\Coupons\CouponService;
+use App\Support\Email\CartLines;
 use App\Support\Email\TemplateDefinitions;
 use App\Support\Reviews\ReviewLinks;
 use Illuminate\Support\Facades\Mail;
@@ -45,7 +46,7 @@ final class RecoveryEmails
                 '{{minimum_order}}' => $coupon?->min_order ? 'It applies to orders of ৳'.number_format($coupon->min_order).' or more.' : '',
             ],
             'blocks' => [
-                '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => $items->all()])->render(),
+                '{{cart_items_block}}' => view('emails.blocks.cart', ['items' => CartLines::prepare($items->all())])->render(),
             ],
             'cta_url' => $link,
             'unsubscribe_url' => Unsubscribe::url($checkout->email, $checkout->phone),

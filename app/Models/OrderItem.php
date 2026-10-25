@@ -19,6 +19,8 @@ class OrderItem extends Model
         'variant_name',
         'variant_value',
         'sku',
+        // The small picture of the line as it was ordered (a path under email-thumbs/ on the public disk).
+        'image_path',
     ];
 
     protected function casts(): array

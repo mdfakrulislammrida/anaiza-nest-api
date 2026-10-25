@@ -19,6 +19,7 @@ use App\Support\ConversionEvents;
 use App\Support\Coupons\CouponRejected;
 use App\Support\Coupons\CouponService;
 use App\Support\DeliveryFeeCalculator;
+use App\Support\EmailThumbs;
 use App\Support\Email\TransactionalEmails;
 use App\Support\Recovery\CheckoutTracker;
 use App\Support\System\ShopAlerts;
@@ -210,6 +211,8 @@ class OrderController extends Controller
                     'variant_name' => $variant?->name,
                     'variant_value' => $variant?->value,
                     'sku' => $variant?->effective_sku ?? $product->sku,
+                    // The piece's small picture as it is today, kept with the line for the emails and the invoice.
+                    'image_path' => EmailThumbs::snapshot($product, $variant),
                 ];
 
                 // A variant with its own stock count is a separate pool from

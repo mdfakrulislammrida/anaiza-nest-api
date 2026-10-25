@@ -103,7 +103,7 @@ final class ShopAlerts
 
         $links['Open the order'] = url('/admin/orders/'.$order->id.'/edit');
 
-        return new ShopAlertMail("New order #{$order->id}: {$total}, {$method}", $lines, $links);
+        return new ShopAlertMail("New order #{$order->id}: {$total}, {$method}", $lines, $links, $order);
     }
 
     /**

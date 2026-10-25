@@ -148,8 +148,8 @@ class TransactionalEmailsTest extends TestCase
                 && str_contains($html, '#F6F1E7')   // ivory
                 && str_contains($html, '#1B2A41')   // navy
                 && str_contains($html, '1px solid #AD8A50') // the thin gold rule
-                && str_contains($html, 'background:#661E29') // the one burgundy button
-                && substr_count($html, 'background:#661E29') === 1
+                && str_contains($html, 'background-color:#661E29') // the one burgundy button
+                && substr_count($html, 'background-color:#661E29') === 1
                 && str_contains($html, 'Georgia')
                 && str_contains($html, 'Arial')
                 && count($mail->attachments()) === 1
@@ -419,7 +419,7 @@ class TransactionalEmailsTest extends TestCase
         $this->assertStringContainsString('Sample ceramic mug', $built['html']);
         $this->assertStringNotContainsString('Review your purchase', $built['html'], 'No review block, because the custom HTML did not ask for one.');
         $this->assertStringContainsString('Gifted, beautifully.', $built['html']);
-        $this->assertStringNotContainsString('background:#661E29', $built['html'], 'Custom HTML replaces the button too.');
+        $this->assertStringNotContainsString('background-color:#661E29', $built['html'], 'Custom HTML replaces the button too.');
     }
 
     public function test_a_customers_name_cannot_inject_html_into_an_email(): void

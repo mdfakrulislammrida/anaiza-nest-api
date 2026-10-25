@@ -54,25 +54,17 @@ final class EmailBuilder
             $body = $intro.$blockHtml.self::button($definition['cta_label'], $context['cta_url'] ?? rtrim((string) config('app.frontend_url'), '/').$definition['cta_path']);
 
             if (trim(strip_tags($closing)) !== '') {
-                $body .= '<div style="margin:0 0 16px;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:18px;line-height:28px;color:#1B2A41;">'.$closing.'</div>';
+                $body .= '<div class="em-text" style="margin:0 0 16px;font-family:Georgia,&quot;Times New Roman&quot;,serif;font-size:18px;line-height:28px;color:#1B2A41;">'.$closing.'</div>';
             }
 
             if (filled($parts['footer_note'])) {
-                $body .= '<div style="margin:16px 0 0;font-size:13px;line-height:20px;color:#6F675C;">'.strtr($parts['footer_note'], $htmlTokens).'</div>';
+                $body .= '<div class="em-muted" style="margin:16px 0 0;font-size:13px;line-height:20px;color:#6F675C;">'.strtr($parts['footer_note'], $htmlTokens).'</div>';
             }
         }
 
         $subject = trim(preg_replace('/\s+/', ' ', strtr($parts['subject'], $plain + array_fill_keys(array_keys($blocks), ''))) ?? '');
 
-        $html = view('emails.layout', [
-            'body' => $body,
-            'subject' => $subject,
-            'site' => $site,
-            'siteName' => $plain['{{site_name}}'],
-            'logo' => MediaUrl::resolve($site->logo_navy ?: $site->logo_url),
-            'tagline' => $site->tagline ?: 'Gifted, beautifully.',
-            'unsubscribeUrl' => $context['unsubscribe_url'] ?? null,
-        ])->render();
+        $html = self::layout($body, $subject, $site, $context['unsubscribe_url'] ?? null);
 
         return [
             'subject' => $subject,
@@ -81,6 +73,26 @@ final class EmailBuilder
                 // The plain-text copy carries the unsubscribe link too.
                 .(empty($context['unsubscribe_url']) ? '' : "\n\nTo stop these emails: ".$context['unsubscribe_url']),
         ];
+    }
+
+    /**
+     * The branded frame around the body of any HTML email: a navy header band (with the logo made for a dark background, or the
+     * name set as text), the body, and the footer. The same frame wraps every email, the shop's own notes included.
+     */
+    public static function layout(string $body, string $subject, SiteSetting $site, ?string $unsubscribeUrl = null): string
+    {
+        return view('emails.layout', [
+            // No table or cell is left transparent, whatever the wording or the admin's custom HTML put in the body.
+            'body' => SolidColour::apply($body),
+            'subject' => $subject,
+            'site' => $site,
+            'siteName' => (string) ($site->site_name ?: config('app.name')),
+            // The band is navy, so only the logo made for a dark background goes on it: the navy logo would vanish. With none uploaded,
+            // the name is set as text in ivory instead.
+            'logo' => MediaUrl::resolve($site->logo_ivory),
+            'tagline' => $site->tagline ?: 'Gifted, beautifully.',
+            'unsubscribeUrl' => $unsubscribeUrl,
+        ])->render();
     }
 
     /**
@@ -160,10 +172,10 @@ final class EmailBuilder
     /**
      * The one main action of an email: a burgundy button with a 2px radius.
      */
-    private static function button(string $label, string $url): string
+    public static function button(string $label, string $url): string
     {
-        return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="background:#661E29;border-radius:2px;">'
-            .'<a href="'.e($url).'" style="display:inline-block;padding:16px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#F6F1E7;text-decoration:none;">'
+        return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td class="em-btn" bgcolor="#661E29" style="background-color:#661E29;border-radius:2px;">'
+            .'<a class="em-btn-text" href="'.e($url).'" style="display:inline-block;padding:16px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#F6F1E7;text-decoration:none;">'
             .e($label).'</a></td></tr></table>';
     }
 }
