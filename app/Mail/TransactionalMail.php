@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\SiteSetting;
 use App\Support\Email\EmailBuilder;
 use App\Support\Email\TemplateDefinitions;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\InvoicePdf;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
@@ -76,10 +76,7 @@ class TransactionalMail extends Mailable
             return [];
         }
 
-        $pdf = Pdf::loadView('pdf.invoice', [
-            'order' => $this->order,
-            'siteSetting' => $this->siteSetting ?? SiteSetting::query()->first(),
-        ]);
+        $pdf = InvoicePdf::make($this->order, $this->siteSetting);
 
         return [
             Attachment::fromData(fn () => $pdf->output(), "invoice-{$this->order->id}.pdf")

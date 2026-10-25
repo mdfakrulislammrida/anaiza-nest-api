@@ -36,3 +36,20 @@ php artisan emails:send-tests --to=you@example.com
 
 The second command sends one test of every email (the invoice attached to the confirmation, and the new-order note) to the address given, or to the
 Shop alerts address in Site settings. `--order=123` shows a real order in them instead of the made-up one.
+
+## The taka sign on the invoice PDF
+
+dompdf's built-in fonts have no ৳ (U+09F3), so every price printed as "?". The invoice is now set in **Hind Siliguri** (SIL Open Font License; regular and
+bold in `resources/fonts/`, with its licence), which has ৳ next to Latin letters and digits. `App\Support\InvoicePdf::make()` installs the font for
+dompdf into `storage/fonts` the first time an invoice is made and only checks after that; the font cache there is generated, and is not in git.
+
+On Hostinger: `git pull` is all that is needed. `storage/` must be writable (it already has to be). To install the font on purpose, or to check it:
+
+```
+php artisan invoice:install-fonts
+```
+
+It prints `normal installed` and `bold installed`. If it says the font could not be installed, the reason is in `storage/logs` (nearly always `storage/fonts` not writable).
+Until then an invoice still goes out, in a fallback font, with "?" for the sign.
+
+Bangla letters in a customer's name print in Hind Siliguri too, but dompdf cannot join Bangla conjuncts, so a long Bangla name may look unjoined.

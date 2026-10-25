@@ -2,9 +2,9 @@
 <html>
 <head>
     <meta charset="utf-8">
-    {{-- An invoice, not a brochure: one colour (black), one typeface, no decoration. --}}
+    {{-- An invoice, not a brochure: one colour (black), one typeface, no decoration. The typeface is Hind Siliguri (resources/fonts, installed for dompdf by App\Support\InvoicePdf) because it has the taka sign; the built-in fonts print it as "?". --}}
     <style>
-        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #000; font-size: 12px; line-height: 1.5; }
+        body { font-family: 'Hind Siliguri', 'DejaVu Sans', sans-serif; color: #000; font-size: 12px; line-height: 1.5; }
         .header { width: 100%; margin-bottom: 24px; }
         .header td { vertical-align: top; }
         .logo { max-height: 48px; }
@@ -76,8 +76,8 @@
             <tr>
                 <th colspan="2">Item</th>
                 <th>Qty</th>
-                <th align="right">Unit price</th>
-                <th align="right">Line total</th>
+                <th align="right" style="text-align:right;">Unit price</th>
+                <th align="right" style="text-align:right;">Line total</th>
             </tr>
         </thead>
         <tbody>

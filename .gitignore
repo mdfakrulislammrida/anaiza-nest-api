@@ -28,3 +28,6 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# The invoice font, installed here for the PDF maker the first time an invoice is made (see App\Support\InvoicePdf).
+/storage/fonts/
