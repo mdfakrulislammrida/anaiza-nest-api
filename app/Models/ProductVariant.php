@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Pricing;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,11 +52,26 @@ class ProductVariant extends Model
             return $this->product->effective_price;
         }
 
-        if ($this->sale_price !== null && $this->sale_price < $this->price) {
-            return $this->sale_price;
+        return $this->on_sale ? $this->sale_price : $this->price;
+    }
+
+    /** With its own regular price: a sale price more than 0 and lower than it. Without one: the product's own sale. */
+    public function getOnSaleAttribute(): bool
+    {
+        if ($this->price === null) {
+            return $this->product->on_sale;
         }
 
-        return $this->price;
+        return Pricing::saleApplies($this->sale_price, $this->price);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $variant): void {
+            if ($variant->sale_price !== null && $variant->sale_price <= 0) {
+                $variant->sale_price = null;
+            }
+        });
     }
 
     public function getDiscountPercentAttribute(): ?int
@@ -64,7 +80,7 @@ class ProductVariant extends Model
             return $this->product->discount_percent;
         }
 
-        if ($this->sale_price === null || $this->sale_price >= $this->price || $this->price === 0) {
+        if (! $this->on_sale) {
             return null;
         }
 

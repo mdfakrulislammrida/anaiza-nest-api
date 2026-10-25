@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
+use App\Support\Pricing;
 use Illuminate\Support\Collection;
 
 /**
@@ -183,7 +184,7 @@ final class FeedBuilder
             array_push($warnings, ...$imageWarnings);
 
             $seen[$id] = true;
-            $hasSale = $salePrice !== null && $salePrice > 0 && $salePrice < $price;
+            $hasSale = Pricing::saleApplies($salePrice !== null ? (int) $salePrice : null, $price);
 
             $items[] = $base + [
                 'id' => $id,

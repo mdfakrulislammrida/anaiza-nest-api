@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\ProductResource\RelationManagers;
 
+use App\Support\Pricing;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -36,8 +38,9 @@ class VariantsRelationManager extends RelationManager
                             ->suffix('৳'),
                         Forms\Components\TextInput::make('sale_price')
                             ->label('Sale price (BDT)')
+                            ->helperText('Needs this variant\'s own price above, and must be lower than it. Leave blank for no sale (never 0).')
                             ->numeric()
-                            ->minValue(0)
+                            ->rules(fn (Get $get): array => [Pricing::formRule(fn () => $get('price'), 'A variant sale price needs this variant\'s own price too. Fill in the price above, or leave the sale price blank.')])
                             ->suffix('৳'),
                         Forms\Components\TextInput::make('stock_quantity')
                             ->label('Stock')

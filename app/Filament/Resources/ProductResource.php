@@ -8,6 +8,7 @@ use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
 use App\Models\Product;
+use App\Support\Pricing;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -124,9 +125,9 @@ class ProductResource extends Resource
                     ->suffix('৳'),
                 Forms\Components\TextInput::make('sale_price')
                     ->label('Sale price (BDT)')
-                    ->helperText('Set this lower than the regular price to show it as a Special price. Leave blank for no discount.')
+                    ->helperText('Set this lower than the regular price to show it as a Special price. Leave blank for no discount (never 0).')
                     ->numeric()
-                    ->minValue(0)
+                    ->rules(fn (Get $get): array => [Pricing::formRule(fn () => $get('price'), 'Enter the regular price first, then a lower sale price.')])
                     ->suffix('৳'),
                 Forms\Components\TextInput::make('stock_quantity')
                     ->required()

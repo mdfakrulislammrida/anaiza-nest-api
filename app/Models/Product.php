@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Pricing;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -65,16 +66,28 @@ class Product extends Model
      */
     public function getEffectivePriceAttribute(): int
     {
-        if ($this->sale_price !== null && $this->sale_price < $this->price) {
-            return $this->sale_price;
-        }
+        return $this->on_sale ? $this->sale_price : $this->price;
+    }
 
-        return $this->price;
+    /** A sale price of 0, a negative one, or one that is not lower than the regular price is no sale. */
+    public function getOnSaleAttribute(): bool
+    {
+        return Pricing::saleApplies($this->sale_price, $this->price);
+    }
+
+    protected static function booted(): void
+    {
+        // A sale price of 0 or less can only be a mistake (it once showed a 100% discount at ৳0): store it as no sale.
+        static::saving(function (self $product): void {
+            if ($product->sale_price !== null && $product->sale_price <= 0) {
+                $product->sale_price = null;
+            }
+        });
     }
 
     public function getDiscountPercentAttribute(): ?int
     {
-        if ($this->sale_price === null || $this->sale_price >= $this->price || $this->price === 0) {
+        if (! $this->on_sale) {
             return null;
         }
 
