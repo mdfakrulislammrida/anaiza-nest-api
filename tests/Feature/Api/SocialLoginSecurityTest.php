@@ -50,6 +50,7 @@ class SocialLoginSecurityTest extends TestCase
 
         $provider = Mockery::mock();
         $provider->shouldReceive('stateless')->andReturnSelf();
+        $provider->shouldReceive('redirectUrl')->andReturnSelf();
         $provider->shouldReceive('user')->andReturn($user);
 
         $factory = Mockery::mock(SocialiteFactory::class);

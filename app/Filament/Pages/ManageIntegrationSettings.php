@@ -3,10 +3,12 @@
 namespace App\Filament\Pages;
 
 use App\Models\IntegrationSetting;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\View;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -72,7 +74,10 @@ class ManageIntegrationSettings extends Page implements HasForms
                             ->label('Password')
                             ->password()
                             ->revealable()
-                            ->autocomplete('off')
+                            ->autocomplete('new-password')
+                            ->placeholder(fn (): string => $this->savedPlaceholder('smtp_password'))
+                            ->helperText(fn (): string => $this->savedHelp('smtp_password'))
+                            ->suffixAction($this->clearAction('smtp_password', 'clearSmtpPassword', 'SMTP password'))
                             ->maxLength(255),
                         TextInput::make('smtp_from_address')
                             ->label('From address')
@@ -88,6 +93,10 @@ class ManageIntegrationSettings extends Page implements HasForms
                 Section::make('Google OAuth')
                     ->description('Used for "Continue with Google" on the storefront. Off until you switch it on, and it cannot be switched on without a client ID and secret.')
                     ->schema([
+                        // The address Google sends people back to. Worked out by the shop, never typed: copy it into Google Cloud.
+                        View::make('filament.forms.callback-url')
+                            ->viewData(['provider' => 'Google', 'url' => IntegrationSetting::callbackUrl('google'), 'where' => 'Google Cloud > Credentials > Authorised redirect URIs', 'problem' => self::callbackProblem()])
+                            ->columnSpanFull(),
                         Toggle::make('google_login_enabled')
                             ->label('Enable Google login')
                             ->helperText('Off: the Google button is hidden on the shop and its sign-in address answers with a friendly message. Customers who signed up with Google keep their accounts.')
@@ -102,7 +111,10 @@ class ManageIntegrationSettings extends Page implements HasForms
                             ->label('Client secret')
                             ->password()
                             ->revealable()
-                            ->autocomplete('off')
+                            ->autocomplete('new-password')
+                            ->placeholder(fn (): string => $this->savedPlaceholder('google_client_secret'))
+                            ->helperText(fn (): string => $this->savedHelp('google_client_secret'))
+                            ->suffixAction($this->clearAction('google_client_secret', 'clearGoogleSecret', 'Google client secret'))
                             ->maxLength(255),
                     ])
                     ->columns(2),
@@ -110,6 +122,9 @@ class ManageIntegrationSettings extends Page implements HasForms
                 Section::make('Facebook OAuth')
                     ->description('Used for "Continue with Facebook" on the storefront. Off until you switch it on, and it cannot be switched on without an app ID and secret.')
                     ->schema([
+                        View::make('filament.forms.callback-url')
+                            ->viewData(['provider' => 'Facebook', 'url' => IntegrationSetting::callbackUrl('facebook'), 'where' => 'Meta for Developers > Facebook Login > Settings > Valid OAuth Redirect URIs', 'problem' => self::callbackProblem()])
+                            ->columnSpanFull(),
                         Toggle::make('facebook_login_enabled')
                             ->label('Enable Facebook login')
                             ->helperText('Off: the Facebook button is hidden on the shop and its sign-in address answers with a friendly message. Customers who signed up with Facebook keep their accounts.')
@@ -124,7 +139,10 @@ class ManageIntegrationSettings extends Page implements HasForms
                             ->label('App secret')
                             ->password()
                             ->revealable()
-                            ->autocomplete('off')
+                            ->autocomplete('new-password')
+                            ->placeholder(fn (): string => $this->savedPlaceholder('facebook_app_secret'))
+                            ->helperText(fn (): string => $this->savedHelp('facebook_app_secret'))
+                            ->suffixAction($this->clearAction('facebook_app_secret', 'clearFacebookSecret', 'Facebook app secret'))
                             ->maxLength(255),
                     ])
                     ->columns(2),
@@ -133,12 +151,58 @@ class ManageIntegrationSettings extends Page implements HasForms
     }
 
     /**
-     * Fields whose form input never redisplays the stored value (Filament's
-     * ->password() blanks it out on every load, for good reason). Without
-     * this, saving the form for any unrelated reason -- without retyping a
-     * secret that was already set -- would silently wipe it back to blank.
+     * What is wrong with the address the shop sends providers back to, if anything: it is worked out from APP_URL, which has to be the
+     * API's own public https address. Null when it looks right.
      */
-    private const SECRET_FIELDS = ['smtp_password', 'google_client_secret', 'facebook_app_secret'];
+    private static function callbackProblem(): ?string
+    {
+        $base = (string) config('app.url');
+        $host = (string) parse_url($base, PHP_URL_HOST);
+
+        if ($host === '' || in_array($host, ['localhost', '127.0.0.1'], true) || str_ends_with($host, '.test')) {
+            return 'APP_URL on this server is "'.$base.'", which is not the public address of the API. Set APP_URL in .env to the API address (for example https://api.anaizanest.com), or the address below will not match what Google sends.';
+        }
+
+        if (! str_starts_with($base, 'https://') && app()->isProduction()) {
+            return 'APP_URL on this server is not https. Google only accepts https addresses (localhost apart): set APP_URL in .env to the https address of the API.';
+        }
+
+        return null;
+    }
+
+    /** "Saved (ends in ••••1234)" or "Not saved yet": says a secret exists without ever showing it. */
+    public function savedPlaceholder(string $field): string
+    {
+        $hint = IntegrationSetting::query()->first()?->secretHint($field);
+
+        return $hint === null ? 'Not saved yet' : "Saved ({$hint})";
+    }
+
+    public function savedHelp(string $field): string
+    {
+        return IntegrationSetting::query()->first()?->secretHint($field) !== null
+            ? 'A secret is saved. Leave this blank to keep it, or paste a new one to replace it.'
+            : 'Nothing saved yet.';
+    }
+
+    private function clearAction(string $field, string $name, string $label): Action
+    {
+        return Action::make($name)
+            ->icon('heroicon-m-trash')
+            ->color('danger')
+            ->tooltip('Clear the saved secret')
+            ->visible(fn (): bool => IntegrationSetting::query()->first()?->secretHint($field) !== null)
+            ->requiresConfirmation()
+            ->modalHeading("Clear the saved {$label}?")
+            ->modalDescription('Whatever it is used for stops working until a new one is saved (Google and Facebook login are also off while they have no secret).')
+            ->modalSubmitActionLabel('Clear secret')
+            ->action(function () use ($field, $label): void {
+                IntegrationSetting::query()->firstOrCreate([])->forceFill([$field => null])->save();
+                $this->data[$field] = null;
+
+                Notification::make()->title("{$label} cleared")->success()->send();
+            });
+    }
 
     /**
      * Whether the provider has an ID and a secret to use, counting what is in the form, what is already saved (a secret is
@@ -203,13 +267,21 @@ class ManageIntegrationSettings extends Page implements HasForms
             }
         }
 
-        foreach (self::SECRET_FIELDS as $field) {
+        // A blank secret keeps what is saved (the form is never filled with a secret, so blank is the normal case).
+        foreach (IntegrationSetting::SECRET_FIELDS as $field) {
             if (blank($data[$field] ?? null)) {
                 unset($data[$field]);
+            } else {
+                $data[$field] = trim($data[$field]);
             }
         }
 
         IntegrationSetting::query()->firstOrCreate([])->update($data);
+
+        // Nothing just typed stays on the page.
+        foreach (IntegrationSetting::SECRET_FIELDS as $field) {
+            $this->data[$field] = null;
+        }
 
         Notification::make()
             ->title('Integration settings saved')

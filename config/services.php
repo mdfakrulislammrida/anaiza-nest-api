@@ -38,13 +38,16 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI'),
+        // Not read from .env: the address to come back to is worked out in code (IntegrationSetting::callbackUrl), because a missing or
+        // mistyped GOOGLE_REDIRECT_URI is what made Google answer "Missing required parameter: redirect_uri". The key stays, empty, because
+        // Socialite expects it to exist.
+        'redirect' => null,
     ],
 
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'redirect' => env('FACEBOOK_REDIRECT_URI'),
+        'redirect' => null, // worked out in code, as for Google
     ],
 
 ];

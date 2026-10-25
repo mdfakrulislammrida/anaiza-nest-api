@@ -73,35 +73,50 @@ class SocialAuthController extends Controller
     }
 
     /**
-     * A provider the admin has switched off (or that has no credentials) does nothing. A browser is taken back to the
-     * storefront's sign-in page with a calm message; anything asking for JSON gets a plain 403. Customers who signed up
-     * with it keep their accounts and can still sign in with their email and password.
+     * A provider that is not set up (no client ID or secret yet) or that the admin has switched off does nothing, and never sends the
+     * browser to the provider's own error page. A browser is taken back to the storefront's sign-in page with a calm message; anything
+     * asking for JSON gets a plain 403 that says which it is. Customers who signed up with it keep their accounts and can still sign in
+     * with their email and password.
      */
     private function unavailable(Request $request, string $provider): RedirectResponse|JsonResponse|null
     {
-        if (IntegrationSetting::socialLoginEnabled($provider)) {
+        $state = IntegrationSetting::socialLoginState($provider);
+
+        if ($state === 'on') {
             return null;
         }
 
         $label = IntegrationSetting::SOCIAL_PROVIDERS[$provider]['label'];
+        $notSetUp = $state === 'not_set_up';
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => "Signing in with {$label} is not available just now. Please sign in with your email and password.",
+                'message' => $notSetUp
+                    ? "{$label} login is not set up yet. Please sign in with your email and password."
+                    : "Signing in with {$label} is not available just now. Please sign in with your email and password.",
             ], 403);
         }
 
         return redirect()->away(
-            config('app.frontend_url').'/auth/callback?error=social_login_unavailable&provider='.urlencode($provider)
+            config('app.frontend_url').'/auth/callback?error=social_login_unavailable&provider='.urlencode($provider).($notSetUp ? '&reason=not_set_up' : '')
         );
+    }
+
+    /**
+     * The provider's driver, always told the address to come back to: worked out from the named callback route and the API's own address,
+     * the same for the trip out and for trading the code for the person. It is never read from a typed setting, so it cannot be empty
+     * (which Google reports as "Missing required parameter: redirect_uri") or differ between the two steps.
+     */
+    private function driver(string $provider)
+    {
+        return Socialite::driver($provider)->stateless()->redirectUrl(IntegrationSetting::callbackUrl($provider));
     }
 
     private function begin(string $provider): RedirectResponse
     {
         $nonce = Str::random(40);
 
-        return Socialite::driver($provider)
-            ->stateless()
+        return $this->driver($provider)
             ->with(['state' => self::stateFor($nonce)])
             ->redirect()
             ->withCookie(Cookie::make(self::STATE_COOKIE, $nonce, 10, '/', null, request()->isSecure(), true, false, 'lax'));
@@ -120,7 +135,7 @@ class SocialAuthController extends Controller
 
         try {
             /** @var SocialiteUser $socialUser */
-            $socialUser = Socialite::driver($provider)->stateless()->user();
+            $socialUser = $this->driver($provider)->user();
         } catch (\Throwable $e) {
             Log::error("Social login via {$provider} failed.", ['error' => $e->getMessage()]);
 
@@ -129,6 +144,13 @@ class SocialAuthController extends Controller
 
         if (! $socialUser->getEmail()) {
             return $this->failed('no_email_from_provider')->withCookie($forget);
+        }
+
+        // An account is found or made by this address, so it must be one the provider says the person has proved they own (Google
+        // says so in email_verified; a provider that does not say is taken at its word).
+        $raw = is_array($socialUser->user ?? null) ? $socialUser->user : [];
+        if (array_key_exists('email_verified', $raw) && ! filter_var($raw['email_verified'], FILTER_VALIDATE_BOOLEAN)) {
+            return $this->failed('email_not_verified')->withCookie($forget);
         }
 
         $customer = Customer::firstOrCreate(

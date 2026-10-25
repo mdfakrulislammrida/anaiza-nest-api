@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSecretHints;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -20,6 +21,14 @@ class IntegrationSetting extends Model
         'google' => ['label' => 'Google', 'id' => 'google_client_id', 'secret' => 'google_client_secret', 'switch' => 'google_login_enabled'],
         'facebook' => ['label' => 'Facebook', 'id' => 'facebook_app_id', 'secret' => 'facebook_app_secret', 'switch' => 'facebook_login_enabled'],
     ];
+
+    use HasSecretHints;
+
+    /** The fields that hold a secret: encrypted at rest, never shown again once saved, kept when left blank on save. */
+    public const SECRET_FIELDS = ['smtp_password', 'google_client_secret', 'facebook_app_secret'];
+
+    /** Never serialised with its secrets, whatever calls toArray() or toJson() on it (the admin form is filled from toArray()). */
+    protected $hidden = self::SECRET_FIELDS;
 
     protected $fillable = [
         'mailer',
@@ -52,6 +61,39 @@ class IntegrationSetting extends Model
             'google_login_enabled' => 'boolean',
             'facebook_login_enabled' => 'boolean',
         ];
+    }
+
+    /**
+     * The address a provider sends the browser back to: the API's own address (APP_URL) plus the path of the named callback route.
+     * It is worked out here every time, never typed in anywhere and never taken from .env, so it cannot be blank or wrong by hand.
+     * This is the exact address to register with the provider (Google Cloud > Credentials > Authorised redirect URIs).
+     */
+    public static function callbackUrl(string $provider): string
+    {
+        return rtrim((string) config('app.url'), '/').route("social.{$provider}.callback", [], false);
+    }
+
+    /**
+     * Where a provider's sign-in stands: "on"; "not_set_up" (no client ID or secret yet, here or in .env: nothing can work, whatever
+     * the switch says); or "off" (set up, and the admin has switched it off).
+     */
+    public static function socialLoginState(string $provider): string
+    {
+        $settings = null;
+
+        try {
+            $settings = static::query()->first();
+        } catch (\Throwable) {
+            // Not migrated yet: .env alone decides.
+        }
+
+        if (! self::hasCredentials($provider, $settings)) {
+            return 'not_set_up';
+        }
+
+        $switch = self::SOCIAL_PROVIDERS[$provider]['switch'] ?? null;
+
+        return $switch !== null && $settings?->{$switch} ? 'on' : 'off';
     }
 
     /**

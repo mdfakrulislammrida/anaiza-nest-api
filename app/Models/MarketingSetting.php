@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSecretHints;
 use Illuminate\Database\Eloquent\Model;
 
 class MarketingSetting extends Model
 {
+    use HasSecretHints;
+
     /** The fields that hold a secret: encrypted at rest, blank in the admin form, kept when left blank on save. */
     public const SECRET_FIELDS = ['meta_capi_access_token', 'tiktok_events_api_access_token'];
 
@@ -29,20 +32,5 @@ class MarketingSetting extends Model
             'meta_capi_access_token' => 'encrypted',
             'tiktok_events_api_access_token' => 'encrypted',
         ];
-    }
-
-    /**
-     * What the admin may be told about a saved secret: that it exists and, for a long enough one, its last 4 characters.
-     * Null when nothing is saved. Never the value.
-     */
-    public function secretHint(string $field): ?string
-    {
-        $value = (string) $this->getAttribute($field);
-
-        if ($value === '') {
-            return null;
-        }
-
-        return strlen($value) >= 12 ? 'ends in ••••'.substr($value, -4) : 'value hidden';
     }
 }

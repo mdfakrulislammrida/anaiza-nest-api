@@ -175,8 +175,13 @@ class SocialLoginSwitchesTest extends TestCase
 
     public function test_an_off_provider_answers_json_requests_with_a_403(): void
     {
-        $this->getJson('/api/auth/google/redirect')->assertForbidden()->assertJsonPath('message', 'Signing in with Google is not available just now. Please sign in with your email and password.');
+        // No client ID or secret anywhere: it is not set up yet, and says so.
+        $this->getJson('/api/auth/google/redirect')->assertForbidden()->assertJsonPath('message', 'Google login is not set up yet. Please sign in with your email and password.');
         $this->getJson('/api/auth/facebook/callback')->assertForbidden();
+
+        // Set up but switched off: not available just now.
+        IntegrationSetting::create(['google_client_id' => 'g-id', 'google_client_secret' => 'g-secret', 'google_login_enabled' => false]);
+        $this->getJson('/api/auth/google/redirect')->assertForbidden()->assertJsonPath('message', 'Signing in with Google is not available just now. Please sign in with your email and password.');
     }
 
     public function test_an_on_provider_still_goes_to_the_provider(): void

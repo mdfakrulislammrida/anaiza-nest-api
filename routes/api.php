@@ -108,10 +108,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
 
     Route::middleware('throttle:social-login')->group(function () {
-        Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle']);
-        Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
-        Route::get('/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
-        Route::get('/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+        // The callback routes are named because the address registered with Google and Facebook is worked out from them
+        // (IntegrationSetting::callbackUrl), not typed in anywhere.
+        Route::get('/google/redirect', [SocialAuthController::class, 'redirectToGoogle'])->name('social.google.redirect');
+        Route::get('/google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('social.google.callback');
+        Route::get('/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook'])->name('social.facebook.redirect');
+        Route::get('/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback'])->name('social.facebook.callback');
 
         // The browser returns from a provider with a one-time code (never the sign-in token itself, which would sit in the
         // address bar and the history); this exchanges the code for the token.

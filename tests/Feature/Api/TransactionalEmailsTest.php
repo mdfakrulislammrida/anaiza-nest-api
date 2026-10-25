@@ -344,7 +344,7 @@ class TransactionalEmailsTest extends TestCase
         $social->shouldReceive('getEmail')->andReturn('social@example.com');
         $social->shouldReceive('getName')->andReturn('Social Person');
         $social->shouldReceive('getNickname')->andReturn(null);
-        Socialite::shouldReceive('driver->stateless->user')->andReturn($social);
+        Socialite::shouldReceive('driver->stateless->redirectUrl->user')->andReturn($social);
 
         $this->forgetTerminating();
         $this->withUnencryptedCookie('anaiza_oauth_state', 'test-nonce')->get('/api/auth/google/callback?state='.hash_hmac('sha256', 'oauth-state:test-nonce', (string) config('app.key')))->assertRedirect();
