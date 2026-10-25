@@ -41,6 +41,10 @@ final class TransactionalEmails
 
     public static function orderConfirmation(Order $order): void
     {
+        if ($order->isLegacy()) {
+            return;
+        }
+
         $order->loadMissing('customer');
 
         $email = $order->recipient()['email'];
@@ -64,6 +68,10 @@ final class TransactionalEmails
      */
     public static function orderStatusChanged(Order $order): void
     {
+        if ($order->isLegacy()) {
+            return;
+        }
+
         $template = TemplateDefinitions::STATUS_TEMPLATES[$order->status] ?? null;
         $order->loadMissing('customer');
 

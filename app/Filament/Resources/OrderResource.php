@@ -45,6 +45,8 @@ class OrderResource extends Resource
         'shipped' => 'Shipped',
         'delivered' => 'Delivered',
         'cancelled' => 'Cancelled',
+        // Only on orders brought over from the old site (a person can also set it by hand).
+        'returned' => 'Returned',
     ];
 
     public const PAYMENT_METHODS = [
@@ -256,9 +258,20 @@ class OrderResource extends Resource
                         'processing' => 'warning',
                         'shipped' => 'info',
                         'delivered' => 'success',
-                        'cancelled' => 'danger',
+                        'cancelled', 'returned' => 'danger',
                         default => 'gray',
                     }),
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Origin')
+                    ->badge()
+                    ->color('info')
+                    ->state(fn (Order $record): ?string => $record->isLegacy() ? 'Legacy' : null)
+                    ->tooltip(fn (Order $record): ?string => $record->isLegacy() ? 'Brought over from the old site. History only: no emails, no courier, no review request.' : null),
+                Tables\Columns\TextColumn::make('legacy_order_id')
+                    ->label('Old order #')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('payment_status')
                     ->label('Payment')
                     ->badge()
@@ -345,6 +358,14 @@ class OrderResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(self::STATUSES),
+                Tables\Filters\SelectFilter::make('origin')
+                    ->label('Origin')
+                    ->options(['legacy' => 'Legacy (old site)', 'shop' => 'Made on this shop'])
+                    ->query(fn ($query, array $data) => match ($data['value'] ?? null) {
+                        'legacy' => $query->where('source', Order::SOURCE_LEGACY),
+                        'shop' => $query->notLegacy(),
+                        default => $query,
+                    }),
                 Tables\Filters\SelectFilter::make('payment_status')
                     ->label('Payment')
                     ->options(self::PAYMENT_STATUSES),

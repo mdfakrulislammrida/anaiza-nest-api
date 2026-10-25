@@ -33,7 +33,7 @@ class OrdersRelationManager extends RelationManager
                         'processing' => 'warning',
                         'shipped' => 'info',
                         'delivered' => 'success',
-                        'cancelled' => 'danger',
+                        'cancelled', 'returned' => 'danger',
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('payment_method')

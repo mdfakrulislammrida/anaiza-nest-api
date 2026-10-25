@@ -253,7 +253,7 @@ final class HealthChecks
     {
         try {
             $last = Order::query()->latest('id')->first();
-            $waiting = Order::query()->where('status', 'pending')->where('created_at', '<', now()->subDay())->count();
+            $waiting = Order::query()->notLegacy()->where('status', 'pending')->where('created_at', '<', now()->subDay())->count();
         } catch (\Throwable) {
             return self::row('orders', 'Orders', self::WARN, 'Could not be read.');
         }

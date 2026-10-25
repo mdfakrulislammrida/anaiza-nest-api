@@ -42,6 +42,7 @@ final class ReviewRequests
 
         if ($settings->reminder_enabled) {
             $reminders = Order::query()
+                ->notLegacy()
                 ->where('status', 'delivered')
                 ->whereNotNull('review_request_sent_at')
                 ->whereNull('review_reminder_sent_at')
@@ -84,6 +85,7 @@ final class ReviewRequests
         $now ??= now();
 
         return $query
+            ->notLegacy()
             ->where('status', 'delivered')
             ->where('payment_status', '!=', 'failed')
             ->whereNotNull('delivered_at')

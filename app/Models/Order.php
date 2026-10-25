@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\WalletPayments;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,10 +13,15 @@ class Order extends Model
 {
     use HasFactory;
 
+    /** The `source` of an order brought over from the old site. */
+    public const SOURCE_LEGACY = 'legacy_import';
+
     protected $fillable = [
         'customer_id',
         'shipping_zone_id',
         'status',
+        'source',
+        'legacy_order_id',
         'subtotal',
         'delivery_fee',
         'total',
@@ -130,6 +136,28 @@ class Order extends Model
         $to = $this->recipient();
 
         return implode(', ', array_filter([$to['address'], $to['thana'], $to['district'], $to['division']]));
+    }
+
+    /** Brought over from the old site: history only. It never sends an email, an advertising event, a courier booking or a review request. */
+    public function isLegacy(): bool
+    {
+        return $this->source === self::SOURCE_LEGACY;
+    }
+
+    /** The number the customer knows: the old site's for an imported order, otherwise this shop's. */
+    public function number(): string
+    {
+        return $this->isLegacy() && filled($this->legacy_order_id) ? (string) $this->legacy_order_id : (string) $this->id;
+    }
+
+    /**
+     * Orders made on this shop (everything except the imported history).
+     *
+     * @param  Builder<Order>  $query
+     */
+    public function scopeNotLegacy(Builder $query): void
+    {
+        $query->where(fn (Builder $q) => $q->whereNull('source')->orWhere('source', '!=', self::SOURCE_LEGACY));
     }
 
     /** Booked with a courier (its consignment id may be missing only after a lost answer from Steadfast). */

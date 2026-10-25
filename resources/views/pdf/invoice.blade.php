@@ -45,7 +45,7 @@
             </td>
             <td align="right">
                 <h1>Invoice</h1>
-                <div>Order #{{ $order->id }}</div>
+                <div>Order #{{ $order->number() }}</div>
                 <div>{{ $order->created_at->format('d M Y, h:i A') }}</div>
             </td>
         </tr>

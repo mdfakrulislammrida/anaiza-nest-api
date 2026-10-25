@@ -17,6 +17,9 @@ class OrderResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            // The number the customer knows: the old site's for an order brought over from it.
+            'order_number' => $this->resource->number(),
+            'is_legacy' => $this->resource->isLegacy(),
             'status' => $this->status,
             'payment_method' => $this->payment_method,
             // cod, awaiting_verification, verified or failed. The sender number, transaction ID and the

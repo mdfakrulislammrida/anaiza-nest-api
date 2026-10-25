@@ -35,6 +35,10 @@ final class ConversionEvents
      */
     public static function sendAtPlacement(Order $order, ?string $ip, ?string $userAgent): void
     {
+        if ($order->isLegacy()) {
+            return;
+        }
+
         if (! self::allowed((bool) $order->marketing_consent)) {
             return;
         }
@@ -53,6 +57,10 @@ final class ConversionEvents
      */
     public static function sendOnVerification(Order $order): bool
     {
+        if ($order->isLegacy()) {
+            return false;
+        }
+
         $ip = $order->client_ip;
         $userAgent = $order->client_user_agent;
 

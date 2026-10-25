@@ -78,6 +78,10 @@ final class CourierBooking
         $to = $order->recipient();
         $blocks = [];
 
+        if ($order->isLegacy()) {
+            $blocks[] = 'The order was imported from the old site. It is history and is never sent to a courier.';
+        }
+
         if (! isset(CourierSetting::COURIERS[$courier])) {
             $blocks[] = 'Choose Steadfast or Pathao.';
         } elseif (! $settings->ready($courier)) {
@@ -329,7 +333,7 @@ final class CourierBooking
     {
         $settings = CourierSetting::current();
 
-        if (! $settings->auto_book || $order->courier_booked_at !== null) {
+        if ($order->isLegacy() || ! $settings->auto_book || $order->courier_booked_at !== null) {
             return;
         }
 

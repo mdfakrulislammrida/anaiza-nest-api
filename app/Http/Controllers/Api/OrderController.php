@@ -342,17 +342,22 @@ class OrderController extends Controller
             'phone' => ['required', 'string'],
         ]);
 
-        $order = Order::query()
+        // The number is this shop's order number or, for an order brought over from the old site, the number the customer
+        // was given there. The two can coincide, so the phone number decides which one is meant.
+        $number = $request->integer('order_id');
+        $candidates = Order::query()
             ->with(['customer', 'items'])
-            ->where('id', $request->integer('order_id'))
-            ->first();
+            ->where(fn ($query) => $query
+                ->where('id', $number)
+                ->orWhere(fn ($legacy) => $legacy->where('source', Order::SOURCE_LEGACY)->where('legacy_order_id', (string) $number)))
+            ->get();
 
         // The phone number is compared as a number (01712345678 and +8801712345678 are the same), against the one typed
         // at checkout and, for older orders, the customer's.
-        $matches = $order !== null && (
-            Contact::samePhone($order->recipient()['phone'], $request->string('phone')->toString())
-            || Contact::samePhone($order->customer?->phone, $request->string('phone')->toString())
-        );
+        $phone = $request->string('phone')->toString();
+        $order = $candidates->first(fn (Order $candidate) => Contact::samePhone($candidate->recipient()['phone'], $phone)
+            || Contact::samePhone($candidate->customer?->phone, $phone));
+        $matches = $order !== null;
 
         if (! $matches) {
             return response()->json([

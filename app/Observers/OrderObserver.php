@@ -14,6 +14,11 @@ class OrderObserver
 {
     public function updated(Order $order): void
     {
+        // An order brought over from the old site is history: a status change on it tells nobody and books nothing.
+        if ($order->isLegacy()) {
+            return;
+        }
+
         if ($order->wasChanged('status')) {
             // The day it was delivered is what review requests count from. Kept the first time: moving an order away from
             // Delivered and back does not start the days again.
