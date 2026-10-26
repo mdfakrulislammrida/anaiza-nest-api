@@ -39,6 +39,11 @@ class HomepageSectionObserver
 
             try {
                 if (! $disk->exists($path)) {
+                    // The file is gone (an upload converted and removed by an earlier save, still held by a form that was not refilled).
+                    // A path to nothing is cleared, so the tile is plainly empty and the admin can add the picture again.
+                    Log::warning('An occasion tile pointed at a picture that no longer exists; it was cleared.', ['section_id' => $section->id, 'path' => $path]);
+                    $tiles[$index]['image'] = null;
+
                     continue;
                 }
 

@@ -15,6 +15,7 @@ use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HomepageSectionResource extends Resource
 {
@@ -73,7 +74,7 @@ class HomepageSectionResource extends Resource
                 BrandVoiceNote::forFields(['custom_title' => 'Title', 'custom_subtitle' => 'Subtitle']),
                 Forms\Components\Repeater::make('tiles')
                     ->label('Occasion tiles')
-                    ->helperText('Shown two to a row on phones. A tile with no picture shows its label on a plain panel. Switched-off tiles and tiles with no link are not shown. "Add kit occasions" on the Homepage Sections list adds the seven kit occasions here, switched off.')
+                    ->helperText('Shown two to a row on phones. A tile with no picture shows its label on a plain panel. Switched-off tiles and tiles with no link are not shown. Pictures are kept only when you press Save at the bottom of the page. "Add kit occasions" on the Homepage Sections list adds the seven kit occasions here, switched off.')
                     ->schema([
                         Forms\Components\TextInput::make('label')
                             ->required()
@@ -92,6 +93,11 @@ class HomepageSectionResource extends Resource
                             ->imageEditor()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->maxSize(3072)
+                            // Nothing is saved by an upload. The hint stays until Save, when the form is filled again from what was stored.
+                            ->live()
+                            ->hint(fn ($state): ?string => collect($state)->contains(fn ($file): bool => $file instanceof TemporaryUploadedFile) ? 'Picture uploaded: press Save to keep it.' : null)
+                            ->hintColor('warning')
+                            ->hintIcon('heroicon-m-exclamation-triangle')
                             ->columnSpanFull(),
                         Forms\Components\Select::make('link_type')
                             ->label('Links to')

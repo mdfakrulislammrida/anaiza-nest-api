@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CategoryResource\Pages;
 
+use App\Filament\Concerns\RefillsFormAfterSave;
 use App\Filament\Concerns\ReportsBrandVoice;
 use App\Filament\Resources\CategoryResource;
 use App\Filament\Support\DeleteGuard;
@@ -10,6 +11,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditCategory extends EditRecord
 {
+    use RefillsFormAfterSave;
     use ReportsBrandVoice;
 
     protected static string $resource = CategoryResource::class;

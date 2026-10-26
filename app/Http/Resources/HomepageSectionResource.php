@@ -7,6 +7,8 @@ use App\Support\MediaUrl;
 use App\Support\SectionLinks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class HomepageSectionResource extends JsonResource
 {
@@ -43,12 +45,26 @@ class HomepageSectionResource extends JsonResource
             ->filter(fn ($tile) => ($tile['is_enabled'] ?? true) && filled($tile['label'] ?? null))
             ->map(fn ($tile) => [
                 'label' => trim((string) $tile['label']),
-                'image' => MediaUrl::resolve($tile['image'] ?? null),
+                'image' => self::pictureUrl($tile['image'] ?? null),
                 'href' => SectionLinks::href($tile),
             ])
             ->filter(fn ($tile) => $tile['href'] !== null)
             ->values()
             ->all();
+    }
+
+    /** A tile's picture, or null when it has none or its file is gone (an empty tile, never a broken picture). */
+    private static function pictureUrl(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (! Str::startsWith($value, ['http://', 'https://']) && ! Storage::disk('public')->exists($value)) {
+            return null;
+        }
+
+        return MediaUrl::resolve($value);
     }
 
     /**
