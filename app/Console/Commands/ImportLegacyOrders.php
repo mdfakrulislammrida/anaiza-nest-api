@@ -3,10 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Customer;
+use App\Support\Data\SqliteBackup;
 use App\Support\Legacy\LegacyOrderImporter;
 use App\Support\Legacy\SqlDumpReader;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
 
 class ImportLegacyOrders extends Command
 {
@@ -84,9 +84,11 @@ class ImportLegacyOrders extends Command
             return self::SUCCESS;
         }
 
-        $backup = $this->backup();
+        try {
+            $backup = SqliteBackup::copy('before-legacy-import');
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage().' Nothing was imported.');
 
-        if ($backup === null) {
             return self::FAILURE;
         }
 
@@ -119,30 +121,6 @@ class ImportLegacyOrders extends Command
         }
 
         return is_dir($argument) ? rtrim((string) $argument, '\\/') : dirname((string) $argument);
-    }
-
-    /** A copy of the SQLite file in storage/backups, made before anything is written. Null (with the reason printed) when it cannot be made. */
-    private function backup(): ?string
-    {
-        $source = (string) config('database.connections.sqlite.database');
-
-        if (config('database.default') !== 'sqlite' || $source === '' || $source === ':memory:' || ! is_file($source)) {
-            $this->error('The database is not a SQLite file, so it cannot be copied first. Nothing was imported.');
-
-            return null;
-        }
-
-        $directory = storage_path('backups');
-        File::ensureDirectoryExists($directory);
-        $target = $directory.DIRECTORY_SEPARATOR.'before-legacy-import-'.now()->format('Ymd-His').'.sqlite';
-
-        if (! @copy($source, $target)) {
-            $this->error('The copy of the database could not be written to storage/backups. Nothing was imported.');
-
-            return null;
-        }
-
-        return $target;
     }
 
     /**
