@@ -5,7 +5,9 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
+use App\Support\ConversionEvents;
 use App\Support\Redact;
+use App\Support\System\SystemEvents;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -18,10 +20,17 @@ use Illuminate\Support\Facades\Log;
  * ad-blocker/ITP-resilience reason. Shares its event_id with the
  * client-side pixel's CompletePayment event (see tracking.ts) so TikTok
  * deduplicates the two rather than double-counting the sale.
+ *
+ * Runs right after the response that caused it, with short HTTP timeouts, and never throws (see SendMetaConversionEvent for the log lines;
+ * these say "TikTok Purchase ...").
  */
 class SendTikTokConversionEvent
 {
     use Dispatchable, InteractsWithQueue, SerializesModels;
+
+    public const CONNECT_TIMEOUT = 3;
+
+    public const TIMEOUT = 8;
 
     /**
      * $clientIp/$clientUserAgent are captured from the checkout request
@@ -40,8 +49,18 @@ class SendTikTokConversionEvent
     public function handle(): void
     {
         $settings = MarketingSetting::query()->first();
+        $eventId = "order-{$this->order->id}";
+        $context = ['order_id' => $this->order->id, 'event_id' => $eventId];
+
+        if ($settings !== null && ! $settings->tiktok_events_enabled) {
+            Log::info('TikTok Purchase skipped, switched off.', $context);
+
+            return;
+        }
 
         if (! $settings?->tiktok_pixel_id || ! $settings?->tiktok_events_api_access_token) {
+            Log::info('TikTok Purchase skipped, not set up.', $context);
+
             return;
         }
 
@@ -58,17 +77,21 @@ class SendTikTokConversionEvent
             'user_agent' => $this->clientUserAgent,
         ]);
 
+        $value = ConversionEvents::purchaseValue($this->order);
+
         $payload = [
             'event_source' => 'web',
             'event_source_id' => $settings->tiktok_pixel_id,
             'data' => [[
                 'event' => 'CompletePayment',
                 'event_time' => $this->eventTime ?? $this->order->created_at->timestamp,
-                'event_id' => "order-{$this->order->id}",
+                'event_id' => $eventId,
                 'user' => $user,
                 'properties' => [
                     'currency' => 'BDT',
-                    'value' => (float) $this->order->total,
+                    // The items total after any discount, without the delivery fee (the same value the browser sends).
+                    'value' => $value,
+                    'order_id' => (string) $this->order->id,
                     'contents' => $this->order->items->map(fn ($item) => [
                         // The id the catalog feed uses (the SKU, else the product id), which is what a dynamic ad matches on.
                         'content_id' => $item->sku ?: (string) $item->product_id,
@@ -83,28 +106,36 @@ class SendTikTokConversionEvent
             ]],
         ];
 
+        $testCode = trim((string) $settings->tiktok_test_event_code);
+
         // With a test event code set, the event shows under Test events in Events Manager (remove the code once testing is done).
-        if (filled($settings->tiktok_test_event_code)) {
-            $payload['test_event_code'] = trim($settings->tiktok_test_event_code);
+        if ($testCode !== '') {
+            $payload['test_event_code'] = $testCode;
         }
 
-        try {
-            $response = Http::withHeaders([
-                'Access-Token' => $settings->tiktok_events_api_access_token,
-            ])->asJson()->post('https://business-api.tiktok.com/open_api/v1.3/event/track/', $payload);
+        $token = (string) $settings->tiktok_events_api_access_token;
 
-            if ($response->failed()) {
-                Log::error('TikTok Events API request failed.', [
-                    'order_id' => $this->order->id,
-                    'status' => $response->status(),
-                    'body' => Redact::secrets($response->body(), [$settings->tiktok_events_api_access_token]),
-                ]);
+        try {
+            $response = Http::withHeaders(['Access-Token' => $token])->asJson()->connectTimeout(self::CONNECT_TIMEOUT)->timeout(self::TIMEOUT)
+                ->post('https://business-api.tiktok.com/open_api/v1.3/event/track/', $payload);
+
+            $body = $response->json() ?? [];
+
+            // TikTok answers 200 with its own code in the body: 0 is success.
+            if ($response->successful() && (int) ($body['code'] ?? -1) === 0) {
+                Log::info('TikTok Purchase sent.', $context + ['value' => $value, 'request_id' => $body['request_id'] ?? null, 'test_code' => $testCode !== '']);
+
+                return;
             }
+
+            $raw = trim(mb_substr((string) $response->body(), 0, 200));
+            $error = Redact::secrets((string) ($body['message'] ?? ($raw !== '' ? $raw : 'TikTok replied without accepting the event.')), [$token]);
+            Log::error('TikTok Purchase failed.', $context + ['status' => $response->status(), 'code' => $body['code'] ?? null, 'error' => $error, 'request_id' => $body['request_id'] ?? null]);
+            SystemEvents::record('capi_failed', "TikTok Purchase for order #{$this->order->id}: HTTP {$response->status()}. {$error}");
         } catch (\Throwable $e) {
-            Log::error('TikTok Events API request threw an exception.', [
-                'order_id' => $this->order->id,
-                'error' => Redact::secrets($e->getMessage(), [$settings->tiktok_events_api_access_token]),
-            ]);
+            $error = Redact::secrets($e->getMessage(), [$token]);
+            Log::error('TikTok Purchase failed.', $context + ['status' => null, 'code' => null, 'error' => $error, 'request_id' => null]);
+            SystemEvents::record('capi_failed', "TikTok Purchase for order #{$this->order->id}: no answer. {$error}");
         }
     }
 }

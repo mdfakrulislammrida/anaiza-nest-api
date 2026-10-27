@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\ProductReview;
 use App\Models\ReviewRequestSetting;
 use App\Support\Recovery\RecoveryEmails;
+use App\Support\System\TaskBudget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -23,9 +24,11 @@ final class ReviewRequests
     /**
      * @return array{sent: int, reminded: int, skipped: int}
      */
-    public static function run(?Carbon $now = null): array
+    public static function run(?Carbon $now = null, ?float $until = null): array
     {
         $now ??= now();
+        // Emails are sent one by one: stop when the run's time is up and carry on at the next run (nothing is lost; a sent request is marked).
+        $until ??= TaskBudget::until();
         $settings = ReviewRequestSetting::current();
         $result = ['sent' => 0, 'reminded' => 0, 'skipped' => 0];
 
@@ -36,6 +39,10 @@ final class ReviewRequests
         $due = self::due($settings, $now)->whereNull('review_request_sent_at')->whereNull('review_request_status')->limit(self::BATCH)->get();
 
         foreach ($due as $order) {
+            if (microtime(true) > $until) {
+                return $result;
+            }
+
             $outcome = self::requestFor($order, false, $now);
             $result[$outcome === 'sent' ? 'sent' : 'skipped']++;
         }
@@ -54,6 +61,10 @@ final class ReviewRequests
                 ->get();
 
             foreach ($reminders as $order) {
+                if (microtime(true) > $until) {
+                    return $result;
+                }
+
                 $outcome = self::requestFor($order, true, $now);
                 $result[$outcome === 'sent' ? 'reminded' : 'skipped']++;
             }

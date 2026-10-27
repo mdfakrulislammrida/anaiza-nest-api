@@ -25,7 +25,24 @@ final class SteadfastClient
 {
     public const BASE = 'https://portal.packzy.com/api/v1';
 
-    public function __construct(private CourierSetting $settings) {}
+    /** For anything a page load or the scheduler might do: it must never hold a request for long. */
+    public const QUICK_CONNECT = 3;
+
+    public const QUICK_TOTAL = 8;
+
+    /** For a person who pressed a button (Test, Send to courier) and is waiting for the answer. */
+    public const BUTTON_CONNECT = 5;
+
+    public const BUTTON_TOTAL = 20;
+
+    /** The short timeouts unless told otherwise. */
+    public function __construct(private CourierSetting $settings, private int $connectTimeout = self::QUICK_CONNECT, private int $timeout = self::QUICK_TOTAL) {}
+
+    /** A client for a button the admin pressed (Test, or booking a parcel): longer timeouts, because a person is waiting for the answer. */
+    public static function forButton(CourierSetting $settings): self
+    {
+        return new self($settings, self::BUTTON_CONNECT, self::BUTTON_TOTAL);
+    }
 
     /** No keys needed: is the service up? */
     public function ping(): void
@@ -102,7 +119,7 @@ final class SteadfastClient
 
         for ($attempt = 1; $attempt <= $attempts; $attempt++) {
             try {
-                $response = Http::withHeaders($headers)->acceptJson()->connectTimeout(6)->timeout(12)
+                $response = Http::withHeaders($headers)->acceptJson()->connectTimeout($this->connectTimeout)->timeout($this->timeout)
                     ->send($method, self::BASE.$path, $method === 'GET' ? [] : ['json' => $data]);
 
                 break;

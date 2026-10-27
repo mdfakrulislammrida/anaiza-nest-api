@@ -89,6 +89,15 @@ final class ConversionEvents
     }
 
     /**
+     * What a purchase is worth to Meta and TikTok: the items total after any discount, without the delivery fee (the order's total minus its
+     * delivery fee, never negative). The browser and the server container send the same number, so every sender agrees.
+     */
+    public static function purchaseValue(Order $order): float
+    {
+        return (float) max(0, (int) $order->total - (int) $order->delivery_fee);
+    }
+
+    /**
      * The time the sale is reported as having happened: when the order was placed, or now if that is too long ago
      * for the platforms to accept.
      */

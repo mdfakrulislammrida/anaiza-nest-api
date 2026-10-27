@@ -43,7 +43,7 @@ final class MetaTestEvent
         }
 
         try {
-            $response = Http::asJson()->timeout(20)->post("https://graph.facebook.com/v18.0/{$pixel}/events", [...$payload, 'access_token' => $token]);
+            $response = Http::asJson()->connectTimeout(5)->timeout(20)->post("https://graph.facebook.com/v18.0/{$pixel}/events", [...$payload, 'access_token' => $token]);
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'Could not reach Meta: '.Redact::secrets($e->getMessage(), [$token])];
         }
@@ -53,7 +53,7 @@ final class MetaTestEvent
         if ($response->successful() && (int) ($body['events_received'] ?? 0) >= 1) {
             $where = $code !== '' ? "It should appear under Test events for code {$code}." : 'No test event code is set, so Meta counts it as a real custom event named TestEvent.';
 
-            return ['ok' => true, 'message' => 'Meta accepted the test event. '.$where];
+            return ['ok' => true, 'message' => 'Meta accepted the test event. '.self::summary($body).' '.$where];
         }
 
         $error = $body['error'] ?? [];
@@ -64,8 +64,20 @@ final class MetaTestEvent
             $text = $response->successful() ? 'Meta replied without accepting the event.' : 'Meta replied with HTTP '.$response->status().'.';
         }
 
-        $message = 'Meta said: '.$text.($detail !== '' ? " ({$detail})" : '').(isset($error['code']) ? ' [code '.$error['code'].']' : '');
+        $message = 'Meta said: '.$text.($detail !== '' ? " ({$detail})" : '').(isset($error['code']) ? ' [code '.$error['code'].']' : '').' '.self::summary($body, $response->status());
 
         return ['ok' => false, 'message' => Redact::secrets($message, [$token])];
+    }
+
+    /** Meta's answer in a line: events_received, fbtrace_id (what Meta support asks for) and the HTTP status. No token. */
+    private static function summary(array $body, ?int $status = null): string
+    {
+        $trace = $body['fbtrace_id'] ?? $body['error']['fbtrace_id'] ?? null;
+
+        return '['.implode(', ', array_filter([
+            'events_received='.(int) ($body['events_received'] ?? 0),
+            $trace !== null ? 'fbtrace_id='.$trace : null,
+            $status !== null ? 'HTTP '.$status : null,
+        ])).']';
     }
 }

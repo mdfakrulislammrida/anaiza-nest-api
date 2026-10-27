@@ -8,6 +8,7 @@ use Filament\Actions\Action as PageAction;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -74,6 +75,14 @@ class ManageMarketingSettings extends Page implements HasForms
                 Section::make('Server-Side Conversion Tracking')
                     ->description('Used to send a Purchase event directly from our server to Meta/TikTok when an order is placed, deduplicated against the client-side pixel event above via a shared event ID. These are secrets: stored encrypted, never shown again once saved and never sent to the storefront. Leave a token field blank to keep the saved one; type a new one to replace it.')
                     ->schema([
+                        Toggle::make('meta_capi_enabled')
+                            ->label('Send Purchase to Meta from Laravel (CAPI)')
+                            ->default(true)
+                            ->helperText('Keep this ON. bKash, Nagad and Rocket orders only get a Purchase from Laravel (when payment is verified), because the browser does not send one for them. For other orders Meta deduplicates the Laravel and the Stape Purchase because both use the same event id (order-<number>). Turn it OFF only if you accept losing Purchase for wallet orders.'),
+                        Toggle::make('tiktok_events_enabled')
+                            ->label('Send Purchase to TikTok from Laravel (Events API)')
+                            ->default(true)
+                            ->helperText('Nothing is sent to TikTok without a TikTok Pixel ID and an access token anyway. Turn it OFF if you do not use TikTok.'),
                         TextInput::make('meta_capi_access_token')
                             ->label('Meta Conversions API Access Token')
                             ->password()
@@ -92,6 +101,20 @@ class ManageMarketingSettings extends Page implements HasForms
                             ->helperText(fn (): string => $this->savedHelp('tiktok_events_api_access_token', 'Requires the TikTok Pixel ID above to also be set. From TikTok Events Manager -> your pixel -> Generate Access Token.'))
                             ->suffixAction($this->clearAction('tiktok_events_api_access_token', 'clearTikTokToken', 'TikTok'))
                             ->maxLength(2000),
+                        TextInput::make('server_container_url')
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? trim($state) : null)
+                            ->label('Server container address (Stape)')
+                            ->placeholder('https://metrics.example.com')
+                            ->helperText('The address of the server-side Google Tag Manager container: https://, no slash at the end. Not a secret. The browser tags read it from the GTM constant "AN - Server URL" (leave that one as NONE until the container works); keep the two the same. Nothing on the shop reads this field yet.')
+                            ->maxLength(255)
+                            ->rules([fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                                $problem = MarketingSetting::serverUrlProblem(is_string($value) ? $value : null);
+
+                                if ($problem !== null) {
+                                    $fail($problem);
+                                }
+                            }])
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 

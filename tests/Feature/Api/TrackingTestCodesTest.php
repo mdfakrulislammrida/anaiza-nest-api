@@ -133,8 +133,8 @@ class TrackingTestCodesTest extends TestCase
 
         $text = implode('
 ', $logged);
-        $this->assertStringContainsString('Meta Conversions API request failed', $text);
-        $this->assertStringContainsString('TikTok Events API request failed', $text);
+        $this->assertStringContainsString('Meta Purchase failed.', $text);
+        $this->assertStringContainsString('TikTok Purchase failed.', $text);
         $this->assertStringContainsString('[redacted]', $text);
         $this->assertStringNotContainsString(self::META_TOKEN, $text);
         $this->assertStringNotContainsString(self::TIKTOK_TOKEN, $text);

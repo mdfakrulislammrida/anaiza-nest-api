@@ -142,6 +142,9 @@ class BackupTest extends TestCase
 
     public function test_old_backups_are_removed_by_kind(): void
     {
+        // The counts are settings (14 daily, 4 weekly, 3 manual out of the box); this checks the rule with seven daily.
+        config(['backup.keep_daily' => 7, 'backup.keep_weekly' => 4, 'backup.keep_manual' => 3]);
+
         for ($day = 1; $day <= 9; $day++) {
             $this->fakeBackup('daily', sprintf('202609%02d-023000', $day));
         }

@@ -25,7 +25,7 @@ return [
     'include_files' => (bool) env('BACKUP_INCLUDE_FILES', true),
 
     // How many of each are kept; older ones are removed. A weekly one is made on Sundays.
-    'keep_daily' => (int) env('BACKUP_KEEP_DAILY', 7),
+    'keep_daily' => (int) env('BACKUP_KEEP_DAILY', 14),
     'keep_weekly' => (int) env('BACKUP_KEEP_WEEKLY', 4),
     'keep_manual' => (int) env('BACKUP_KEEP_MANUAL', 3),
 

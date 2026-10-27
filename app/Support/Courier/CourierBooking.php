@@ -219,7 +219,7 @@ final class CourierBooking
         try {
             if ($courier === CourierSetting::STEADFAST) {
                 try {
-                    $made = (new SteadfastClient($settings))->createOrder($plan['payload']);
+                    $made = SteadfastClient::forButton($settings)->createOrder($plan['payload']);
                     $consignment = $made['consignment_id'];
                     $trackingCode = $made['tracking_code'];
                     $initial = $made['status'];
@@ -231,7 +231,7 @@ final class CourierBooking
                     $note = 'Steadfast already had this invoice, so the parcel is booked, but its consignment id never reached us. Open it in the Steadfast panel.';
                 }
             } else {
-                $made = (new PathaoClient($settings))->createOrder($plan['payload']);
+                $made = PathaoClient::forButton($settings)->createOrder($plan['payload']);
                 $consignment = $made['consignment_id'];
                 $trackingCode = $made['consignment_id'];
                 $initial = $made['status'];

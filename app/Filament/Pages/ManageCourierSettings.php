@@ -176,13 +176,14 @@ class ManageCourierSettings extends Page implements HasForms
         $settings = CourierSetting::current();
 
         try {
-            $client = new SteadfastClient($settings);
+            $client = SteadfastClient::forButton($settings);
             $client->ping();
             $balance = $client->balance(force: true);
 
             Notification::make()->success()->title('Steadfast is working')->body('The service answered and the keys were accepted. Balance: ৳'.number_format($balance, 2).'.')->send();
         } catch (CourierException $e) {
-            Notification::make()->danger()->title('Steadfast did not connect')->body($e->getMessage())->persistent()->send();
+            // Not persistent: a failed test must not wait in the session to pop up on some other page.
+            Notification::make()->danger()->title('Steadfast did not connect')->body($e->getMessage())->duration(15000)->send();
         }
     }
 
@@ -197,14 +198,14 @@ class ManageCourierSettings extends Page implements HasForms
         }
 
         try {
-            $stores = (new PathaoClient($settings))->stores();
+            $stores = PathaoClient::forButton($settings)->stores();
             $list = $stores === [] ? 'No stores were listed.' : collect($stores)->map(fn (array $store): string => $store['id'].': '.$store['name'])->implode('; ');
 
             Notification::make()->success()
                 ->title('Pathao is working ('.($settings->pathao_sandbox ? 'sandbox' : 'live').')')
                 ->body('Logged in. Stores on this account: '.$list)->persistent()->send();
         } catch (CourierException $e) {
-            Notification::make()->danger()->title('Pathao did not connect')->body($e->getMessage())->persistent()->send();
+            Notification::make()->danger()->title('Pathao did not connect')->body($e->getMessage())->duration(15000)->send();
         }
     }
 

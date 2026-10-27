@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Support\Coupons\CouponService;
 use App\Support\Dhaka;
 use App\Support\Email\TemplateDefinitions;
+use App\Support\System\TaskBudget;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,9 +27,11 @@ final class CartRecovery
     /**
      * @return array{sent: int, skipped: int, waiting: string|null}
      */
-    public static function run(?Carbon $now = null): array
+    public static function run(?Carbon $now = null, ?float $until = null): array
     {
         $now ??= now();
+        // Emails are sent one by one: stop when the run's time is up and carry on at the next run.
+        $until ??= TaskBudget::until();
         $settings = CartRecoverySetting::current();
         $result = ['sent' => 0, 'skipped' => 0, 'waiting' => null];
 
@@ -79,6 +82,11 @@ final class CartRecovery
             ->get();
 
         foreach ($candidates as $checkout) {
+            if (microtime(true) > $until) {
+                $result['waiting'] = 'time';
+                break;
+            }
+
             if ($room <= 0) {
                 $result['waiting'] = 'daily_cap';
                 break;

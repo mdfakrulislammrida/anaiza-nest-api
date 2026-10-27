@@ -23,7 +23,24 @@ final class PathaoClient
 {
     private const API = '/aladdin/api/v1';
 
-    public function __construct(private CourierSetting $settings) {}
+    /** For anything a page load or the scheduler might do: it must never hold a request for long. */
+    public const QUICK_CONNECT = 3;
+
+    public const QUICK_TOTAL = 8;
+
+    /** For a person who pressed a button (Test, Send to courier) and is waiting for the answer. */
+    public const BUTTON_CONNECT = 5;
+
+    public const BUTTON_TOTAL = 20;
+
+    /** The short timeouts unless told otherwise. */
+    public function __construct(private CourierSetting $settings, private int $connectTimeout = self::QUICK_CONNECT, private int $timeout = self::QUICK_TOTAL) {}
+
+    /** A client for a button the admin pressed (Test, or booking a parcel): longer timeouts, because a person is waiting for the answer. */
+    public static function forButton(CourierSetting $settings): self
+    {
+        return new self($settings, self::BUTTON_CONNECT, self::BUTTON_TOTAL);
+    }
 
     /** Token and stores: proves the login works and shows which store ids are yours. @return list<array{id: string, name: string}> */
     public function stores(): array
@@ -95,7 +112,7 @@ final class PathaoClient
 
             for ($attempt = 1; $attempt <= $attempts; $attempt++) {
                 try {
-                    $response = Http::withToken($token)->acceptJson()->connectTimeout(6)->timeout(15)
+                    $response = Http::withToken($token)->acceptJson()->connectTimeout($this->connectTimeout)->timeout($this->timeout)
                         ->send($method, $this->settings->pathaoBaseUrl().self::API.$path, $method === 'GET' ? [] : ['json' => $data]);
 
                     break;
@@ -179,7 +196,7 @@ final class PathaoClient
     /** @param  array<string, string>  $form */
     private function issue(array $form): Response
     {
-        return Http::acceptJson()->connectTimeout(6)->timeout(15)->post($this->settings->pathaoBaseUrl().self::API.'/issue-token', $form);
+        return Http::acceptJson()->connectTimeout($this->connectTimeout)->timeout($this->timeout)->post($this->settings->pathaoBaseUrl().self::API.'/issue-token', $form);
     }
 
     /** @return array<string, mixed> */

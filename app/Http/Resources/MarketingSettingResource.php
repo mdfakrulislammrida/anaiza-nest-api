@@ -19,6 +19,8 @@ class MarketingSettingResource extends JsonResource
             'meta_pixel_id' => $this->meta_pixel_id,
             'ga4_id' => $this->ga4_id,
             'tiktok_pixel_id' => $this->tiktok_pixel_id,
+            // The address of the server-side GTM container (Stape): public, not a secret. Null when none is set.
+            'server_container_url' => $this->server_container_url,
         ];
     }
 }
