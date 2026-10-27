@@ -25,16 +25,18 @@ this server's Purchase and the Stape one, because both use the same event id `or
 | Where is it started? | **Cash on delivery:** `OrderController::store` -> `ConversionEvents::sendAtPlacement`, at the moment the order is created. **bKash/Nagad/Rocket:** `PaymentActions::decide('verified')` -> `ConversionEvents::sendOnVerification`, when you mark the payment verified. No status change (shipped, delivered, cancelled) sends or reverses a Purchase. Imported old orders never send |
 | Synchronously, after the response, or on a queue? | **After the response** (`dispatchAfterResponse`): the visitor already has the answer when the call to Meta starts. There is no queue and no worker, so a failure cannot sit in a queue |
 | Timeouts | 3 s to connect, 8 s in all (before: PHP's default, 30 s) |
-| On failure | One `error` line in the log, one note in Settings > System health ("capi_failed"), and **no automatic retry**. The order is never affected. The order is marked as "sent" when the attempt starts, so a failed send is not retried by itself |
+| On failure | One `error` line in the log and one row in `conversion_attempts`. **If the failure may be temporary** (no answer, a timeout, 429, 5xx, or Meta's own "transient" flag; TikTok codes 40100 and 50000+) the scheduled `conversions:retry` tries again, **at most 3 more times, 10 minutes, 30 minutes and 2 hours after the failure before, within 24 hours of the first try**. A 400, 401 or 403 (a bad token, bad data) is **not** repeated and goes to Settings > System health as an error line, as does a send that used up its tries. The order is never affected. `conversion_sent_at` is still the "first send started" mark that stops a second first send; whether a platform has the sale is the latest row in `conversion_attempts` |
 | `value` | The items total after any discount, **without delivery** = `total - delivery_fee`, never negative (before: the total with delivery). TikTok the same. `currency` BDT |
 | Other fields | `event_id` = `order-<order number>`; `order_id`; `content_ids` / `contents` = the SKUs; `content_type` product. Neither Meta nor TikTok has a shipping field, so the fee is not sent |
 | Hashed (SHA-256) | email, phone (as 880...), first name, last name, city (district), state (division), country `bd`. TikTok: email and phone |
 | Not hashed (as the platforms require) | `client_ip_address`, `client_user_agent` |
-| `fbc` | Built from the Facebook click id (`fbclid`) the storefront sends with the order, and the order's time. TikTok gets `ttclid` |
-| `fbp` | **Not sent.** The storefront does not send the `_fbp` cookie to the order API. The browser pixel and the Stape container read it themselves |
-| IP address and browser | Cash on delivery: from the checkout request itself. Wallet: kept on the order at checkout (only when marketing was allowed) and **used by the later call when you verify**, then erased |
+| `fbc` | The `_fbc` cookie value when the storefront passes it (stored; a click id, so it is kept like `fbclid`), else built from `fbclid` and the order's time. TikTok gets `ttclid`. TikTok has no `fbp` or `fbc`, so it gets neither |
+| `fbp` | The `_fbp` cookie, **when the storefront passes it with the order** (`fbp` in the order request; checked for the shape `fb.1.<ms>.<number>`, a wrong one is dropped). Kept on the order until the sale is sent, then erased |
+| `external_id` | The storefront's SHA-256 of the customer id or phone (64 lower-case hex characters, checked), **sent as it arrived and never hashed again**, so Meta can tie this Purchase to the browser's and the server container's. Erased with `fbp`. TikTok gets it too (as text) |
+| IP address and browser | Kept on the order at checkout (only when marketing was allowed), with `fbp` and `external_id`, and **used by every try**. They are erased as soon as every platform is done and none failed (cash on delivery: seconds after checkout; wallet: after you verify). While a send has failed they stay for the automatic tries and Send again, and are erased **24 hours after the first try** whatever happened. A payment marked failed erases them at once |
 | `event_source_url`, `action_source` | `<shop address>/order-confirmation`, `website` |
-| Can it be sent twice? | No. Verifying twice, failed-then-verified, and changing an order from cash on delivery to a wallet method all hit the same one-time mark (`conversion_sent_at`). A cancelled order is not reversed |
+| Can it be sent twice? | No. Verifying twice, failed-then-verified, and changing an order from cash on delivery to a wallet method all hit the same one-time mark (`conversion_sent_at`). A retry takes its due time first (so two runs cannot both send it), only a failed platform is ever tried again, and the event id stays `order-<number>`, so a try that did reach Meta before the answer was lost is merged by Meta. A cancelled order is not reversed |
+| The order page | Admin > Orders > an order > **Marketing Attribution** shows "Meta Purchase: sent / retrying (reason) / failed (reason)" (TikTok too when it was tried). **Send Purchase again** (top of the page) repeats a platform that failed: only after a minute since its last try, and a second press while one is running does nothing. It needs the browser details, which are kept 24 hours after a failed send |
 
 ### The log lines (no token, no customer data)
 
@@ -63,6 +65,7 @@ Example failure: `Meta Purchase failed. {"order_id":1042,"event_id":"order-1042"
 | Task | When (Dhaka time) | What it touches | Lock |
 | --- | --- | --- | --- |
 | `scheduler-heartbeat` | every minute | one database row (read by Settings > System health and `golive:check`) | 2 min |
+| `conversions:retry` | every 10 min | database; **Meta and TikTok** (8 s per call, at most 40 s per run), only failed Purchases that are due; also erases visitor details kept for a send over 24 hours ago | 9 min |
 | `reviews:request` | every 5 min | database; **emails** (at most 40 s of sending per run) | 10 min |
 | `checkouts:recover` | every 5 min | database; **emails** (at most 40 s per run) | 10 min |
 | `couriers:sync` | every 15 min | **Steadfast / Pathao** status calls, 3 s / 8 s each, at most 45 s per run, only unfinished parcels | 14 min |

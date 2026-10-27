@@ -5,7 +5,9 @@ namespace App\Jobs;
 use App\Models\MarketingSetting;
 use App\Models\Order;
 use App\Support\ConversionApiHasher;
+use App\Support\ConversionAttempts;
 use App\Support\ConversionEvents;
+use App\Support\MatchData;
 use App\Support\Redact;
 use App\Support\System\SystemEvents;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,8 +23,8 @@ use Illuminate\Support\Facades\Log;
  * client-side pixel's CompletePayment event (see tracking.ts) so TikTok
  * deduplicates the two rather than double-counting the sale.
  *
- * Runs right after the response that caused it, with short HTTP timeouts, and never throws (see SendMetaConversionEvent for the log lines;
- * these say "TikTok Purchase ...").
+ * Runs right after the response that caused it, with short HTTP timeouts, and never throws (see SendMetaConversionEvent for the log lines and the
+ * retries; these say "TikTok Purchase ..."). TikTok has no equivalent of Meta's fbp and fbc, so those two are not sent; it does take the hashed external_id.
  */
 class SendTikTokConversionEvent
 {
@@ -44,6 +46,8 @@ class SendTikTokConversionEvent
         // A unix time to report the sale at. Null means when the order was placed; a wallet order is sent when its
         // payment is verified, which may be a while later.
         public ?int $eventTime = null,
+        // auto (the first try), retry (the scheduled task) or manual (Send again on the order page).
+        public string $trigger = 'auto',
     ) {}
 
     public function handle(): void
@@ -51,15 +55,20 @@ class SendTikTokConversionEvent
         $settings = MarketingSetting::query()->first();
         $eventId = "order-{$this->order->id}";
         $context = ['order_id' => $this->order->id, 'event_id' => $eventId];
+        $eventTime = $this->eventTime ?? $this->order->created_at->timestamp;
 
         if ($settings !== null && ! $settings->tiktok_events_enabled) {
             Log::info('TikTok Purchase skipped, switched off.', $context);
+            ConversionAttempts::record($this->order, 'tiktok', $this->trigger, 'skipped', null, 'switched off in Marketing Settings', false, $eventTime);
+            ConversionEvents::settle($this->order);
 
             return;
         }
 
         if (! $settings?->tiktok_pixel_id || ! $settings?->tiktok_events_api_access_token) {
             Log::info('TikTok Purchase skipped, not set up.', $context);
+            ConversionAttempts::record($this->order, 'tiktok', $this->trigger, 'skipped', null, 'no pixel id or access token in Marketing Settings', false, $eventTime);
+            ConversionEvents::settle($this->order);
 
             return;
         }
@@ -72,9 +81,11 @@ class SendTikTokConversionEvent
         $user = array_filter([
             'email' => ConversionApiHasher::email($customer->email) ? [ConversionApiHasher::email($customer->email)] : null,
             'phone' => ConversionApiHasher::phone($customer->phone) ? [ConversionApiHasher::phone($customer->phone)] : null,
+            // The same hashed external id the browser and the server container send, as it arrived (never hashed again).
+            'external_id' => MatchData::externalId($this->order->external_id),
             'ttclid' => filled($this->order->ttclid) ? $this->order->ttclid : null,
-            'ip' => $this->clientIp,
-            'user_agent' => $this->clientUserAgent,
+            'ip' => $this->clientIp ?? $this->order->client_ip,
+            'user_agent' => $this->clientUserAgent ?? $this->order->client_user_agent,
         ]);
 
         $value = ConversionEvents::purchaseValue($this->order);
@@ -84,7 +95,7 @@ class SendTikTokConversionEvent
             'event_source_id' => $settings->tiktok_pixel_id,
             'data' => [[
                 'event' => 'CompletePayment',
-                'event_time' => $this->eventTime ?? $this->order->created_at->timestamp,
+                'event_time' => $eventTime,
                 'event_id' => $eventId,
                 'user' => $user,
                 'properties' => [
@@ -124,18 +135,35 @@ class SendTikTokConversionEvent
             // TikTok answers 200 with its own code in the body: 0 is success.
             if ($response->successful() && (int) ($body['code'] ?? -1) === 0) {
                 Log::info('TikTok Purchase sent.', $context + ['value' => $value, 'request_id' => $body['request_id'] ?? null, 'test_code' => $testCode !== '']);
-
-                return;
+                ConversionAttempts::record($this->order, 'tiktok', $this->trigger, 'sent', $response->status(), null, false, $eventTime);
+            } else {
+                $raw = trim(mb_substr((string) $response->body(), 0, 200));
+                $error = Redact::secrets((string) ($body['message'] ?? ($raw !== '' ? $raw : 'TikTok replied without accepting the event.')), [$token]);
+                $code = isset($body['code']) ? (int) $body['code'] : null;
+                $this->failed($context, $eventTime, $response->status(), "HTTP {$response->status()}".($code !== null ? ", code {$code}" : '').". {$error}", ConversionAttempts::retryable($response->status(), $code), $code, $body['request_id'] ?? null);
             }
-
-            $raw = trim(mb_substr((string) $response->body(), 0, 200));
-            $error = Redact::secrets((string) ($body['message'] ?? ($raw !== '' ? $raw : 'TikTok replied without accepting the event.')), [$token]);
-            Log::error('TikTok Purchase failed.', $context + ['status' => $response->status(), 'code' => $body['code'] ?? null, 'error' => $error, 'request_id' => $body['request_id'] ?? null]);
-            SystemEvents::record('capi_failed', "TikTok Purchase for order #{$this->order->id}: HTTP {$response->status()}. {$error}");
         } catch (\Throwable $e) {
             $error = Redact::secrets($e->getMessage(), [$token]);
-            Log::error('TikTok Purchase failed.', $context + ['status' => null, 'code' => null, 'error' => $error, 'request_id' => null]);
-            SystemEvents::record('capi_failed', "TikTok Purchase for order #{$this->order->id}: no answer. {$error}");
+            $this->failed($context, $eventTime, null, "no answer. {$error}", true, null, null);
+        }
+
+        ConversionEvents::settle($this->order);
+    }
+
+    /**
+     * One failed try: written down, logged, and (when nothing will try again by itself) put in Settings > System health.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function failed(array $context, int $eventTime, ?int $status, string $error, bool $retryable, ?int $code, ?string $requestId): void
+    {
+        $attempt = ConversionAttempts::record($this->order, 'tiktok', $this->trigger, 'failed', $status, $error, $retryable, $eventTime);
+        $again = $attempt?->next_retry_at !== null;
+
+        Log::error('TikTok Purchase failed.', $context + ['status' => $status, 'code' => $code, 'error' => $error, 'request_id' => $requestId, 'attempt' => $attempt?->attempt, 'will_retry' => $again]);
+
+        if (! $again) {
+            SystemEvents::record('capi_failed', "TikTok Purchase for order #{$this->order->id}: {$error}");
         }
     }
 }

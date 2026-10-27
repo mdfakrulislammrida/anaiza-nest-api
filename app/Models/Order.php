@@ -66,6 +66,9 @@ class Order extends Model
         'fbclid',
         'gclid',
         'ttclid',
+        'fbp',
+        'fbc',
+        'external_id',
     ];
 
     protected function casts(): array
@@ -189,5 +192,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /** Every try at reporting this order's Purchase to Meta and TikTok from the shop's own server. */
+    public function conversionAttempts(): HasMany
+    {
+        return $this->hasMany(ConversionAttempt::class);
     }
 }

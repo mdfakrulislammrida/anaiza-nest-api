@@ -91,7 +91,8 @@ class WalletConversionTest extends TestCase
         Bus::assertDispatched(SendMetaConversionEvent::class, fn (SendMetaConversionEvent $job) => $job->clientIp === self::IP
             && $job->clientUserAgent === self::AGENT && $job->eventTime === null);
         $this->assertNotNull($order->fresh()->conversion_sent_at);
-        $this->assertNull($order->client_ip, 'Cash on delivery keeps no visitor details.');
+        // Kept only until the sale has been sent (here the jobs are faked, so it has not): a send that fails is tried again with them.
+        $this->assertSame(self::IP, $order->client_ip);
     }
 
     // ---- wallet at placement: nothing sent, details kept
@@ -139,8 +140,9 @@ class WalletConversionTest extends TestCase
 
         $order->refresh();
         $this->assertNotNull($order->conversion_sent_at);
-        $this->assertNull($order->client_ip, 'The visitor details are cleared once they have been used.');
-        $this->assertNull($order->client_user_agent);
+        // Forgotten when the sale has been sent, not before (here the jobs are faked): a send that fails is tried again with the same details.
+        $this->assertSame(self::IP, $order->client_ip);
+        $this->assertSame(self::AGENT, $order->client_user_agent);
     }
 
     public function test_an_order_older_than_seven_days_is_reported_as_of_now(): void

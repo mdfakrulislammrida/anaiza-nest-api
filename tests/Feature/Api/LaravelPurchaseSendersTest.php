@@ -7,6 +7,7 @@ use App\Filament\Support\PaymentActions;
 use App\Jobs\SendMetaConversionEvent;
 use App\Jobs\SendTikTokConversionEvent;
 use App\Models\Category;
+use App\Models\ConversionAttempt;
 use App\Models\Customer;
 use App\Models\MarketingSetting;
 use App\Models\Order;
@@ -285,7 +286,9 @@ class LaravelPurchaseSendersTest extends TestCase
 
         $this->assertCount(1, $this->lines('Meta Purchase failed.'));
         $this->assertCount(1, $this->lines('TikTok Purchase failed.'));
-        $this->assertSame(2, SystemEvent::query()->where('type', 'capi_failed')->count());
+        // No answer could be the platform being busy, so it is tried again (see ConversionRetryTest) and is not a System health error yet.
+        $this->assertSame(0, SystemEvent::query()->where('type', 'capi_failed')->count());
+        $this->assertSame(2, ConversionAttempt::query()->where('status', 'failed')->whereNotNull('next_retry_at')->count());
     }
 
     public function test_tiktok_refusing_inside_a_200_is_a_failure(): void

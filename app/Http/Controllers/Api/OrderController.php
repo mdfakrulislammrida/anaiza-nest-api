@@ -19,8 +19,8 @@ use App\Support\ConversionEvents;
 use App\Support\Coupons\CouponRejected;
 use App\Support\Coupons\CouponService;
 use App\Support\DeliveryFeeCalculator;
-use App\Support\EmailThumbs;
 use App\Support\Email\TransactionalEmails;
+use App\Support\EmailThumbs;
 use App\Support\Recovery\CheckoutTracker;
 use App\Support\System\ShopAlerts;
 use App\Support\System\SystemEvents;
@@ -134,7 +134,7 @@ class OrderController extends Controller
 
     private function keepsVisitorDetails(StoreOrderRequest $request): bool
     {
-        return WalletPayments::isWallet($request->input('payment_method')) && ConversionEvents::allowed($request->boolean('marketing_consent'));
+        return ConversionEvents::allowed($request->boolean('marketing_consent'));
     }
 
     private function placeOrder(StoreOrderRequest $request): Order
@@ -273,9 +273,12 @@ class OrderController extends Controller
                 'gift_note' => $request->input('gift_note'),
                 // A message only counts when the order is marked as a gift; free, no price change.
                 'marketing_consent' => $request->boolean('marketing_consent'),
-                // Kept only for a wallet order whose visitor may be reported to ad platforms, until it is verified.
+                // Kept only for an order whose visitor may be reported to ad platforms, and only until its sale has been sent (a wallet order:
+                // until the payment is verified and sent; any order whose send failed: for at most 24 hours, so it can be tried again).
                 'client_ip' => $this->keepsVisitorDetails($request) ? $request->ip() : null,
                 'client_user_agent' => $this->keepsVisitorDetails($request) ? mb_substr((string) $request->userAgent(), 0, 500) : null,
+                'fbp' => $this->keepsVisitorDetails($request) ? $request->input('fbp') : null,
+                'external_id' => $this->keepsVisitorDetails($request) ? $request->input('external_id') : null,
                 'is_gift' => $request->boolean('is_gift'),
                 'gift_message' => $request->boolean('is_gift') ? (trim((string) $request->input('gift_message')) ?: null) : null,
                 'utm_source' => $fromRecovery ? 'cart_recovery' : $request->input('utm_source'),
@@ -286,6 +289,8 @@ class OrderController extends Controller
                 'fbclid' => $request->input('fbclid'),
                 'gclid' => $request->input('gclid'),
                 'ttclid' => $request->input('ttclid'),
+                // Meta's click cookie: a click id like fbclid, so it is kept (only when the visitor may be reported to ad platforms).
+                'fbc' => $this->keepsVisitorDetails($request) ? $request->input('fbc') : null,
                 'landing_page_id' => $landing?->id,
                 'landing_slug' => $landing?->slug,
             ]);

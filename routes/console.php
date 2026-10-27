@@ -31,3 +31,7 @@ Schedule::command('couriers:sync')->everyFifteenMinutes()->withoutOverlapping(14
 
 // The morning note of courier bookings that failed or have gone quiet.
 Schedule::command('couriers:digest')->dailyAt('09:30')->timezone('Asia/Dhaka')->withoutOverlapping(10);
+
+// A Purchase that Meta or TikTok did not get because they could not be reached is sent again (10 min, 30 min, 2 hours after the failure, within 24 hours);
+// a refusal (a bad token) is not. Short HTTP timeouts and a time budget, see ConversionAttempts. Also forgets visitor details kept for a send over a day ago.
+Schedule::command('conversions:retry')->everyTenMinutes()->withoutOverlapping(9);

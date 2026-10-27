@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
+use App\Filament\Support\ConversionActions;
 use App\Filament\Support\CourierActions;
 use App\Filament\Support\PaymentActions;
 use App\Models\BlockedContact;
@@ -206,8 +207,13 @@ class OrderResource extends Resource
                     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Marketing Attribution')
-                    ->description('Captured from the checkout URL\'s UTM parameters at the time the order was placed -- read-only.')
+                    ->description('Captured from the checkout URL\'s UTM parameters at the time the order was placed -- read-only. Below them: whether the shop\'s server told Meta and TikTok about the sale.')
                     ->schema([
+                        Forms\Components\Placeholder::make('purchase_sends')
+                            ->label('Purchase sent to ad platforms')
+                            ->content(fn (?Order $record): HtmlString => ConversionActions::summary($record))
+                            ->visible(fn (?Order $record): bool => $record !== null)
+                            ->columnSpanFull(),
                         Forms\Components\TextInput::make('landing_slug')
                             ->label('Landing page')
                             ->formatStateUsing(fn (?string $state): ?string => $state ? '/lp/'.$state : null)
@@ -230,7 +236,7 @@ class OrderResource extends Resource
                             ->disabled(),
                     ])
                     ->columns(2)
-                    ->collapsed()
+                    ->collapsed(fn (?Order $record): bool => ! ConversionActions::needsAttention($record))
                     ->columnSpanFull(),
             ]);
     }

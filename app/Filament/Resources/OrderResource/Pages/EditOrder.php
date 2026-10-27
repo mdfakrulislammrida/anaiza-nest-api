@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\OrderResource\Pages;
 
 use App\Filament\Resources\OrderResource;
+use App\Filament\Support\ConversionActions;
 use App\Filament\Support\CourierActions;
 use App\Filament\Support\PaymentActions;
 use Filament\Actions;
@@ -18,6 +19,7 @@ class EditOrder extends EditRecord
             CourierActions::send(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshFormData(['status'])),
             PaymentActions::verify(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             PaymentActions::fail(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
+            ConversionActions::resend(Actions\Action::class)->record($this->record),
             OrderResource::whatsappReviewAction(Actions\Action::class)->record($this->record),
             OrderResource::blockPhoneAction(Actions\Action::class)->record($this->record),
             Actions\Action::make('printGiftNote')

@@ -2,6 +2,7 @@
 
 namespace App\Support\System;
 
+use App\Models\ConversionAttempt;
 use App\Models\CourierSetting;
 use App\Models\Order;
 use App\Support\Backup\BackupService;
@@ -33,6 +34,7 @@ final class HealthChecks
             self::database(),
             self::mail(),
             self::orders(),
+            self::tracking(),
             self::logs(),
             self::storageLink(),
             ...self::couriers(),
@@ -247,6 +249,32 @@ final class HealthChecks
         }
 
         return self::row('mail', 'Email', self::OK, "Sending through {$mailer}; no failures in the last 7 days.");
+    }
+
+    /**
+     * The shop's own Purchase sends to Meta and TikTok: refusals and given-up tries of the last 7 days (a failure that is still being tried again is not
+     * an error yet; it shows on the order and here as "being tried again").
+     */
+    public static function tracking(): array
+    {
+        $failed = SystemEvents::countSince('capi_failed', now()->subDays(7));
+
+        try {
+            $retrying = ConversionAttempt::query()->where('status', 'failed')->where('retryable', true)->whereNotNull('next_retry_at')->count();
+        } catch (\Throwable) {
+            $retrying = 0;
+        }
+
+        $again = $retrying > 0 ? " {$retrying} Purchase(s) are being tried again." : '';
+
+        if ($failed > 0) {
+            $last = SystemEvents::latest('capi_failed');
+
+            return self::row('tracking', 'Meta / TikTok Purchase sends', self::FAIL, "{$failed} Purchase send(s) failed for good in the last 7 days. Latest: ".($last?->message ?? '').$again,
+                'A refusal (HTTP 400, 401 or 403) usually means the access token in Marketing Settings is wrong or has expired, and trying again will not help. Paste a new token there, then open the order and press Send again.');
+        }
+
+        return self::row('tracking', 'Meta / TikTok Purchase sends', self::OK, 'No Purchase send has failed for good in the last 7 days.'.$again);
     }
 
     public static function orders(): array

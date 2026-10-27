@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Schema;
 final class TestDataPurge
 {
     /** System notes that belong to test orders and mail; the "last time" notes (scheduler, backup) stay. */
-    private const NOTE_TYPES = ['mail_failed', 'courier_auth', 'courier_booking_failed', 'courier_webhook_failed'];
+    private const NOTE_TYPES = ['mail_failed', 'courier_auth', 'courier_booking_failed', 'courier_webhook_failed', 'capi_failed'];
 
     /**
      * Tables that are looked at but left alone, with a reason, so a person running the purge sees what stays.

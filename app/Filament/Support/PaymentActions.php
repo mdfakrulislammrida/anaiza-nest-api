@@ -86,6 +86,9 @@ final class PaymentActions
         // verifying again (after a fail, say) cannot send it twice.
         if ($status === 'verified') {
             ConversionEvents::sendOnVerification($order);
+        } else {
+            // A payment that did not arrive is never reported, so the details kept for that moment are not needed.
+            ConversionEvents::eraseVisitorDetails($order);
         }
 
         Notification::make()

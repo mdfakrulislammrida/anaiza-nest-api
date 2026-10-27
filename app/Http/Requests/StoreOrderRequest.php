@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\PaymentSetting;
 use App\Models\SiteSetting;
 use App\Support\Contact;
+use App\Support\MatchData;
 use App\Support\WalletPayments;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,6 +36,10 @@ class StoreOrderRequest extends FormRequest
         $this->merge([
             'payment_sender_number' => $wallet ? WalletPayments::normalizeNumber($this->input('payment_sender_number')) : null,
             'payment_trx_id' => $wallet ? WalletPayments::normalizeTrxId($this->input('payment_trx_id')) : null,
+            // Tracking data never fails an order: a value of the wrong shape is dropped here, before it is checked.
+            'fbp' => MatchData::fbp($this->input('fbp')),
+            'fbc' => MatchData::fbc($this->input('fbc')),
+            'external_id' => MatchData::externalId($this->input('external_id')),
         ]);
     }
 
@@ -148,6 +153,10 @@ class StoreOrderRequest extends FormRequest
             'fbclid' => ['nullable', 'string', 'max:255'],
             'gclid' => ['nullable', 'string', 'max:255'],
             'ttclid' => ['nullable', 'string', 'max:255'],
+            // Meta's browser cookies and a hashed external id, for matching the shop's own Purchase to the browser's (see MatchData). Shape-checked in prepareForValidation.
+            'fbp' => ['nullable', 'string', 'max:100'],
+            'fbc' => ['nullable', 'string', 'max:255'],
+            'external_id' => ['nullable', 'string', 'size:64'],
             // The landing page the order was placed from (its slug). Never fails an order: an unknown one is ignored.
             'landing_page' => ['nullable', 'string', 'max:160'],
             // A coupon code (checked again here, on the server, whatever the browser showed), the browser's checkout session,

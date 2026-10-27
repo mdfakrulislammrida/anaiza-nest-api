@@ -61,14 +61,10 @@ final class ConversionEvents
             return false;
         }
 
-        $ip = $order->client_ip;
-        $userAgent = $order->client_user_agent;
-
-        // The visitor's address and browser were only kept for this moment.
-        Order::query()->whereKey($order->id)->update(['client_ip' => null, 'client_user_agent' => null]);
-        $order->forceFill(['client_ip' => null, 'client_user_agent' => null])->syncOriginal();
-
+        // Nothing will be sent for a visitor who may not be reported: the details kept for this moment are not needed.
         if (! self::allowed((bool) $order->marketing_consent)) {
+            self::eraseVisitorDetails($order);
+
             return false;
         }
 
@@ -79,13 +75,49 @@ final class ConversionEvents
             return false;
         }
 
+        // The jobs read the visitor's address, browser, fbp and external id from the order itself, and the order forgets them when the sale has
+        // been sent (see settle()), not before: a send that fails is tried again with the same details.
         $order->refresh();
         $eventTime = self::eventTime($order);
 
-        SendMetaConversionEvent::dispatchAfterResponse($order, $ip, $userAgent, $eventTime);
-        SendTikTokConversionEvent::dispatchAfterResponse($order, $ip, $userAgent, $eventTime);
+        SendMetaConversionEvent::dispatchAfterResponse($order, $order->client_ip, $order->client_user_agent, $eventTime);
+        SendTikTokConversionEvent::dispatchAfterResponse($order, $order->client_ip, $order->client_user_agent, $eventTime);
 
         return true;
+    }
+
+    /**
+     * Called when a platform's send has ended. The visitor's address, browser, fbp and external id are forgotten as soon as every platform is done and none
+     * of them failed (sent, or not meant to be sent). While a send has failed they stay, for the automatic tries and for Send again, until
+     * eraseStale() forgets them 24 hours after the first try. fbc is a click id, like fbclid, and is kept.
+     */
+    public static function settle(Order $order): void
+    {
+        foreach (array_keys(ConversionAttempts::PLATFORMS) as $platform) {
+            if (in_array(ConversionAttempts::state($order, $platform)['state'], ['none', 'retrying', 'failed'], true)) {
+                return;
+            }
+        }
+
+        self::eraseVisitorDetails($order);
+    }
+
+    /** Forgets what was kept about the visitor for the send: address, browser, fbp, external id. */
+    public static function eraseVisitorDetails(Order $order): void
+    {
+        $blank = ['client_ip' => null, 'client_user_agent' => null, 'fbp' => null, 'external_id' => null];
+
+        Order::query()->whereKey($order->id)->update($blank);
+        $order->forceFill($blank)->syncOriginal();
+    }
+
+    /** The 24-hour limit: details of a sale first sent more than a day ago are forgotten whatever happened to it. @return int orders cleaned */
+    public static function eraseStale(): int
+    {
+        return Order::query()
+            ->whereNotNull('conversion_sent_at')->where('conversion_sent_at', '<', now()->subHours(ConversionAttempts::WINDOW_HOURS))
+            ->where(fn ($q) => $q->whereNotNull('client_ip')->orWhereNotNull('client_user_agent')->orWhereNotNull('fbp')->orWhereNotNull('external_id'))
+            ->update(['client_ip' => null, 'client_user_agent' => null, 'fbp' => null, 'external_id' => null]);
     }
 
     /**
