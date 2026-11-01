@@ -9,6 +9,7 @@ use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
 use App\Models\Product;
 use App\Support\Pricing;
+use App\Support\Sku;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -16,6 +17,7 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -137,7 +139,13 @@ class ProductResource extends Resource
                 Forms\Components\TextInput::make('sku')
                     ->label('SKU')
                     ->required()
-                    ->unique(ignoreRecord: true),
+                    ->helperText('The id this product has in the product feeds and the ad pixels, for example ANZ-TS-001. A leading "SKU" word, extra spaces and the like are removed when you save.')
+                    ->rules([fn (?Model $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                        if (($problem = Sku::problem($value, false, $record?->id)) !== null) {
+                            $fail($problem);
+                        }
+                    }])
+                    ->dehydrateStateUsing(fn (?string $state): string => Sku::clean($state)),
                 Forms\Components\TextInput::make('gtin')
                     ->label('GTIN / barcode (optional)')
                     ->regex('/^(\d{8}|\d{12,14})$/')

@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\ProductResource\RelationManagers;
 
 use App\Support\Pricing;
+use App\Support\Sku;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class VariantsRelationManager extends RelationManager
 {
@@ -48,7 +50,14 @@ class VariantsRelationManager extends RelationManager
                             ->minValue(0),
                         Forms\Components\TextInput::make('sku')
                             ->label('SKU')
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->helperText('Leave empty to use the product\'s SKU. A variant with a SKU of its own is its own item in the product feeds, and that SKU is what the ad pixels send when it is chosen.')
+                            ->rules([fn (?Model $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                                if (($problem = Sku::problem($value, true, $this->getOwnerRecord()->id, $record?->id)) !== null) {
+                                    $fail($problem);
+                                }
+                            }])
+                            ->dehydrateStateUsing(fn (?string $state): ?string => Sku::clean($state) ?: null),
                         Forms\Components\Select::make('image_id')
                             ->label('Image')
                             ->options(fn () => $this->getOwnerRecord()->images()

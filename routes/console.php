@@ -35,3 +35,7 @@ Schedule::command('couriers:digest')->dailyAt('09:30')->timezone('Asia/Dhaka')->
 // A Purchase that Meta or TikTok did not get because they could not be reached is sent again (10 min, 30 min, 2 hours after the failure, within 24 hours);
 // a refusal (a bad token) is not. Short HTTP timeouts and a time budget, see ConversionAttempts. Also forgets visitor details kept for a send over a day ago.
 Schedule::command('conversions:retry')->everyTenMinutes()->withoutOverlapping(9);
+
+// An order email that the mail server did not take (a timeout) is sent again: 15 minutes, 1 hour and 3 hours after each failure, within 24 hours.
+// Hard 10-second mail timeout (config/mail.php) and the same 40-second budget as the other tasks that send mail.
+Schedule::command('emails:retry')->everyFifteenMinutes()->withoutOverlapping(14);

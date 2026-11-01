@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Pricing;
+use App\Support\Sku;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -70,6 +71,11 @@ class ProductVariant extends Model
         static::saving(function (self $variant): void {
             if ($variant->sale_price !== null && $variant->sale_price <= 0) {
                 $variant->sale_price = null;
+            }
+
+            // Cleaned like a product's SKU; a SKU that is nothing once cleaned is no SKU (the variant then takes its product's).
+            if ($variant->sku !== null && $variant->isDirty('sku')) {
+                $variant->sku = Sku::clean($variant->sku) ?: null;
             }
         });
     }

@@ -66,6 +66,7 @@ Example failure: `Meta Purchase failed. {"order_id":1042,"event_id":"order-1042"
 | --- | --- | --- | --- |
 | `scheduler-heartbeat` | every minute | one database row (read by Settings > System health and `golive:check`) | 2 min |
 | `conversions:retry` | every 10 min | database; **Meta and TikTok** (8 s per call, at most 40 s per run), only failed Purchases that are due; also erases visitor details kept for a send over 24 hours ago | 9 min |
+| `emails:retry` | every 15 min | database; **emails** (10-second mail timeout, at most 40 s per run): an order email that failed is sent again, 15 min, 1 h and 3 h after each failure, within 24 h | 14 min |
 | `reviews:request` | every 5 min | database; **emails** (at most 40 s of sending per run) | 10 min |
 | `checkouts:recover` | every 5 min | database; **emails** (at most 40 s per run) | 10 min |
 | `couriers:sync` | every 15 min | **Steadfast / Pathao** status calls, 3 s / 8 s each, at most 45 s per run, only unfinished parcels | 14 min |

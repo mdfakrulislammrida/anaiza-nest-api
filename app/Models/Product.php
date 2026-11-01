@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Pricing;
+use App\Support\Sku;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -81,6 +82,11 @@ class Product extends Model
         static::saving(function (self $product): void {
             if ($product->sale_price !== null && $product->sale_price <= 0) {
                 $product->sale_price = null;
+            }
+
+            // The SKU is the id the feeds and the pixels use: no stray "SKU " in front, no double spaces (App\Support\Sku).
+            if ($product->sku !== null && $product->isDirty('sku')) {
+                $product->sku = Sku::clean($product->sku);
             }
         });
     }

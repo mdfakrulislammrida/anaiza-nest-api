@@ -11,6 +11,7 @@ use App\Models\SiteSetting;
 use App\Support\Feeds\FeedBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -462,6 +463,62 @@ class ProductFeedsTest extends TestCase
         $this->assertSame(['SAME', 'OTHER'], array_map(fn ($item) => $this->g($item, 'id'), $this->googleItems()));
         $health = (new FeedBuilder($this->site->fresh()))->build()['health'];
         $this->assertTrue(collect($health)->pluck('reasons')->flatten()->contains(fn ($reason) => str_contains($reason, 'already used')));
+    }
+
+    // ---- variants as feed items (Meta, Google) and SKUs cleaned on the way out
+
+    public function test_a_malformed_sku_is_cleaned_before_it_is_written(): void
+    {
+        $product = $this->product(['sku' => 'ANZ-SG-002']);
+        $square = $product->variants()->create(['name' => 'Shape', 'value' => 'Square', 'sku' => 'ANZ-SG-002-SQ']);
+        $round = $product->variants()->create(['name' => 'Shape', 'value' => 'Round', 'sku' => 'ANZ-SG-002-RD']);
+        $same = $product->variants()->create(['name' => 'Gift box', 'value' => 'Yes', 'sku' => 'ANZ-SG-002-GB']);
+        // as an older version of the shop left them in the table
+        DB::table('product_variants')->where('id', $square->id)->update(['sku' => 'SKU ANZ-SG-002-SQ']);
+        DB::table('product_variants')->where('id', $round->id)->update(['sku' => '  SKU:  ANZ-SG-002-RD ']);
+        DB::table('product_variants')->where('id', $same->id)->update(['sku' => 'sku ANZ-SG-002']);   // only repeats the product's own
+        DB::table('products')->where('id', $product->id)->update(['sku' => 'SKU ANZ-SG-002']);
+
+        $this->assertSame(['ANZ-SG-002', 'ANZ-SG-002-SQ', 'ANZ-SG-002-RD'], array_column($this->csvRows('meta.csv'), 'id'));
+        $this->assertSame(['ANZ-SG-002', 'ANZ-SG-002-SQ', 'ANZ-SG-002-RD'], array_map(fn ($item) => $this->g($item, 'id'), $this->googleItems()));
+        $this->assertStringNotContainsString('SKU ', $this->get($this->url('meta.csv'))->getContent());
+    }
+
+    public function test_each_variant_is_its_own_item_in_meta_and_google_with_the_group_the_titles_prices_and_the_product_page(): void
+    {
+        $product = $this->product(['sku' => 'TS-1', 'price' => 1450]);
+        $product->variants()->create(['name' => 'Shape', 'value' => 'Square', 'sku' => 'TS-1-SQ', 'price' => 1550, 'stock_quantity' => 4]);
+        $product->variants()->create(['name' => 'Shape', 'value' => 'Round', 'sku' => 'TS-1-RD', 'stock_quantity' => 0]);
+
+        $meta = $this->csvRows('meta.csv');
+
+        $this->assertSame(['TS-1', 'TS-1-SQ', 'TS-1-RD'], array_column($meta, 'id'));
+        $this->assertSame(array_fill(0, 3, (string) $product->id), array_column($meta, 'item_group_id'), 'one group, the product id');
+        $this->assertSame([$product->name, $product->name.' - Shape: Square', $product->name.' - Shape: Round'], array_column($meta, 'title'));
+        $this->assertSame(['1450.00 BDT', '1550.00 BDT', '1450.00 BDT'], array_column($meta, 'price'));
+        $this->assertSame(['in stock', 'in stock', 'out of stock'], array_column($meta, 'availability'), 'an out-of-stock variant stays in the feed, marked');
+        $this->assertSame(['https://shop.example.test/product/'.$product->slug], array_unique(array_column($meta, 'link')), 'the storefront has no variant address, so every item points at the product page');
+
+        $google = $this->googleItems();
+        $this->assertSame(['TS-1', 'TS-1-SQ', 'TS-1-RD'], array_map(fn ($item) => $this->g($item, 'id'), $google));
+        $this->assertSame(['in_stock', 'in_stock', 'out_of_stock'], array_map(fn ($item) => $this->g($item, 'availability'), $google));
+    }
+
+    public function test_an_out_of_stock_variant_can_be_left_out_and_a_product_without_variants_is_the_same_either_way(): void
+    {
+        $plainBefore = $this->product(['sku' => 'MUG-1', 'price' => 600]);
+        $before = $this->csvRows('meta.csv');
+
+        $product = $this->product(['sku' => 'TS-1']);
+        $product->variants()->create(['name' => 'Shape', 'value' => 'Round', 'sku' => 'TS-1-RD', 'stock_quantity' => 0]);
+        $this->site->update(['feeds_include_out_of_stock' => false]);
+        Cache::flush();
+
+        $after = $this->csvRows('meta.csv');
+
+        $this->assertSame(['MUG-1', 'TS-1'], array_column($after, 'id'), 'the out-of-stock variant is left out when feeds are set to leave them out; its product (in stock) stays');
+        $this->assertSame($before[0], $after[0], 'a product without variants is exactly as it was');
+        $this->assertNotNull($plainBefore);
     }
 
     // ---- caching and health

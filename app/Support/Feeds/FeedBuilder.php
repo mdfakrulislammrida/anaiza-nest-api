@@ -7,6 +7,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\SiteSetting;
 use App\Support\Pricing;
+use App\Support\Sku;
 use Illuminate\Support\Collection;
 
 /**
@@ -110,7 +111,8 @@ final class FeedBuilder
      */
     private function sellableVariants(Product $product): Collection
     {
-        return $product->variants->filter(fn (ProductVariant $variant): bool => filled(trim((string) $variant->sku)) && trim((string) $variant->sku) !== trim((string) $product->sku));
+        // Compared as they are written in the feed (cleaned), so a variant that only repeats its product's SKU with a stray "SKU " in front is not a second item.
+        return $product->variants->filter(fn (ProductVariant $variant): bool => Sku::clean($variant->sku) !== '' && Sku::clean($variant->sku) !== Sku::clean($product->sku));
     }
 
     /**
@@ -122,6 +124,7 @@ final class FeedBuilder
         $warnings = [];
         $variants = $this->sellableVariants($product);
         $hasVariantItems = $variants->isNotEmpty();
+        // The group is the product's id, not its SKU: the id always exists and never changes when a SKU is retyped, and the SKU is the item id of the product's own row.
         $groupId = $hasVariantItems ? (string) $product->id : null;
 
         $title = FeedText::title($product->name, 1000);
@@ -141,6 +144,7 @@ final class FeedBuilder
         $category = $product->category;
         $base = [
             'description' => $descriptionSource !== '' ? FeedText::description($descriptionSource, self::DESCRIPTION_LIMIT) : FeedText::limit($title, self::DESCRIPTION_LIMIT),
+            // The product page. The storefront has no address parameter that selects a variant, so a variant's link is its product's.
             'link' => $this->site->feedStorefrontUrl().'/product/'.$product->slug,
             'brand' => FeedText::title($product->brand?->name ?: ($this->site->site_name ?: config('app.name')), 100),
             'gtin' => filled($product->gtin) ? preg_replace('/\D/', '', (string) $product->gtin) : null,
@@ -158,7 +162,8 @@ final class FeedBuilder
         $entries = collect([[null, $product->sku]])->merge($variants->map(fn (ProductVariant $variant): array => [$variant, $variant->sku]));
 
         foreach ($entries as [$variant, $sku]) {
-            $id = trim((string) $sku) !== '' ? trim((string) $sku) : (string) $product->id;
+            // The id is the cleaned SKU (no stray "SKU ", one space at most between words), else the product id: the same text the pixels send.
+            $id = Sku::clean($sku) !== '' ? Sku::clean($sku) : (string) $product->id;
 
             if (isset($seen[$id])) {
                 $warnings[] = "The id {$id} is already used by another item, so this one is left out";

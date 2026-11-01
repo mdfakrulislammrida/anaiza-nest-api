@@ -54,7 +54,7 @@ class SchedulerSafetyTest extends TestCase
         $this->fail("No scheduled task called {$needle}.");
     }
 
-    public function test_the_whole_schedule_is_these_ten_tasks_and_only_the_heartbeat_runs_every_minute(): void
+    public function test_the_whole_schedule_is_these_eleven_tasks_and_only_the_heartbeat_runs_every_minute(): void
     {
         $list = [];
         foreach ($this->events() as $event) {
@@ -69,6 +69,7 @@ class SchedulerSafetyTest extends TestCase
             'conversions:retry */10 * * * *',
             'couriers:digest 30 9 * * *',
             'couriers:sync */15 * * * *',
+            'emails:retry */15 * * * *',
             'reviews:request */5 * * * *',
             'scheduler-heartbeat * * * * *',
             'stock:digest 0 9 * * *',

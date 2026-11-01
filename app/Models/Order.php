@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Utm;
 use App\Support\WalletPayments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -87,6 +88,7 @@ class Order extends Model
             'review_reminder_sent_at' => 'datetime',
             'review_whatsapp_clicked_at' => 'datetime',
             'emails_sent' => 'array',
+            'emails_failed' => 'array',
             'courier_booked_at' => 'datetime',
             'courier_booking_started_at' => 'datetime',
             'courier_synced_at' => 'datetime',
@@ -107,6 +109,15 @@ class Order extends Model
         static::creating(function (Order $order): void {
             if (blank($order->payment_status) || $order->payment_status === 'cod' && $order->payment_method !== 'cod') {
                 $order->payment_status = WalletPayments::initialStatus($order->payment_method);
+            }
+        });
+
+        // The campaign text is stored as one stable name, however the link was encoded (App\Support\Utm). Only these five fields.
+        static::saving(function (Order $order): void {
+            foreach (Utm::FIELDS as $field) {
+                if ($order->isDirty($field) && $order->{$field} !== null) {
+                    $order->{$field} = Utm::clean($order->{$field});
+                }
             }
         });
     }

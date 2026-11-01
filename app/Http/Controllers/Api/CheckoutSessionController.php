@@ -6,9 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Support\Recovery\CheckoutTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutSessionController extends Controller
 {
+    /**
+     * How long this report may wait for SQLite's one writer (milliseconds), instead of the 10 seconds an order may wait. It is a best-effort note: if the
+     * database is busy it is dropped, rather than holding a PHP worker on a shared host (many held workers make the host answer 503 to everyone).
+     */
+    public const BUSY_TIMEOUT_MS = 1500;
+
     /**
      * The storefront reports where a visitor has got to. Always answers 204: what the visitor did here is none of their
      * browser's business, and a problem here must never show up in checkout.
@@ -44,6 +51,10 @@ class CheckoutSessionController extends Controller
         ]);
 
         try {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                DB::statement('PRAGMA busy_timeout = '.self::BUSY_TIMEOUT_MS);
+            }
+
             CheckoutTracker::report($data);
         } catch (\Throwable $e) {
             report($e);
