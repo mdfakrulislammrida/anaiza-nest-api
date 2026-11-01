@@ -45,6 +45,7 @@ class SiteSetting extends Model
         'logo_mono',
         'logo_ivory',
         'monogram',
+        'default_share_image',
         'low_stock_threshold',
         'corporate_intro',
         'corporate_notify_email',

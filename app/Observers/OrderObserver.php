@@ -26,7 +26,10 @@ class OrderObserver
                 $order->forceFill(['delivered_at' => now()])->saveQuietly();
             }
 
-            TransactionalEmails::orderStatusChanged($order);
+            // A catch-up for old courier news changes the order without writing to the customer.
+            if (! $order->quietStatusChange) {
+                TransactionalEmails::orderStatusChanged($order);
+            }
 
             // Automatic booking, only when the owner has switched it on (Settings > Courier), and only as an order reaches Processing.
             // After the response, so a slow courier never slows the page; it refuses a risky or unready order on its own.

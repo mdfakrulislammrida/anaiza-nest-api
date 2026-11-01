@@ -17,6 +17,12 @@ class Order extends Model
     /** The `source` of an order brought over from the old site. */
     public const SOURCE_LEGACY = 'legacy_import';
 
+    /**
+     * Set only for the moment of one status change, never saved: the change is a catch-up for old courier news, so the customer is not emailed
+     * (see CourierStatusApplier).
+     */
+    public bool $quietStatusChange = false;
+
     protected $fillable = [
         'customer_id',
         'shipping_zone_id',

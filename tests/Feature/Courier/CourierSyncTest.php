@@ -340,18 +340,18 @@ class CourierSyncTest extends TestCase
         $order = $this->booked($this->codOrder(['status' => 'shipped']), 'pathao', ['courier_consignment_id' => 'DL240101ABCD', 'courier_status' => 'Pending', 'courier_status_text' => null, 'courier_status_rank' => null]);
         $this->fakeHttp([
             self::PATHAO.'/issue-token' => Http::response(['access_token' => 't', 'refresh_token' => 'r', 'expires_in' => 432000]),
-            self::PATHAO.'/orders/DL240101ABCD/info' => Http::response(['data' => ['consignment_id' => 'DL240101ABCD', 'order_status' => 'Delivered', 'order_status_slug' => 'Delivered', 'updated_at' => '2026-10-22 10:00:00']]),
+            self::PATHAO.'/orders/DL240101ABCD/info' => Http::response(['data' => ['consignment_id' => 'DL240101ABCD', 'order_status' => 'Custom_Done', 'order_status_slug' => 'Custom_Done', 'updated_at' => '2026-10-22 10:00:00']]),
         ]);
 
         // Pathao's docs list no statuses, so a first one is only stored.
         CourierSync::run();
         $this->afterResponse();
         $this->assertSame('shipped', $order->fresh()->status);
-        $row = CourierStatusMap::query()->where('courier', 'pathao')->where('courier_status', 'Delivered')->firstOrFail();
+        $row = CourierStatusMap::query()->where('courier', 'pathao')->where('courier_status', 'Custom_Done')->firstOrFail();
         $this->assertSame('Unknown status', $row->stage);
 
         // The owner maps it; the next check does what they said.
-        $row->update(['stage' => 'Delivered', 'effect' => 'delivered', 'is_final' => true, 'marks_cod_collected' => true, 'rank' => 100]);
+        $row->update(['stage' => 'Delivered', 'armed' => true, 'effect' => 'delivered', 'is_final' => true, 'marks_cod_collected' => true, 'rank' => 100]);
         Order::query()->whereKey($order->id)->update(['courier_next_sync_at' => now()->subSecond(), 'courier_status' => 'Pending']);
         CourierSync::run();
         $this->afterResponse();

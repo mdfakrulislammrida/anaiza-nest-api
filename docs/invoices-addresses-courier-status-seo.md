@@ -76,9 +76,7 @@ changed. "Book automatically" stays off by default and nothing in the status cod
 
 1. Steadfast panel > Webhook: callback URL = the **Webhook URL** shown in Settings > Courier; authentication = *Bearer token*, the same token you
    generated and saved there (generate, copy, save, then paste into Steadfast). Choose the delivery-status event.
-2. Pathao: nothing to set; parcels are followed by the status check. After the first Pathao parcels, open Settings > Courier statuses and map each
-   Pathao status: *picked up / in transit* → "The order is shipped", *delivered* → "The order is delivered" with *Final* and *Cash collected*
-   ticked, and give them ranks (higher = later).
+2. Pathao: nothing to set; parcels are followed by the status check. The nine Pathao statuses the shop has seen are already mapped but **not armed**: see the follow-up below, then press **Arm Pathao statuses**.
 
 ## 4. SEO block and share images
 
@@ -95,3 +93,38 @@ storefront keeps working until it moves over). `image` is a full https address, 
 | Occasion | none: an occasion is a tile that links to a category, page or landing page, which carry the SEO | — |
 
 The favicon and the default share image are files in the storefront (`public/`), not admin settings, and no admin setting was built for them.
+
+## 5. Follow-up: Pathao statuses (armed), order thumbnails, brand pictures
+
+**Pathao statuses.** A migration adds the nine statuses the shop has seen, each with a meaning, a rank and an effect, but **not armed**. Not armed
+means the order shows the meaning (for example "In transit") and nothing else happens: no order status, no cash, no end of checking. Rows you
+have already edited are never overwritten; a repeat of the seeding changes nothing; spellings (`On_the_way_to_Sorting HUB`,
+`on the way to sorting hub`) are one row.
+
+| Pathao status | Means | Effect | Rank |
+|---|---|---|---|
+| pending, Pickup_Requested, Assigned_for_Pickup | Booked, waiting for pickup | Nothing | 10, 10, 15 |
+| On_the_way_to_Sorting HUB, At_the_Sorting_HUB, In_Transit, Received_at_Last_Mile_HUB | In transit | The order is shipped | 30 |
+| Assigned_for_Delivery | Out for delivery | Nothing | 45 |
+| Delivered | Delivered | The order is delivered, Final, Cash collected | 100 |
+
+Any other Pathao status stays "Unknown status" until mapped by hand (none is guessed).
+
+1. `php artisan couriers:preview-effects` lists every order that would change (order, courier, consignment, courier status, order now, order
+   would become, cash recorded, email, SMS). It writes nothing and calls no courier. `--apply` makes those changes after asking; `--notify`
+   (with `--apply`) also sends the customer emails for old news.
+2. **Settings > Courier statuses > Arm Pathao statuses** switches the Pathao rows on. Arming changes no order by itself; the next status check
+   (or `--apply`) does. A parcel whose status was already stored is worked out once, on that next check.
+3. **Old news rule.** A status the shop has held for more than 24 hours that only now changes an order is a catch-up: no shipped or delivered
+   email is sent, and a delivery found this way does not start a review request (`review_request_status = catch_up`). A status that arrives
+   fresh (under 24 hours) sends the existing shipped and delivered emails, once, as before. The shop sends no SMS at all.
+
+**Order page.** The Items table has a 48 px square thumbnail (2 px corners, lazy-loaded) before Product: the picture saved on the line, else the
+variant's, else the product's main picture (smallest size), else a neutral tile. It opens the product in the admin. It only reads; it never makes or
+saves a thumbnail. The invoice is unchanged. The Orders list would gain from a thumbnail of the first item only if packing is done from the list
+(it would cost a picture per row); the order email already carries a 64 px thumbnail per line.
+
+**Brand pictures.** `GET /api/site-settings` returns `logo_navy`, `logo_ivory`, `logo_mono`, `monogram` and `default_share_image` as full https
+addresses (or null), and `brand.<name> = { url, width, height }` with the pixel size read from the file (null for a picture on another server).
+The new **Default share image** upload (Site settings > Brand, 1200 by 630) and the Monogram both say: "A change here shows on the website after the
+site is rebuilt and uploaded."

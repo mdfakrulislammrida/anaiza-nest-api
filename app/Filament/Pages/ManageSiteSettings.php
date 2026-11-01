@@ -224,8 +224,16 @@ class ManageSiteSettings extends Page implements HasForms
                             ->directory('site'),
                         FileUpload::make('monogram')
                             ->label('Monogram')
-                            ->helperText('The square monogram: browser tab icon and small avatars.')
+                            ->helperText('The square monogram: browser tab icon and small avatars. A change here shows on the website after the site is rebuilt and uploaded.')
                             ->image()
+                            ->disk('public')
+                            ->directory('site'),
+                        FileUpload::make('default_share_image')
+                            ->label('Default share image')
+                            ->helperText('The picture shown when a page with no picture of its own is shared on WhatsApp, Facebook and in search results. 1200 by 630 pixels is recommended (JPEG, PNG or WebP, up to 5 MB). A change here shows on the website after the site is rebuilt and uploaded.')
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(5120)
                             ->disk('public')
                             ->directory('site'),
                         FileUpload::make('logo_url')

@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\OrderResource\RelationManagers;
 
+use App\Filament\Resources\ProductResource;
+use App\Models\OrderItem;
+use App\Support\OrderItemPicture;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -45,7 +49,17 @@ class ItemsRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('product_name')
+            // The pictures come from the product and its variants: loaded together, so a long order costs no query per line.
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['product.images', 'product.variants.image']))
             ->columns([
+                Tables\Columns\ImageColumn::make('picture')
+                    ->label('')
+                    ->state(fn (OrderItem $record): ?string => OrderItemPicture::url($record))
+                    ->defaultImageUrl(OrderItemPicture::placeholder())
+                    ->size(48)
+                    ->square()
+                    ->extraImgAttributes(['loading' => 'lazy', 'alt' => '', 'style' => 'border-radius:2px;box-shadow:none;object-fit:cover;'])
+                    ->url(fn (OrderItem $record): ?string => $record->product ? ProductResource::getUrl('edit', ['record' => $record->product]) : null),
                 Tables\Columns\TextColumn::make('product_name')
                     ->label('Product'),
                 Tables\Columns\TextColumn::make('variant_name')

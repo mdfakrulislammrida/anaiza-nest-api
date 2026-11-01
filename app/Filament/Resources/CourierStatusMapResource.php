@@ -57,6 +57,10 @@ class CourierStatusMapResource extends Resource
             Forms\Components\Toggle::make('marks_cod_collected')
                 ->label('The cash on delivery was collected')
                 ->helperText('Recorded on the order, with the date, when a status check (not a webhook alone) confirms this final status.'),
+            Forms\Components\Toggle::make('armed')
+                ->label('Acts on orders')
+                ->default(true)
+                ->helperText('Off: the status is shown on the order with its meaning, but changes nothing. The ready-made Pathao statuses start off; use Arm Pathao statuses once you have looked at the orders they would change (php artisan couriers:preview-effects).'),
             Forms\Components\TextInput::make('rank')
                 ->label('Order of events (higher is later)')
                 ->numeric()->minValue(0)->maxValue(1000)
@@ -81,6 +85,7 @@ class CourierStatusMapResource extends Resource
                 }),
                 Tables\Columns\IconColumn::make('is_final')->label('Final')->boolean(),
                 Tables\Columns\IconColumn::make('marks_cod_collected')->label('Cash')->boolean(),
+                Tables\Columns\IconColumn::make('armed')->label('Acts')->boolean()->tooltip('Off: shown on the order, changes nothing'),
                 Tables\Columns\TextColumn::make('rank')->sortable()->placeholder('—'),
                 Tables\Columns\TextColumn::make('seen_count')->label('Seen')->sortable(),
                 Tables\Columns\TextColumn::make('last_seen_at')->label('Last seen')->since()->placeholder('never'),

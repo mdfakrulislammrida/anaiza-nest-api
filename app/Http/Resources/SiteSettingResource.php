@@ -6,7 +6,8 @@ use App\Models\IntegrationSetting;
 use App\Models\PaymentSetting;
 use App\Models\SiteSetting;
 use App\Support\HomepagePictures;
-use App\Support\MediaUrl;
+use App\Support\ImageSize;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,12 +22,22 @@ class SiteSettingResource extends JsonResource
     {
         return [
             'site_name' => $this->site_name,
-            'logo_url' => MediaUrl::resolve($this->logo_url),
-            // Brand kit logo masters; each is null until uploaded, and the storefront falls back
+            'logo_url' => Seo::absolute($this->logo_url),
+            // Brand kit logo masters, as full https addresses; each is null until uploaded, and the storefront falls back
             // to logo_url (then to the site name) when one is missing.
-            'logo_navy' => MediaUrl::resolve($this->logo_navy),
-            'logo_ivory' => MediaUrl::resolve($this->logo_ivory),
-            'monogram' => MediaUrl::resolve($this->monogram),
+            'logo_navy' => Seo::absolute($this->logo_navy),
+            'logo_ivory' => Seo::absolute($this->logo_ivory),
+            'logo_mono' => Seo::absolute($this->logo_mono),
+            'monogram' => Seo::absolute($this->monogram),
+            'default_share_image' => Seo::absolute($this->default_share_image),
+            // The same pictures with their size in pixels (null when it cannot be read), so a page can reserve the space.
+            'brand' => [
+                'logo_navy' => self::picture($this->logo_navy),
+                'logo_ivory' => self::picture($this->logo_ivory),
+                'logo_mono' => self::picture($this->logo_mono),
+                'monogram' => self::picture($this->monogram),
+                'default_share_image' => self::picture($this->default_share_image),
+            ],
             'tagline' => $this->tagline ?: null,
             'contact_phone' => $this->contact_phone,
             'contact_email' => $this->contact_email,
@@ -90,5 +101,15 @@ class SiteSettingResource extends JsonResource
                 'return_window_days' => $this->return_window_days,
             ],
         ];
+    }
+
+    /**
+     * @return array{url: ?string, width: ?int, height: ?int}
+     */
+    private static function picture(?string $stored): array
+    {
+        $url = Seo::absolute($stored);
+
+        return ['url' => $url] + ($url === null ? ['width' => null, 'height' => null] : ImageSize::of($stored));
     }
 }
