@@ -7,6 +7,7 @@ use App\Models\CourierSetting;
 use App\Models\Order;
 use App\Support\Backup\BackupService;
 use App\Support\Dhaka;
+use App\Support\InvoicePdf;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -35,6 +36,7 @@ final class HealthChecks
             self::mail(),
             self::orders(),
             self::tracking(),
+            self::invoices(),
             self::logs(),
             self::storageLink(),
             ...self::couriers(),
@@ -275,6 +277,18 @@ final class HealthChecks
         }
 
         return self::row('tracking', 'Meta / TikTok Purchase sends', self::OK, 'No Purchase send has failed for good in the last 7 days.'.$again);
+    }
+
+    /** Whether this server can make the invoice PDF: the PHP extensions, the folders PHP must write to, the font files, the memory. */
+    public static function invoices(): array
+    {
+        $problems = InvoicePdf::problems();
+
+        if ($problems === []) {
+            return self::row('invoices', 'Invoice PDF', self::OK, 'This server has what the invoice needs (PHP extensions, writable folders, the font, enough memory).');
+        }
+
+        return self::row('invoices', 'Invoice PDF', self::FAIL, implode(' ', $problems), 'Fix the point above in hPanel, then open an order in the admin and press Download invoice to check.');
     }
 
     public static function orders(): array

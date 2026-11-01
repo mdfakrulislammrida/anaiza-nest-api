@@ -9,11 +9,13 @@ use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\LongHtmlField;
 use App\Filament\Support\RawHtmlSection;
 use App\Models\Page;
+use App\Support\Slugs;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class PageResource extends Resource
@@ -41,7 +43,17 @@ class PageResource extends Resource
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true),
+                    ->rules([fn (?Model $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                        // Only an address that is being changed is checked, so a page whose old address would not pass today can still be saved.
+                        if ($record !== null && $value === $record->slug) {
+                            return;
+                        }
+
+                        if (($problem = Slugs::problem('page', (string) $value, $record?->id)) !== null) {
+                            $fail($problem);
+                        }
+                    }])
+                    ->helperText('The address of this page: lower-case letters, numbers and hyphens. If you change it later, the old address keeps working: visitors who use it are sent to the new one.'),
                 LongHtmlField::make('content', AuthoringGuidance::html('Any <h1> pasted in here is shown as an H2, because the page title is already the page\'s one H1. Link a page from the header or footer with Site Settings > Header / Footer, where it is a Page item.', tablesKept: true)),
                 BrandVoiceNote::under('content'),
                 RawHtmlSection::make('content'),

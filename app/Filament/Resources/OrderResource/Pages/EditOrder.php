@@ -17,11 +17,17 @@ class EditOrder extends EditRecord
     {
         return [
             CourierActions::send(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshFormData(['status'])),
+            CourierActions::syncNow(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshFormData(['status'])),
             PaymentActions::verify(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             PaymentActions::fail(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshPaymentFields()),
             ConversionActions::resend(Actions\Action::class)->record($this->record),
             OrderResource::whatsappReviewAction(Actions\Action::class)->record($this->record),
             OrderResource::blockPhoneAction(Actions\Action::class)->record($this->record),
+            Actions\Action::make('downloadInvoice')
+                ->label('Download invoice')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->url(fn (): string => route('orders.invoice', $this->record))
+                ->visible(fn (): bool => ! $this->record->isLegacy()),
             Actions\Action::make('printGiftNote')
                 ->label('Print gift note')
                 ->icon('heroicon-o-printer')

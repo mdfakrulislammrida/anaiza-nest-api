@@ -9,6 +9,9 @@ class SyncCouriers extends Command
 {
     protected $signature = 'couriers:sync {--limit= : Parcels to check in this run (default from config/couriers.php)}';
 
+    /** The name the shop owner's notes use; the same command. */
+    protected $aliases = ['courier:sync'];
+
     protected $description = 'Check the status of booked parcels with Steadfast and Pathao (read-only; safe beside the Steadfast webhook)';
 
     public function handle(): int

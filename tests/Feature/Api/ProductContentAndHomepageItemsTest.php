@@ -76,9 +76,9 @@ class ProductContentAndHomepageItemsTest extends TestCase
 
         $this->assertSame(
             [
-                ['label' => 'Eid-ul-Fitr', 'image' => null, 'href' => '/category/tea-sets'],
-                ['label' => 'Wedding season', 'image' => null, 'href' => '/pages/gift-guide'],
-                ['label' => 'Gift finder', 'image' => null, 'href' => '/gift-finder'],
+                ['label' => 'Eid-ul-Fitr', 'image' => null, 'href' => '/category/tea-sets', 'kind' => 'category', 'slug' => 'tea-sets', 'path' => '/category/tea-sets'],
+                ['label' => 'Wedding season', 'image' => null, 'href' => '/pages/gift-guide', 'kind' => 'page', 'slug' => 'gift-guide', 'path' => '/pages/gift-guide'],
+                ['label' => 'Gift finder', 'image' => null, 'href' => '/gift-finder', 'kind' => 'gift_finder', 'slug' => null, 'path' => '/gift-finder'],
             ],
             $section['tiles'],
         );

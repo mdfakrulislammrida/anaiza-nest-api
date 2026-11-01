@@ -37,7 +37,8 @@ return [
 
     'allowed_headers' => ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With'],
 
-    'exposed_headers' => ['Retry-After'],
+    // Content-Disposition carries the invoice's file name; a page on another origin cannot read it unless it is exposed.
+    'exposed_headers' => ['Retry-After', 'Content-Disposition', 'Content-Length'],
 
     'max_age' => 3600,
 

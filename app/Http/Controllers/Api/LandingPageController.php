@@ -7,6 +7,8 @@ use App\Models\LandingPage;
 use App\Support\Landing\LandingBlocks;
 use App\Support\Landing\LandingStats;
 use App\Support\MediaUrl;
+use App\Support\Seo;
+use App\Support\Slugs;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,6 +24,7 @@ class LandingPageController extends Controller
                 ->map(fn (LandingPage $page) => [
                     'id' => $page->id,
                     'slug' => $page->slug,
+                    'path' => $page->path(),
                     'title' => $page->title,
                     'noindex' => (bool) $page->noindex,
                     'updated_at' => $page->updated_at?->toIso8601String(),
@@ -35,9 +38,11 @@ class LandingPageController extends Controller
      */
     public function show(Request $request, string $slug): JsonResponse
     {
-        $page = LandingPage::query()->where('slug', $slug)->first();
+        $found = Slugs::find('landing_page', $slug);
 
-        abort_if($page === null, 404);
+        abort_if($found === null, 404);
+
+        $page = $found['model'];
 
         $preview = $page->previewIsValid($request->query('preview'));
         $state = $page->state();
@@ -52,6 +57,8 @@ class LandingPageController extends Controller
             'id' => $page->id,
             'title' => $page->title,
             'slug' => $page->slug,
+            'path' => $page->path(),
+            'previous_slugs' => $page->previousSlugs(),
             'state' => $preview ? 'preview' : $state,
             'layout' => $page->layout,
             'publish_until' => $page->publish_until?->toIso8601String(),
@@ -59,6 +66,7 @@ class LandingPageController extends Controller
                 'title' => $page->seo_title ?: $page->title,
                 'description' => $page->meta_description,
                 'og_image' => MediaUrl::resolve($page->og_image),
+                'image' => Seo::image($page->og_image),
                 // A preview is never indexed, whatever the page says.
                 'noindex' => $preview || $ended || (bool) $page->noindex,
                 'canonical' => $page->canonical,

@@ -34,10 +34,57 @@ final class InvoicePdf
 
         self::ensureFonts($pdf->getDomPDF());
 
-        // Only the letters the invoice uses go into the file (a few KB), not the whole 250 KB font.
-        $pdf->setOption(['enable_font_subsetting' => true]);
+        // Only the letters the invoice uses go into the file (a few KB), not the whole 250 KB font. Nothing is fetched over the network while the PDF is made
+        // (a slow or blocked connection on shared hosting would hang it): pictures are embedded as data (see MediaUrl::forPdf).
+        $pdf->setOption(['enable_font_subsetting' => true, 'enable_remote' => false]);
 
         return $pdf;
+    }
+
+    /** The name the customer's browser saves it under: AnaizaNest-Invoice-<order number>.pdf (the number the customer knows). */
+    public static function filename(Order $order): string
+    {
+        return 'AnaizaNest-Invoice-'.preg_replace('/[^A-Za-z0-9_-]/', '', $order->number()).'.pdf';
+    }
+
+    /**
+     * What on this server could stop an invoice being made, in plain words (empty when nothing). The usual causes on shared hosting: a missing PHP extension,
+     * a folder PHP may not write to (dompdf keeps its fonts and temporary files in storage), too little memory, the font files missing from the upload.
+     *
+     * @return list<string>
+     */
+    public static function problems(?string $memoryLimit = null): array
+    {
+        $problems = [];
+
+        foreach (['dom' => 'reads the invoice page', 'mbstring' => 'handles Bangla and other non-English text', 'gd' => 'puts the logo and the product pictures in'] as $extension => $why) {
+            if (! extension_loaded($extension)) {
+                $problems[] = "The PHP extension {$extension} is not switched on (it {$why}). Switch it on in hPanel > Advanced > PHP Configuration > PHP Extensions.";
+            }
+        }
+
+        $folders = ['storage/fonts' => storage_path('fonts'), 'storage/app' => storage_path('app'), 'storage/framework/cache' => storage_path('framework/cache'), 'bootstrap/cache' => base_path('bootstrap/cache')];
+
+        foreach ($folders as $name => $path) {
+            if (is_dir($path) ? ! is_writable($path) : ! @mkdir($path, 0775, true)) {
+                $problems[] = "The folder {$name} cannot be written to by PHP, and the invoice needs it. Set its permissions to 775 (File Manager > right click > Permissions).";
+            }
+        }
+
+        foreach (self::FILES as $file) {
+            if (! is_file(resource_path('fonts/'.$file))) {
+                $problems[] = "The font file resources/fonts/{$file} is missing from the upload, so the taka sign would print as a question mark.";
+            }
+        }
+
+        $limit = trim($memoryLimit ?? (string) ini_get('memory_limit'));
+        $bytes = $limit === '-1' ? PHP_INT_MAX : (int) $limit * (['g' => 1073741824, 'm' => 1048576, 'k' => 1024][strtolower(substr($limit, -1))] ?? 1);
+
+        if ($bytes < 128 * 1048576) {
+            $problems[] = "PHP's memory limit is {$limit}; an invoice with pictures needs at least 128M (hPanel > Advanced > PHP Configuration > memory_limit).";
+        }
+
+        return $problems;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Support\ContentHtml;
 use App\Support\MediaUrl;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,7 +34,7 @@ class ArticleResource extends JsonResource
                 'meta_title' => $this->meta_title ?: $this->title,
                 'meta_description' => $this->meta_description,
                 'og_image' => MediaUrl::resolve($this->og_image),
-            ],
+            ] + Seo::block($this->meta_title ?: $this->title, $this->meta_description, $this->og_image, $this->featured_image),
         ];
     }
 }

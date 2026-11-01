@@ -10,6 +10,7 @@ use App\Filament\Support\DeleteGuard;
 use App\Filament\Support\LongHtmlField;
 use App\Filament\Support\RawHtmlSection;
 use App\Models\Category;
+use App\Support\Slugs;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
@@ -17,6 +18,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -45,7 +47,17 @@ class CategoryResource extends Resource
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255)
-                    ->unique(ignoreRecord: true),
+                    ->rules([fn (?Model $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                        // Only an address that is being changed is checked, so a page whose old address would not pass today can still be saved.
+                        if ($record !== null && $value === $record->slug) {
+                            return;
+                        }
+
+                        if (($problem = Slugs::problem('category', (string) $value, $record?->id)) !== null) {
+                            $fail($problem);
+                        }
+                    }])
+                    ->helperText('The address of this page: lower-case letters, numbers and hyphens. If you change it later, the old address keeps working: visitors who use it are sent to the new one.'),
                 Forms\Components\TextInput::make('google_product_category')
                     ->label('Google product category (optional)')
                     ->helperText('For the product feeds: a category from Google\'s list, as text or its number, for example "Home & Garden > Kitchen & Dining > Tableware". Leave blank to send none.')
@@ -162,6 +174,13 @@ class CategoryResource extends Resource
                             ->maxLength(160)
                             ->rows(2)
                             ->helperText(fn (?string $state): string => strlen($state ?? '').'/160 characters (recommended 120-155).'),
+                        Forms\Components\FileUpload::make('seo_image')
+                            ->label('Social share image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('categories/seo')
+                            ->maxSize(5120)
+                            ->helperText('The picture shown when this category is shared or listed (1200 x 630 works best). Left empty, the thumbnail or banner above is used.'),
                     ])
                     ->columnSpanFull(),
             ]);

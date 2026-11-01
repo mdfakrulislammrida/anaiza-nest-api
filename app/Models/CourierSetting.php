@@ -36,6 +36,7 @@ class CourierSetting extends Model
     {
         return [
             'auto_book' => 'boolean',
+            'status_sync_enabled' => 'boolean',
             'default_weight' => 'float',
             'steadfast_enabled' => 'boolean',
             'steadfast_api_key' => 'encrypted',

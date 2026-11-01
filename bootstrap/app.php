@@ -36,6 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi('api');
 
         $middleware->alias(['form-proof' => RejectFormBots::class]);
+
+        // A request for a signed-in-only address without a token is a 401 in JSON on the API, whatever it asks to receive (a browser link sends no Accept header, and
+        // the default would try to redirect to a "login" route that does not exist: a 500). Everywhere else, the admin sign-in.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/admin/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

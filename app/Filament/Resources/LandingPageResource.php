@@ -11,6 +11,7 @@ use App\Models\LandingPage;
 use App\Models\Product;
 use App\Support\Landing\LandingBlocks;
 use App\Support\Landing\LandingStats;
+use App\Support\Slugs;
 use Filament\Forms;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
@@ -21,6 +22,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
@@ -69,9 +71,17 @@ class LandingPageResource extends Resource
                         ->prefix('/lp/')
                         ->required()
                         ->maxLength(120)
-                        ->alphaDash()
-                        ->unique(ignoreRecord: true)
-                        ->helperText('Lower-case letters, numbers and dashes. The page opens at your shop address followed by /lp/ and this.'),
+                        ->rules([fn (?Model $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record): void {
+                            // Only an address that is being changed is checked, so a page whose old address would not pass today can still be saved.
+                            if ($record !== null && $value === $record->slug) {
+                                return;
+                            }
+
+                            if (($problem = Slugs::problem('landing_page', (string) $value, $record?->id)) !== null) {
+                                $fail($problem);
+                            }
+                        }])
+                        ->helperText('The address of this page: lower-case letters, numbers and hyphens. If you change it later, the old address keeps working: visitors who use it are sent to the new one.'),
                     Forms\Components\Select::make('status')
                         ->options(['draft' => 'Draft (only you can see it, with the preview link)', 'published' => 'Published'])
                         ->default('draft')

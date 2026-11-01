@@ -77,6 +77,10 @@ class ManageCourierSettings extends Page implements HasForms
                         Toggle::make('auto_book')
                             ->label('Book automatically when an order becomes Processing')
                             ->helperText('Off by default: you book each order with a click. When on, it still never books an order that is risky (a blocked buyer), a wallet order whose payment is not verified, or one with no phone or address; those wait for you.'),
+                        Toggle::make('status_sync_enabled')
+                            ->label('Update order status from courier automatically')
+                            ->default(true)
+                            ->helperText('On: when the courier reports a parcel in transit or delivered, the order moves forward to match (never backwards, and never an order that is already delivered, cancelled or returned). Off: the courier\'s reports are still kept and shown in the order\'s Courier history, but the order itself is never changed. Either way nothing is ever booked automatically unless you switch that on above.'),
                         TextInput::make('invoice_prefix')
                             ->label('Order number prefix (optional)')
                             ->maxLength(20)
@@ -123,6 +127,9 @@ class ManageCourierSettings extends Page implements HasForms
                                     ->icon('heroicon-o-key')
                                     ->action(fn (Set $set) => $set('steadfast_webhook_token', Str::random(40))),
                             ),
+                        Placeholder::make('steadfast_webhook_headers')
+                            ->label('What Steadfast sends with every message')
+                            ->content(new HtmlString('<code>Authorization: Bearer &lt;your token&gt;</code> and <code>X-Signature</code> (a signature of the message made with the same token). Both must match; the token itself is never shown here.')),
                         Placeholder::make('steadfast_webhook_last')
                             ->label('Last webhook received')
                             ->content(fn (): string => $settings->steadfast_webhook_last_at?->timezone('Asia/Dhaka')->format('j M Y, g:i A') ?? 'None yet. Status checks run every 15 minutes either way.'),
@@ -130,7 +137,7 @@ class ManageCourierSettings extends Page implements HasForms
                     ->columns(2),
 
                 Section::make('Pathao')
-                    ->description('Pathao has a sandbox: with it on, bookings go to Pathao\'s test system and are not real parcels. The login must match: sandbox credentials for the sandbox, live credentials for live.')
+                    ->description('Pathao has a sandbox: with it on, bookings go to Pathao\'s test system and are not real parcels. The login must match: sandbox credentials for the sandbox, live credentials for live. Pathao has no callback here: its parcels are followed by a status check every 15 minutes (and "Sync now" on the order).')
                     ->schema([
                         Toggle::make('pathao_enabled')->label('Use Pathao'),
                         Toggle::make('pathao_sandbox')->label('Sandbox (test system, no real parcels)')->default(true),
@@ -222,7 +229,7 @@ class ManageCourierSettings extends Page implements HasForms
         }
 
         $fill = collect($data)->only([
-            'default_courier', 'auto_book', 'invoice_prefix', 'default_weight', 'steadfast_enabled', 'steadfast_tracking_url',
+            'default_courier', 'auto_book', 'status_sync_enabled', 'invoice_prefix', 'default_weight', 'steadfast_enabled', 'steadfast_tracking_url',
             'pathao_enabled', 'pathao_sandbox', 'pathao_store_id', 'pathao_tracking_url', 'pathao_delivery_type', 'pathao_item_type', ...CourierSetting::SECRETS,
         ])->all();
 

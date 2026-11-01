@@ -37,7 +37,7 @@ class HomepageSectionResource extends JsonResource
     }
 
     /**
-     * @return list<array{label: string, image: ?string, href: string}>
+     * @return list<array{label: string, image: ?string, href: string, kind: string, slug: ?string, path: ?string}>
      */
     private function liveTiles(): array
     {
@@ -47,7 +47,7 @@ class HomepageSectionResource extends JsonResource
                 'label' => trim((string) $tile['label']),
                 'image' => self::pictureUrl($tile['image'] ?? null),
                 'href' => SectionLinks::href($tile),
-            ])
+            ] + SectionLinks::describe($tile))
             ->filter(fn ($tile) => $tile['href'] !== null)
             ->values()
             ->all();

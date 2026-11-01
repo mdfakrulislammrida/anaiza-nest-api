@@ -48,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by('login-who:'.sha1(mb_strtolower(trim((string) $request->input('email'))))),
         ]);
 
+        // Making an invoice PDF costs a little CPU and memory on a shared host: limited per address.
+        RateLimiter::for('invoice', fn (Request $request) => Limit::perMinute(20)->by('invoice:'.$request->ip()));
+
         RateLimiter::for('corporate-enquiries', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
 
         // Counted per visitor address, unless THROTTLE_BY_IP is off (see config/abuse.php): then only the per-person keys

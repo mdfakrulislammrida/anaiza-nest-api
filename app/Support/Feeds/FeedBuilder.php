@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\SiteSetting;
 use App\Support\Pricing;
 use App\Support\Sku;
+use App\Support\Slugs;
 use Illuminate\Support\Collection;
 
 /**
@@ -145,7 +146,7 @@ final class FeedBuilder
         $base = [
             'description' => $descriptionSource !== '' ? FeedText::description($descriptionSource, self::DESCRIPTION_LIMIT) : FeedText::limit($title, self::DESCRIPTION_LIMIT),
             // The product page. The storefront has no address parameter that selects a variant, so a variant's link is its product's.
-            'link' => $this->site->feedStorefrontUrl().'/product/'.$product->slug,
+            'link' => $this->site->feedStorefrontUrl().Slugs::path('product', (string) $product->slug),
             'brand' => FeedText::title($product->brand?->name ?: ($this->site->site_name ?: config('app.name')), 100),
             'gtin' => filled($product->gtin) ? preg_replace('/\D/', '', (string) $product->gtin) : null,
             'mpn' => filled($product->mpn) ? FeedText::title((string) $product->mpn, 70) : null,

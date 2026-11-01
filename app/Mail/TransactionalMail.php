@@ -79,7 +79,7 @@ class TransactionalMail extends Mailable
         $pdf = InvoicePdf::make($this->order, $this->siteSetting);
 
         return [
-            Attachment::fromData(fn () => $pdf->output(), "invoice-{$this->order->id}.pdf")
+            Attachment::fromData(fn () => $pdf->output(), InvoicePdf::filename($this->order))
                 ->withMime('application/pdf'),
         ];
     }

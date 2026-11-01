@@ -86,7 +86,7 @@ class LandingPageAdminTest extends TestCase
         Livewire::test(CreateLandingPage::class)
             ->fillForm(['title' => 'Second', 'slug' => 'eid-offer', 'status' => 'draft'])
             ->call('create')
-            ->assertHasFormErrors(['slug' => 'unique']);
+            ->assertHasFormErrors(['slug']);
 
         Livewire::test(CreateLandingPage::class)
             ->fillForm(['title' => 'Third', 'slug' => 'not url safe!', 'status' => 'draft'])

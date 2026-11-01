@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Support\HtmlSanitizer;
 use App\Support\MediaUrl;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -63,7 +64,14 @@ class ProductResource extends JsonResource
                 'meta_title' => $this->meta_title ?: $this->name,
                 'meta_description' => $this->meta_description,
                 'og_image' => MediaUrl::resolve($this->og_image),
-            ],
+            ] + Seo::block(
+                $this->meta_title ?: $this->name,
+                $this->meta_description,
+                $this->og_image,
+                // The main picture (first by position), then the category's own picture. Only from what is already loaded, so a long list costs no extra queries.
+                $this->relationLoaded('images') ? $this->images->first()?->url : null,
+                $this->relationLoaded('category') ? ($this->category?->seo_image ?: $this->category?->thumbnail ?: $this->category?->banner_desktop) : null,
+            ),
             'category' => CategorySummaryResource::make($this->whenLoaded('category')),
             'brand' => BrandResource::make($this->whenLoaded('brand')),
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [

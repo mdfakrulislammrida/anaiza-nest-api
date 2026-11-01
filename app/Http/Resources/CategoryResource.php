@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Support\ContentHtml;
 use App\Support\MediaUrl;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,6 +21,9 @@ class CategoryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            // The page's address on the storefront, from the current slug, and the addresses it used to have (they still work and redirect here).
+            'path' => $this->resource->path(),
+            'previous_slugs' => $this->resource->previousSlugs(),
             'description' => $this->description,
             'intro_text' => $this->intro_text,
             // Downgraded here, once, server-side, same as Product::description
@@ -42,10 +46,12 @@ class CategoryResource extends JsonResource
                 'width' => $this->thumbnail_width,
                 'height' => $this->thumbnail_height,
             ],
+            // title, description and image are the one shape every page uses (App\Support\Seo); meta_title and meta_description are the older names for the same two texts.
             'seo' => [
                 'meta_title' => $this->meta_title ?: $this->name,
                 'meta_description' => $this->meta_description,
-            ],
+                'seo_image' => MediaUrl::resolve($this->seo_image),
+            ] + Seo::block($this->meta_title ?: $this->name, $this->meta_description, $this->seo_image, $this->thumbnail, $this->banner_desktop),
             'faqs' => $this->whenLoaded('faqs', fn () => $this->faqs->map(fn ($faq) => [
                 'id' => $faq->id,
                 'question' => $faq->question,

@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Support\Dhaka;
 use App\Support\System\SystemEvents;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The status check: the fallback that follows every booked parcel whether or not a webhook is arriving (and the only way for
@@ -39,6 +40,8 @@ final class CourierSync
             ->whereNotNull('courier_booked_at')
             ->whereNull('courier_final_at')
             ->whereNull('courier_returned_at')
+            // A parcel still open a month after booking is not followed any more: that is a conversation with the courier, not a status check.
+            ->where('courier_booked_at', '>=', now()->subDays((int) config('couriers.sync.stop_after_days')))
             ->where(fn ($query) => $query
                 ->whereNotIn('status', ['delivered', 'cancelled'])
                 // Told "delivered" by a webhook but not yet confirmed by a check: still waiting for the cash to be confirmed.
@@ -86,6 +89,10 @@ final class CourierSync
                     $stopped[$courier] = true;
                     $summary['stopped'][] = $courier.($e->kind === CourierException::AUTH ? ': keys refused' : ': failing');
                 }
+            } catch (\Throwable $e) {
+                // Whatever went wrong with one parcel (a bad row, a full disk, a mail fault) must not stop the others. Only the class is logged: no order details.
+                Log::error('A parcel status check failed.', ['order_id' => $order->id, 'error' => get_class($e)]);
+                $summary['failed']++;
             }
         }
 
@@ -94,17 +101,58 @@ final class CourierSync
         return $summary;
     }
 
-    private static function check(CourierSetting $settings, Order $order, string $courier): string
+    /**
+     * "Sync now" on the order page: the same check, for this one parcel, right away. The same rules apply (never backwards, final is final);
+     * only the 15 minute wait and the daily cap are skipped, because a person asked.
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public static function one(Order $order): array
+    {
+        $settings = CourierSetting::current();
+        $courier = (string) $order->courier;
+
+        if (! $order->isBooked() || ! in_array($courier, array_keys(CourierSetting::COURIERS), true)) {
+            return ['ok' => false, 'message' => 'This order has not been sent to a courier.'];
+        }
+
+        if (! $settings->ready($courier)) {
+            return ['ok' => false, 'message' => CourierSettingNames::label($courier).' is switched off or its keys are not saved (Settings > Courier).'];
+        }
+
+        if ($order->courier_final_at !== null) {
+            return ['ok' => true, 'message' => 'The parcel is already final ('.($order->courier_status_text ?: $order->courier_status).'); nothing to check.'];
+        }
+
+        try {
+            $outcome = self::check($settings, $order, $courier, 'sync_now');
+        } catch (CourierException $e) {
+            CourierStatusApplier::checkFailed($order, $e);
+
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+
+        $fresh = $order->fresh();
+        $text = $fresh->courier_status_text ?: $fresh->courier_status;
+
+        return ['ok' => true, 'message' => match ($outcome) {
+            'applied', 'confirmed' => 'Updated: '.$text.'.',
+            'recorded' => 'The courier says '.$text.'. Automatic order updates are off, so the order was not changed.',
+            default => 'No change: '.$text.'.',
+        }];
+    }
+
+    private static function check(CourierSetting $settings, Order $order, string $courier, string $source = 'poll'): string
     {
         if ($courier === CourierSetting::STEADFAST) {
             $status = (new SteadfastClient($settings))->statusByInvoice((string) ($order->courier_invoice ?: $order->id));
 
-            return CourierStatusApplier::apply($order, $courier, $status, 'poll');
+            return CourierStatusApplier::apply($order, $courier, $status, $source);
         }
 
         $info = (new PathaoClient($settings))->orderInfo((string) $order->courier_consignment_id);
 
-        return CourierStatusApplier::apply($order, $courier, $info['slug'], 'poll', $info['text']);
+        return CourierStatusApplier::apply($order, $courier, $info['slug'], $source, $info['text']);
     }
 
     private static function underDailyCap(string $courier): bool

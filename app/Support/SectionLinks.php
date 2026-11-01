@@ -25,12 +25,32 @@ final class SectionLinks
     {
         $slug = fn (string $key): ?string => filled($tile[$key] ?? null) ? trim((string) $tile[$key]) : null;
 
+        // A category or page is stored by its slug. If the slug has been changed since, the link follows it (App\Support\Slugs), so a tile never points at an old address.
         return match ($tile['link_type'] ?? 'custom') {
-            'category' => ($category = $slug('link_category')) ? '/category/'.rawurlencode($category) : null,
-            'page' => ($page = $slug('link_page')) ? '/pages/'.rawurlencode($page) : null,
+            'category' => ($category = $slug('link_category')) ? '/category/'.rawurlencode(Slugs::current('category', $category)) : null,
+            'page' => ($page = $slug('link_page')) ? '/pages/'.rawurlencode(Slugs::current('page', $page)) : null,
             'gift_finder' => '/gift-finder',
             default => self::safeUrl($slug('custom_url')),
         };
+    }
+
+    /**
+     * What a tile points at, for the API: the kind of target, the slug when it is a category or a page (the current one), and the path or address.
+     *
+     * @param  array<string, mixed>  $tile
+     * @return array{kind: string, slug: ?string, path: ?string}
+     */
+    public static function describe(array $tile): array
+    {
+        $kind = (string) ($tile['link_type'] ?? 'custom');
+        $href = self::href($tile);
+        $slug = match ($kind) {
+            'category' => filled($tile['link_category'] ?? null) ? Slugs::current('category', trim((string) $tile['link_category'])) : null,
+            'page' => filled($tile['link_page'] ?? null) ? Slugs::current('page', trim((string) $tile['link_page'])) : null,
+            default => null,
+        };
+
+        return ['kind' => $kind, 'slug' => $slug, 'path' => $href];
     }
 
     /**

@@ -12,6 +12,7 @@ class CourierStatusMap extends Model
 {
     public const EFFECTS = [
         'none' => 'Nothing (just show it)',
+        'shipped' => 'The order is shipped (moves it forward only)',
         'delivered' => 'The order is delivered',
         'partial' => 'Partly delivered (tell me, change nothing)',
         'returned' => 'Returned or cancelled by the courier (flag it, tell me)',

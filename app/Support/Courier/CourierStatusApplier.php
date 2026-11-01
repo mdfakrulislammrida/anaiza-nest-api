@@ -2,7 +2,9 @@
 
 namespace App\Support\Courier;
 
+use App\Filament\Resources\OrderResource;
 use App\Models\CourierEvent;
+use App\Models\CourierSetting;
 use App\Models\CourierStatusMap;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +20,10 @@ use Illuminate\Support\Facades\DB;
  *  - "Delivered" sets the order Delivered (which sends the delivered email once and starts the review timer), and only for
  *    a status the map marks final: a rider's own word (Steadfast's *_approval_pending) never delivers anything.
  *  - Returned or cancelled by the courier flags the order and tells the owner. Stock and refunds are never touched.
+ *  - "Update order status from courier automatically" (Settings > Courier) off: the report is kept and shown, and nothing on the order
+ *    changes (no status, no cash, no end of checking).
+ *  - Every change the courier makes to an order is a line in its Courier history that names where it came from ("Steadfast webhook",
+ *    "couriers:sync", "Sync now") and the courier's own word for the status.
  *  - Cash collected is recorded only when a status check (polling), not a webhook alone, confirms a final status that the map
  *    says collected the cash. A webhook that says delivered leaves the order waiting for that confirmation.
  */
@@ -27,7 +33,7 @@ final class CourierStatusApplier
     public const POLL_MINUTES = 15;
 
     /**
-     * @return string applied | unchanged | confirmed | ignored_backwards | ignored_final | ignored_empty
+     * @return string applied | unchanged | confirmed | recorded | ignored_backwards | ignored_final | ignored_empty
      */
     public static function apply(Order $order, string $courier, string $rawStatus, string $source, ?string $label = null): string
     {
@@ -46,7 +52,8 @@ final class CourierStatusApplier
 
             $map = CourierStatusMap::noteSeen($courier, $raw, $label);
             $confirmed = $source !== 'webhook';
-            $name = CourierSettingNames::label($courier);
+            $name = self::sourceLabel($courier, $source);
+            $automatic = (bool) CourierSetting::current()->status_sync_enabled;
 
             // Final is final.
             if ($row->courier_final_at !== null) {
@@ -60,7 +67,7 @@ final class CourierStatusApplier
             if ($raw === $row->courier_status) {
                 $row->forceFill(self::checked($row))->saveQuietly();
 
-                if ($map->is_final && $confirmed) {
+                if ($map->is_final && $confirmed && $automatic) {
                     self::finalise($row, $courier, $map, $source);
 
                     return 'confirmed';
@@ -86,9 +93,15 @@ final class CourierStatusApplier
                 'courier_status_rank' => $map->rank ?? $row->courier_status_rank,
             ])->saveQuietly();
 
-            self::event($row, $courier, $source, 'status', $raw, $name.': '.$map->stage.'.');
+            self::event($row, $courier, $source, 'status', $raw, $name.' reported "'.$raw.'" ('.$map->stage.').');
 
-            self::effects($row, $courier, $map);
+            if (! $automatic) {
+                self::event($row, $courier, $source, 'status_recorded', $raw, 'Automatic order updates are switched off (Settings > Courier), so the order itself was not changed.');
+
+                return 'recorded';
+            }
+
+            self::effects($row, $courier, $map, $source, $raw);
 
             if ($map->is_final && $confirmed) {
                 self::finalise($row, $courier, $map, $source);
@@ -136,11 +149,28 @@ final class CourierStatusApplier
         ] + ($clearError ? ['courier_last_error' => null, 'courier_last_error_at' => null] : []);
     }
 
-    private static function effects(Order $order, string $courier, CourierStatusMap $map): void
+    /** The order status each effect may move an order to, and the statuses it may move it from. Anything else (delivered, cancelled, returned) is left alone. */
+    private const MOVES = [
+        'shipped' => ['to' => 'shipped', 'from' => ['pending', 'processing']],
+        'delivered' => ['to' => 'delivered', 'from' => ['pending', 'processing', 'shipped']],
+    ];
+
+    private static function effects(Order $order, string $courier, CourierStatusMap $map, string $source, string $raw): void
     {
-        // Delivered: only a status the map marks final, never a rider's word. Moves forward only: pending, processing or shipped.
-        if ($map->effect === 'delivered' && $map->is_final && in_array($order->status, ['pending', 'processing', 'shipped'], true)) {
-            $order->update(['status' => 'delivered']);
+        $move = self::MOVES[$map->effect] ?? null;
+        $by = self::sourceLabel($courier, $source);
+        $nice = fn (string $status): string => OrderResource::STATUSES[$status] ?? $status;
+
+        // Delivered needs a status the map marks final, never a rider's word.
+        if ($move !== null && ($map->effect !== 'delivered' || $map->is_final) && $order->status !== $move['to']) {
+            if (in_array($order->status, $move['from'], true)) {
+                $was = $order->status;
+                $order->update(['status' => $move['to']]);
+
+                self::event($order, $courier, $source, 'order_status', $raw, $by.' moved the order from '.$nice($was).' to '.$nice($move['to']).' (courier status "'.$raw.'").');
+            } else {
+                self::event($order, $courier, $source, 'status_ignored', $raw, $by.' reported "'.$raw.'", but the order is '.$nice($order->status).', so it was left as it is.');
+            }
         }
 
         if ($map->effect === 'returned' && $order->courier_returned_at === null) {
@@ -156,7 +186,12 @@ final class CourierStatusApplier
     {
         $fill = ['courier_final_at' => now()];
 
-        if ($map->marks_cod_collected && $order->payment_status === 'cod' && $order->cod_collected_at === null) {
+        // An order a person cancelled or marked returned keeps its money as it is, whatever the courier says afterwards.
+        $closed = in_array($order->status, ['cancelled', 'returned'], true);
+
+        if ($map->marks_cod_collected && $closed) {
+            self::event($order, $courier, $source, 'status_ignored', $order->courier_status, 'The order is '.$order->status.', so no cash was recorded as collected.');
+        } elseif ($map->marks_cod_collected && $order->payment_status === 'cod' && $order->cod_collected_at === null) {
             $amount = (int) ($order->cod_amount_sent ?? $order->total);
             $fill += ['cod_collected_at' => now(), 'cod_collected_amount' => $amount];
 
@@ -164,6 +199,17 @@ final class CourierStatusApplier
         }
 
         $order->forceFill($fill)->saveQuietly();
+    }
+
+    /** "Steadfast webhook", "couriers:sync" or "Sync now": where a report came from, for the order's history. */
+    public static function sourceLabel(string $courier, string $source): string
+    {
+        return match ($source) {
+            'webhook' => CourierSettingNames::label($courier).' webhook',
+            'poll' => 'couriers:sync',
+            'sync_now' => 'Sync now',
+            default => CourierSettingNames::label($courier),
+        };
     }
 
     private static function event(Order $order, string $courier, string $source, string $type, ?string $status, string $summary): void

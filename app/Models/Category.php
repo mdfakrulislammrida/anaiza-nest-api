@@ -3,12 +3,20 @@
 namespace App\Models;
 
 use App\Models\Concerns\CleansContentHtml;
+use App\Models\Concerns\RemembersSlugs;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
+    use RemembersSlugs;
+
+    public static function slugType(): string
+    {
+        return 'category';
+    }
+
     use CleansContentHtml;
     use HasFactory;
 
@@ -30,6 +38,7 @@ class Category extends Model
         'seo_description',
         'meta_title',
         'meta_description',
+        'seo_image',
         'show_in_menu',
         'menu_order',
         'google_product_category',

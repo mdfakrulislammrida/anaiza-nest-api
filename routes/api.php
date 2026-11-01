@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\CourierWebhookController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomepageSectionController;
+use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\Api\MarketingSettingController;
 use App\Http\Controllers\Api\MediaItemController;
@@ -37,7 +38,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public catalog
 Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{category:slug}', [CategoryController::class, 'show']);
+Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{product:slug}', [ProductController::class, 'show']);
 Route::get('/products/{product:slug}/reviews', [ProductReviewController::class, 'index']);
@@ -50,6 +51,11 @@ Route::get('/attributes', [ProductAttributeController::class, 'index']);
 // Checkout (guest-friendly: creates/updates the customer record from the details submitted)
 Route::post('/orders', [OrderController::class, 'store'])->middleware(['throttle:orders', 'form-proof:order,reject']);
 Route::get('/orders/lookup', [OrderController::class, 'lookup'])->middleware('throttle:order-lookup');
+
+// The invoice PDF. The signed link comes with the order answer (right after checkout, or on Track order once the phone number is proved); a signed-in customer
+// can also ask for their own orders'. Errors are JSON. The admin has its own address in routes/web.php.
+Route::get('/orders/{order}/invoice', [InvoiceController::class, 'signed'])->middleware('throttle:invoice')->whereNumber('order')->name('api.orders.invoice');
+Route::get('/account/orders/{order}/invoice', [InvoiceController::class, 'mine'])->middleware(['throttle:invoice', 'auth:sanctum'])->whereNumber('order')->name('api.account.orders.invoice');
 
 // Couriers report back here. Steadfast signs every request; the receiver refuses anything it cannot verify (see App\Support\Courier\SteadfastWebhook).
 Route::post('/webhooks/steadfast', [CourierWebhookController::class, 'steadfast'])->middleware('throttle:courier-webhook');
@@ -67,7 +73,7 @@ Route::post('/corporate-enquiries', [CorporateEnquiryController::class, 'store']
 // Storefront content (mirrors what's managed in the Filament admin panel, so
 // the Next.js frontend doesn't need any of this hardcoded)
 Route::get('/pages', [PageController::class, 'index']);
-Route::get('/pages/{page:slug}', [PageController::class, 'show']);
+Route::get('/pages/{slug}', [PageController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/faqs', [FaqController::class, 'index']);
 Route::get('/shipping-zones', [ShippingZoneController::class, 'index']);
@@ -85,7 +91,7 @@ Route::get('/homepage-sections', [HomepageSectionController::class, 'index']);
 Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{slug}', [ArticleController::class, 'show']);
 
-// Sitemap data (products, pages, articles) for the frontend to build sitemap.xml from
+// Sitemap data (products, pages, landing pages, categories, articles, old addresses) for the frontend to build sitemap.xml from
 Route::get('/sitemap', [SitemapController::class, 'index']);
 
 // Landing pages built in the admin (/lp/<slug> on the storefront).

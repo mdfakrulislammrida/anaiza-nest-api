@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Models\CourierSetting;
 use App\Models\Order;
 use App\Support\Courier\CourierBooking;
+use App\Support\Courier\CourierSync;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
@@ -68,6 +69,34 @@ final class CourierActions
                 $result['ok']
                     ? Notification::make()->success()->title('Sent to the courier')->body($result['message'])->send()
                     : Notification::make()->danger()->title('Not sent')->body($result['message'])->persistent()->send();
+            });
+    }
+
+    /**
+     * "Sync now": asks the courier for this one parcel's status right away. The same code and the same rules as the scheduled check (never
+     * backwards, final is final). It only reads; it never books or cancels anything.
+     *
+     * @param  class-string<TAction>  $actionClass
+     * @return TAction
+     */
+    public static function syncNow(string $actionClass)
+    {
+        return $actionClass::make('syncCourierNow')
+            ->label('Sync now')
+            ->icon('heroicon-o-arrow-path')
+            ->color('gray')
+            ->tooltip("Ask the courier for this parcel's status now")
+            ->visible(fn (Order $record): bool => self::allowed() && $record->isBooked() && $record->courier_final_at === null)
+            ->action(function (Order $record): void {
+                if (! self::allowed()) {
+                    return;
+                }
+
+                $result = CourierSync::one($record);
+
+                $result['ok']
+                    ? Notification::make()->success()->title('Checked with the courier')->body($result['message'])->send()
+                    : Notification::make()->danger()->title('Could not check')->body($result['message'])->send();
             });
     }
 

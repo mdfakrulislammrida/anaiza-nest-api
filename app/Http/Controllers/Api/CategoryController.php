@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\CategorySummaryResource;
 use App\Models\Category;
+use App\Support\Slugs;
 
 class CategoryController extends Controller
 {
@@ -14,10 +15,15 @@ class CategoryController extends Controller
         return CategorySummaryResource::collection(Category::orderBy('menu_order')->orderBy('name')->get());
     }
 
-    public function show(Category $category)
+    /** By the current address or one the category used to have (then the answer carries a `redirect` hint with the new path). */
+    public function show(string $slug)
     {
-        $category->load('faqs');
+        $found = Slugs::find('category', $slug);
 
-        return CategoryResource::make($category);
+        abort_if($found === null, 404);
+
+        $category = $found['model']->load('faqs');
+
+        return CategoryResource::make($category)->additional(['redirect' => Slugs::hint('category', $slug, $category)]);
     }
 }

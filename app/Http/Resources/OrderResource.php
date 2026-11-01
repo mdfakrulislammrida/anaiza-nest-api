@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Support\Courier\CustomerStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\URL;
 
 class OrderResource extends JsonResource
 {
@@ -41,6 +42,9 @@ class OrderResource extends JsonResource
             'is_gift' => (bool) $this->is_gift,
             'gift_message' => $this->is_gift ? $this->gift_message : null,
             'created_at' => $this->created_at,
+            // Where to download this order's invoice (PDF): a signed link, good for 7 days, handed out only to someone who has just placed the order or who proved
+            // the phone number on the Track order page. Open it with a plain GET; an error comes back as JSON.
+            'invoice_url' => URL::temporarySignedRoute('api.orders.invoice', now()->addDays(7), ['order' => $this->id]),
             // Who it is for and where it goes, as typed when the order was placed (never a later order's details).
             'customer' => [
                 'id' => $this->customer->id,

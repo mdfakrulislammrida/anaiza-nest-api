@@ -219,7 +219,7 @@ class OccasionPicturesTest extends TestCase
 
         $this->assertSame(self::SHOWN, array_column($tiles, 'label'), 'the switched-off tile is left out, the shown ones stay in order');
         foreach ($tiles as $tile) {
-            $this->assertSame(['label', 'image', 'href'], array_keys($tile));
+            $this->assertSame(['label', 'image', 'href', 'kind', 'slug', 'path'], array_keys($tile));
             $this->assertStringContainsString('/storage/occasions/generated/', $tile['image']);
         }
         $this->assertCount(4, array_unique(array_column($tiles, 'image')));

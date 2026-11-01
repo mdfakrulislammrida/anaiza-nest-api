@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\RemembersSlugs;
 use App\Support\Dhaka;
 use App\Support\Landing\LandingBlocks;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,13 @@ use Illuminate\Support\Str;
  */
 class LandingPage extends Model
 {
+    use RemembersSlugs;
+
+    public static function slugType(): string
+    {
+        return 'landing_page';
+    }
+
     public const DRAFT = 'draft';
 
     public const PUBLISHED = 'published';
