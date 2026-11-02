@@ -5,6 +5,7 @@ namespace App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource;
 use App\Filament\Support\ConversionActions;
 use App\Filament\Support\CourierActions;
+use App\Filament\Support\MobileCards;
 use App\Filament\Support\PaymentActions;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,14 @@ class EditOrder extends EditRecord
     protected static string $resource = OrderResource::class;
 
     protected function getHeaderActions(): array
+    {
+        // The same buttons in a line as ever; on a phone Send to courier, Sync now, Mark verified and Download invoice stay as full-width
+        // buttons and everything else is in one "More" menu (MobileCards::pageActions).
+        return MobileCards::pageActions(fn (): array => $this->allHeaderActions(), ['sendToCourier', 'syncCourierNow', 'markPaymentVerified', 'downloadInvoice']);
+    }
+
+    /** @return array<int, Actions\Action|Actions\ActionGroup> */
+    private function allHeaderActions(): array
     {
         return [
             CourierActions::send(Actions\Action::class)->record($this->record)->after(fn () => $this->refreshFormData(['status'])),

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\OrderResource\RelationManagers;
 
 use App\Filament\Resources\ProductResource;
+use App\Filament\Support\MobileCards;
 use App\Models\OrderItem;
 use App\Support\OrderItemPicture;
 use Filament\Forms;
@@ -51,7 +52,7 @@ class ItemsRelationManager extends RelationManager
             ->recordTitleAttribute('product_name')
             // The pictures come from the product and its variants: loaded together, so a long order costs no query per line.
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['product.images', 'product.variants.image']))
-            ->columns([
+            ->columns(MobileCards::columns([
                 Tables\Columns\ImageColumn::make('picture')
                     ->label('')
                     ->state(fn (OrderItem $record): ?string => OrderItemPicture::url($record))
@@ -70,17 +71,22 @@ class ItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('quantity'),
                 Tables\Columns\TextColumn::make('price')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state)),
-            ])
+            ], fn (OrderItem $item): array => [
+                // A stacked row: the picture and the product, the variant, then quantity times price and the line total.
+                ['left' => [MobileCards::picture(OrderItemPicture::url($item)), MobileCards::text($item->product_name, ['strong' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text($item->variant_name ? "{$item->variant_name}: {$item->variant_value}" : null, ['muted' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text($item->quantity.' × '.MobileCards::taka($item->price), ['muted' => true])], 'right' => [MobileCards::text(MobileCards::taka($item->quantity * $item->price), ['strong' => true])]],
+            ]))
             ->filters([
                 //
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),

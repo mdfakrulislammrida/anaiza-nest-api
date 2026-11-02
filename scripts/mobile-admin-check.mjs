@@ -185,6 +185,11 @@ async function go(page, url) {
   await page.cdp.send("Page.navigate", { url }, page.sessionId);
   await loaded;
   await sleep(2200); // Livewire, Alpine and the charts settle
+  // Parts of a page (the relation tables of a record) load when they scroll into view, as they do for a person: scroll down and back first.
+  await evaluate(page, "(async () => { for (let y = 0; y < document.body.scrollHeight; y += 350) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 140)); } window.scrollTo(0, 0); })()");
+  // A headless window does not always report a scroll as "in view", so any table still waiting to load is asked to load, as scrolling to it would.
+  await evaluate(page, "(async () => { if (window.Livewire) for (const c of Livewire.all()) { if (c.$wire && typeof c.$wire.loadTable === 'function') { try { await c.$wire.loadTable(); } catch (e) {} } } })()");
+  await sleep(1500);
 }
 
 // Filament remembers whether the sidebar is open in the browser (the key "isOpen") and, left alone, a first visit starts with it OPEN. On a phone

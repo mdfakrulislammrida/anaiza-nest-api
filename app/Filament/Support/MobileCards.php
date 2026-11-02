@@ -3,6 +3,7 @@
 namespace App\Filament\Support;
 
 use Closure;
+use Filament\Actions\ActionGroup as PageActionGroup;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\ViewColumn;
@@ -61,6 +62,37 @@ final class MobileCards
                 ->color('gray')
                 ->size('sm')
                 ->extraAttributes(['class' => 'am-phone-only'], merge: true),
+        ];
+    }
+
+    /**
+     * A page's header actions: every button in a line as ever from 768 px up; on a phone the few named in $primary as full-width buttons, and the rest
+     * in one "More" menu. The factory is called three times, so each place has its own copies; they have the same names and do the same thing.
+     *
+     * @param  Closure(): array<int, mixed>  $make
+     * @param  list<string>  $primary  action names that stay visible buttons on a phone
+     * @return array<int, mixed>
+     */
+    public static function pageActions(Closure $make, array $primary): array
+    {
+        $desktop = $make();
+        foreach ($desktop as $action) {
+            $action->extraAttributes(['class' => 'am-desktop-only'], merge: true);
+        }
+
+        $buttons = [];
+        $more = [];
+        foreach ($make() as $action) {
+            in_array($action->getName(), $primary, true) ? $buttons[] = $action : $more[] = $action;
+        }
+        foreach ($buttons as $action) {
+            $action->extraAttributes(['class' => 'am-phone-only am-primary'], merge: true);
+        }
+
+        return [
+            ...$desktop,
+            ...$buttons,
+            PageActionGroup::make($more)->label('More')->icon('heroicon-m-ellipsis-vertical')->button()->color('gray')->extraAttributes(['class' => 'am-phone-only'], merge: true),
         ];
     }
 

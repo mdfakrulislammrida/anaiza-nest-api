@@ -10,6 +10,21 @@
       - makes buttons, menu items and row links at least 44 px tall;
       - stacks the page header, wraps long words, and keeps dialogs, dropdowns and the sidebar inside the screen.
 --}}
+<script>
+    /*
+        On a phone the sidebar starts shut and is shut again on every page load, so tapping a link in it leaves it closed (Filament otherwise opens it
+        on a first visit and remembers that). The menu button opens it. From 1024 px up Filament's own memory is left alone.
+    */
+    (function () {
+        try {
+            if (window.matchMedia('(max-width: 1023.98px)').matches) {
+                localStorage.setItem('isOpen', 'false');
+            }
+        } catch (error) {
+            // Storage may be blocked; the sidebar then behaves as Filament does by default.
+        }
+    })();
+</script>
 <style>
     /* The phone card and its parts exist in the markup at every width; only a phone shows them (the table's own columns show from md up). */
     .am-card { display: none; }
@@ -19,6 +34,15 @@
         is built ahead of time and only holds the classes Filament itself uses, so `md:table-cell` is not in it: without these two lines a column made
         visible from md up would stay hidden on a desktop too.
     */
+    /* A row's actions are drawn twice (MobileCards::actions): in a line for a desktop, as one menu for a phone. */
+    @media (min-width: 768px) {
+        .am-phone-only { display: none !important; }
+    }
+
+    @media (max-width: 767.98px) {
+        .am-desktop-only { display: none !important; }
+    }
+
     @media (min-width: 768px) {
         .fi-ta-table .md\:table-cell { display: table-cell !important; }
         .fi-ta-table .md\:hidden { display: none !important; }
@@ -44,7 +68,7 @@
         .fi-page-header-main-ctn { padding-top: .75rem; }
         .fi-header { flex-direction: column; align-items: stretch; gap: .75rem; }
         .fi-header-heading { font-size: 1.375rem; line-height: 1.75rem; overflow-wrap: anywhere; }
-        .fi-header-actions-ctn { flex-wrap: wrap; justify-content: flex-start; width: 100%; }
+        .fi-header { flex-wrap: wrap; justify-content: flex-start; width: 100%; }
         .fi-main { padding-left: .75rem; padding-right: .75rem; }
         .fi-topbar nav { padding-left: .75rem; padding-right: .75rem; gap: .5rem; }
         .fi-breadcrumbs { overflow-wrap: anywhere; }
@@ -58,8 +82,8 @@
         .fi-fo-checkbox-list label, .fi-fo-radio label, .fi-fo-toggle-buttons label { min-height: 2.75rem; display: flex; align-items: center; }
 
         /* ---- header actions: the buttons fill the width, two to a line at most */
-        .fi-header-actions-ctn > * { flex: 1 1 calc(50% - .5rem); }
-        .fi-header-actions-ctn .fi-btn { width: 100%; justify-content: center; }
+        .fi-header > * { flex: 1 1 calc(50% - .5rem); }
+        .fi-header .fi-btn { width: 100%; justify-content: center; }
 
         /* ---- lists: a row is a card */
         .fi-ta-content { overflow-x: visible; }
@@ -103,6 +127,38 @@
         /* ---- pagination: the page-size choice and the page links wrap instead of running off the screen */
         .fi-ta-pagination { flex-wrap: wrap; gap: .5rem; padding: .75rem; justify-content: center; }
         .fi-ta-pagination > * { min-width: 0; }
+
+        /* ---- the main buttons of a page (MobileCards::pageActions) fill the width; the rest are in "More" */
+        .fi-header .fi-ac { display: flex; flex-wrap: wrap; width: 100%; gap: .5rem; }
+        .fi-header .fi-ac > .am-primary { flex: 1 1 100% !important; width: 100% !important; justify-content: center; min-height: 3rem; }
+        .fi-header .fi-ac > .fi-dropdown { flex: 1 1 100%; }
+        .fi-header .fi-ac > .fi-dropdown .fi-dropdown-trigger, .fi-header .fi-ac > .fi-dropdown .fi-btn { width: 100%; justify-content: center; }
+
+        /*
+            The order page, in the order a phone needs: status and totals, the main buttons (they are in the header above), the customer and the address,
+            then the items and the courier history, then the courier details, notes, gift and the rest, and Save last. The form's parts and the two tables
+            sit in one column; "display: contents" lets them be put in order together. The numbers follow OrderResource::form()'s order of parts
+            (a test checks it), so a part added later goes to the end of the page until it is given a place here.
+        */
+        .fi-resource-orders.fi-resource-edit-record-page div:has(> .fi-form) { display: flex; flex-direction: column; gap: 1.25rem; }
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form,
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn { display: contents; }
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > * { order: 50; min-width: 0; }
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(2) { order: 10; }  /* status */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(6) { order: 11; }  /* subtotal */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(8) { order: 12; }  /* delivery fee */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(10) { order: 13; } /* coupon discount */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(9) { order: 14; }  /* total */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(5) { order: 15; }  /* payment method */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(1) { order: 20; }  /* customer */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(11) { order: 21; } /* delivery details */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-resource-relation-managers { order: 30; min-width: 0; }
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-form-actions { order: 100; }
+
+        /* a long value (an address, a consignment id, a note) wraps; a copy button stays where it is */
+        .fi-resource-orders .fi-fo-field-wrp input, .fi-resource-orders .fi-fo-field-wrp textarea { max-width: 100%; }
+        .fi-resource-orders .fi-in-text-item, .fi-resource-orders .fi-fo-placeholder, .fi-resource-orders .fi-fo-placeholder * { overflow-wrap: anywhere; }
+        .fi-resource-relation-managers .fi-ta-content { border-top: 0; }
 
         /* ---- dialogs, dropdowns, notifications and the sidebar stay inside the screen */
         .fi-modal-window { max-width: calc(100vw - 1rem) !important; width: calc(100vw - 1rem); margin-left: auto; margin-right: auto; }

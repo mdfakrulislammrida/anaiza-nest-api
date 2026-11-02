@@ -7,6 +7,10 @@
 @endphp
 <div class="am-card">
     @foreach ($rows as $row)
+        @php
+            $filled = collect([...($row['left'] ?? []), ...($row['right'] ?? [])])->contains(fn ($cell) => array_key_exists('picture', $cell) || array_key_exists('badge', $cell) || filled($cell['text'] ?? null));
+        @endphp
+        @continue(! $filled)
         <div class="am-row">
             @foreach (['left', 'right'] as $side)
                 @if (! empty($row[$side]))

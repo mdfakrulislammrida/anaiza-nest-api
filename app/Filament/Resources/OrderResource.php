@@ -454,7 +454,8 @@ class OrderResource extends Resource
                         ->pluck('utm_campaign', 'utm_campaign')
                         ->all()),
             ])
-            ->actions([
+            // The same actions as ever in a line; on a phone one "Actions" menu holds them (MobileCards::actions).
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
                 CourierActions::send(Tables\Actions\Action::class),
                 PaymentActions::verify(Tables\Actions\Action::class),
@@ -467,7 +468,7 @@ class OrderResource extends Resource
                     ->visible(fn (Order $record): bool => (bool) $record->is_gift),
                 self::whatsappReviewAction(Tables\Actions\Action::class),
                 self::blockPhoneAction(Tables\Actions\Action::class),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('changeStatus')
