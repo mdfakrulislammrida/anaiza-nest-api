@@ -188,7 +188,8 @@ async function go(page, url) {
   // Parts of a page (the relation tables of a record) load when they scroll into view, as they do for a person: scroll down and back first.
   await evaluate(page, "(async () => { for (let y = 0; y < document.body.scrollHeight; y += 350) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 140)); } window.scrollTo(0, 0); })()");
   // A headless window does not always report a scroll as "in view", so any table still waiting to load is asked to load, as scrolling to it would.
-  await evaluate(page, "(async () => { if (window.Livewire) for (const c of Livewire.all()) { if (c.$wire && typeof c.$wire.loadTable === 'function') { try { await c.$wire.loadTable(); } catch (e) {} } } })()");
+  // Only components that hold a table (a relation manager or a table widget), each given 10 seconds: Livewire's $wire answers "function" for any name.
+  await evaluate(page, "(async () => { if (window.Livewire) for (const c of Livewire.all()) { if (/relation-manager|widget/i.test(c.name)) { try { await Promise.race([c.$wire.loadTable(), new Promise((r) => setTimeout(r, 10000))]); } catch (e) {} } } })()");
   await sleep(1500);
 }
 
@@ -235,14 +236,17 @@ async function shot(page, dir, name, width) {
 }
 
 const rows = [];
+const onlyListForReport = option("--only") ? option("--only").split(",") : null;
 const page = await launch();
 
 try {
   const shots = option("--shots");
-  const only = option("--only"); // one screen by name, e.g. --only orders-list
+  // --only orders-list,order-edit,dialogs : just those screens (dialogs = the four confirmation dialogs); nothing given = every screen and dialog
+  const onlyList = option("--only") ? option("--only").split(",") : null;
+  const only = onlyList; // eslint-disable-line no-unused-vars
 
   // The login page is looked at before anyone is signed in.
-  for (const phone of only && only !== "login" ? [] : PHONES) {
+  for (const phone of onlyList && !onlyList.includes("login") ? [] : PHONES) {
     await setViewport(page, phone.width, phone.height);
     await go(page, `${BASE}/admin/login`);
     const measured = await evaluate(page, MEASURE);
@@ -264,7 +268,7 @@ try {
 
   for (const [name, route, needsLogin] of SCREENS) {
     if (!needsLogin) continue;
-    if (only && name !== only) continue;
+    if (onlyList && !onlyList.includes(name)) continue;
 
     for (const phone of [...PHONES, ...(flag("--desktop") ? [{ width: 1280, height: 900 }] : [])]) {
       await setViewport(page, phone.width, phone.height);
@@ -281,8 +285,9 @@ try {
     ["order-edit: Sync now dialog", `/admin/orders/${ORDER_ID}/edit`, "Sync now"],
     ["courier-statuses: Arm Pathao statuses dialog", "/admin/courier-statuses", "Arm Pathao statuses"],
     ["order-edit: Send to courier dialog", "/admin/orders/1/edit", "Send to courier"],
+    ["order-edit: Mark verified dialog", "/admin/orders/2/edit", "Mark verified"],
   ];
-  for (const [name, route, label] of only ? [] : dialogs) {
+  for (const [name, route, label] of onlyList && !onlyList.includes("dialogs") ? [] : dialogs) {
     await go(page, `${BASE}${route}`);
     const opened = await evaluate(page, `(() => { const b = [...document.querySelectorAll('button, a')].find((el) => el.innerText.trim() === ${JSON.stringify(label)} && el.offsetParent !== null); if (!b) return false; b.click(); return true; })()`);
     await sleep(1500);
@@ -296,7 +301,7 @@ try {
 
 // ---- report
 
-const failing = rows.filter((r) => r.width < 768 && !r.missing && (r.pageScrollsSideways || (r.tableScrollers && r.tableScrollers.length) || (r.otherScrollers && r.otherScrollers.length) || (r.modal && (r.modal.left < 0 || r.modal.right > r.width)) || (r.screen !== "login" && r.sidebarShown)));
+const failing = rows.filter((r) => (!onlyListForReport || onlyListForReport.some((n) => r.screen === n || r.screen.startsWith(n + ":") || (n === "dialogs" && r.screen.includes("dialog")))) && r.width < 768 && !r.missing && (r.pageScrollsSideways || (r.tableScrollers && r.tableScrollers.length) || (r.otherScrollers && r.otherScrollers.length) || (r.modal && (r.modal.left < 0 || r.modal.right > r.width)) || (r.screen !== "login" && r.sidebarShown)));
 
 console.log("screen".padEnd(46), "width", "page scrollWidth", "table scrolls", "other scrolls", "min input px", "min touch px", "sidebar open on arrival");
 for (const r of rows.filter((x) => x.width < 1280)) {

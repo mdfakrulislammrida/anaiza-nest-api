@@ -17,9 +17,9 @@
 
 use App\Models\AbandonedCheckout;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\CourierEvent;
 use App\Models\CourierSetting;
-use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;

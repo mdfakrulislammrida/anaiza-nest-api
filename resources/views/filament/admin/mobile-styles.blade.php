@@ -78,7 +78,13 @@
         .fi-sidebar-item-button, .fi-sidebar-group-button, .fi-tabs-item, .fi-pagination-item-button, .fi-ta-header-cell-sort-btn { min-height: 2.75rem; }
         .fi-icon-btn { min-width: 2.75rem; }
         .fi-btn { padding-top: .5rem; padding-bottom: .5rem; }
-        .fi-checkbox-input, .fi-fo-toggle { min-width: 1.5rem; min-height: 1.5rem; }
+        .fi-checkbox-input { min-width: 1.5rem; min-height: 1.5rem; }
+        .fi-input-wrp, select, .fi-select-input { min-height: 2.75rem; }
+        .fi-topbar button, .fi-user-menu button { min-width: 2.75rem; min-height: 2.75rem; }
+        /* A small control (a switch, a clear button, a close cross) keeps its look and gets a 44 px area to tap. */
+        .fi-fo-field-wrp button:not(.fi-btn) { position: relative; }
+        .fi-fo-field-wrp button:not(.fi-btn)::after { content: ''; position: absolute; inset: -14px; }
+        .fi-modal-close-btn { min-width: 2.75rem; min-height: 2.75rem; }
         .fi-fo-checkbox-list label, .fi-fo-radio label, .fi-fo-toggle-buttons label { min-height: 2.75rem; display: flex; align-items: center; }
 
         /* ---- header actions: the buttons fill the width, two to a line at most */
@@ -109,7 +115,8 @@
         .am-text { font-size: .875rem; line-height: 1.25rem; color: rgb(var(--gray-700)); min-width: 0; }
         .am-strong { font-weight: 600; color: rgb(var(--gray-950)); font-size: 1rem; }
         .am-muted { color: rgb(var(--gray-500)); font-size: .8125rem; }
-        .am-wrap { overflow-wrap: anywhere; word-break: break-word; }
+        .am-text { max-width: 100%; }
+        .am-wrap { overflow-wrap: anywhere; word-break: break-word; flex: 1 1 8rem; }
         .dark .am-text { color: rgb(var(--gray-300)); }
         .dark .am-strong { color: #fff; }
         .dark .am-muted { color: rgb(var(--gray-400)); }
