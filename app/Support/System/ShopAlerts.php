@@ -94,7 +94,7 @@ final class ShopAlerts
         $name = trim((string) ($to['name'] ?? ''));
         $chat = WhatsApp::link(
             $to['phone'] ?? null,
-            'Hello'.($name !== '' ? " {$name}" : '').", this is Anaiza Nest. We have your order #{$order->id} ({$total}). May we confirm the address and a good time for delivery?",
+            'Hello'.($name !== '' ? " {$name}" : '').", this is Anaiza Nest. We have your order #{$order->id} ({$total}). May we confirm the order Sir",
         );
 
         if ($chat !== null) {

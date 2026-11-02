@@ -44,7 +44,7 @@ final class CourierStatusApplier
     /**
      * @param  bool  $forceArmed  act on the mapping even if it is not armed (only the owner's own --apply does this)
      * @param  bool  $notifyOld  still send the customer emails for old news (only the owner's own --notify does this)
-     * @return string applied | unchanged | confirmed | recorded | ignored_backwards | ignored_final | ignored_empty
+     * @return string applied | unchanged | confirmed | recorded | ignored_preorder | ignored_backwards | ignored_final | ignored_empty
      */
     public static function apply(Order $order, string $courier, string $rawStatus, string $source, ?string $label = null, bool $forceArmed = false, bool $notifyOld = false): string
     {
@@ -59,6 +59,13 @@ final class CourierStatusApplier
 
             if ($row === null) {
                 return 'ignored_missing';
+            }
+
+            // A Pre-order is not on its way yet: whatever a courier says about it changes nothing, and the report is kept in the order's history.
+            if ($row->status === 'preorder') {
+                self::event($row, $courier, $source, 'status_ignored', $raw, self::sourceLabel($courier, $source).' reported "'.$raw.'", but the order is a Pre-order, so nothing was changed.');
+
+                return 'ignored_preorder';
             }
 
             $map = CourierStatusMap::noteSeen($courier, $raw, $label);

@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Support\MobileCards;
 use App\Models\Product;
+use App\Support\ProductThumbnail;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -21,7 +22,7 @@ class TopSellingProducts extends BaseWidget
         return MobileCards::phone($table
             ->query(
                 Product::query()
-                    ->with('images')
+                    ->with(['images', 'variants.image'])
                     ->withSum('orderItems as total_sold', 'quantity')
                     ->orderByDesc('total_sold')
                     ->limit(5)
@@ -30,7 +31,7 @@ class TopSellingProducts extends BaseWidget
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
                     ->label('')
-                    ->getStateUsing(fn (Product $record): ?string => $record->images->first()?->url),
+                    ->getStateUsing(fn (Product $record): ?string => ProductThumbnail::url($record)),
                 Tables\Columns\TextColumn::make('name'),
                 Tables\Columns\TextColumn::make('sku')
                     ->label('SKU'),
@@ -42,7 +43,7 @@ class TopSellingProducts extends BaseWidget
                 Tables\Columns\TextColumn::make('price')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state)),
             ]), fn ($record): array => [
-                ['left' => [MobileCards::picture(MobileCards::imageUrl($record->images->first())), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::picture(ProductThumbnail::url($record)), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])]],
                 ['left' => [MobileCards::text(((int) $record->total_sold).' sold', ['muted' => true]), MobileCards::text($record->sku, ['muted' => true])], 'right' => [MobileCards::text(MobileCards::taka($record->price), ['strong' => true])]],
             ]);
     }

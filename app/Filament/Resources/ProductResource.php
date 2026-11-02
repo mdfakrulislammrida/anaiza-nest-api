@@ -9,7 +9,9 @@ use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\MobileCards;
 use App\Models\Product;
+use App\Support\OrderItemPicture;
 use App\Support\Pricing;
+use App\Support\ProductThumbnail;
 use App\Support\Sku;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -331,8 +333,16 @@ class ProductResource extends Resource
     public static function table(Table $table): Table
     {
         return MobileCards::phone($table
-            ->modifyQueryUsing(fn ($query) => $query->with(['images', 'category']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['images', 'category', 'variants.image']))
             ->columns([
+                // A small square picture: the main one, else the rest of the gallery, else a variant's, else a neutral tile (App\Support\ProductThumbnail).
+                Tables\Columns\ImageColumn::make('thumbnail')
+                    ->label('')
+                    ->state(fn (Product $record): ?string => ProductThumbnail::url($record))
+                    ->defaultImageUrl(OrderItemPicture::placeholder())
+                    ->size(48)
+                    ->square()
+                    ->extraImgAttributes(['loading' => 'lazy', 'alt' => '', 'style' => 'border-radius:2px;box-shadow:none;object-fit:cover;']),
                 Tables\Columns\TextColumn::make('category.name')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('brand.name')
@@ -385,7 +395,7 @@ class ProductResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]), fn ($record): array => [
-                ['left' => [MobileCards::picture(MobileCards::imageUrl($record->images->first())), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::badge($record->is_active ? 'Active' : 'Hidden', $record->is_active ? 'success' : 'gray')]],
+                ['left' => [MobileCards::picture(ProductThumbnail::url($record)), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::badge($record->is_active ? 'Active' : 'Hidden', $record->is_active ? 'success' : 'gray')]],
                 ['left' => [MobileCards::text($record->sku, ['muted' => true]), MobileCards::text($record->category?->name, ['muted' => true])]],
                 ['left' => [MobileCards::badge($record->stock_quantity > 0 ? 'In stock: '.$record->stock_quantity : 'Out of stock', $record->stock_quantity > 0 ? 'success' : 'danger')], 'right' => [MobileCards::text(MobileCards::taka($record->sale_price ?: $record->price), ['strong' => true])]],
             ]);

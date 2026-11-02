@@ -84,6 +84,28 @@ class ShopAlertsTest extends TestCase
         });
     }
 
+    public function test_the_whatsapp_message_ends_with_the_owners_words_and_the_link_is_encoded(): void
+    {
+        SiteSetting::query()->update(['alert_email' => 'owner@example.com']);
+
+        $id = $this->order()->assertCreated()->json('data.id');
+
+        Mail::assertSent(ShopAlertMail::class, function (ShopAlertMail $mail) use ($id): bool {
+            $link = $mail->links['Confirm with the customer on WhatsApp'];
+            $text = urldecode(substr($link, strpos($link, '?text=') + 6));
+
+            $this->assertStringEndsWith('May we confirm the order Sir', $text, 'the last line, exactly, with nothing added');
+            $this->assertStringNotContainsString('May we confirm the address and a good time for delivery', $text);
+            $this->assertStringStartsWith('Hello Nusrat Jahan, this is Anaiza Nest. We have your order #'.$id.' (', $text, 'the rest of the message is as it was');
+            // Fully encoded: no raw space, no raw "#", and it ends with the encoded sentence.
+            $this->assertStringNotContainsString(' ', $link);
+            $this->assertStringNotContainsString('#', $link);
+            $this->assertStringEndsWith('May%20we%20confirm%20the%20order%20Sir', $link);
+
+            return true;
+        });
+    }
+
     public function test_the_alert_falls_back_to_the_payment_address_then_the_contact_email(): void
     {
         $this->order()->assertCreated();

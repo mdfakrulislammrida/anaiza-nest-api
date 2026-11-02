@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Filament\Resources\OrderResource as AdminOrderResource;
 use App\Support\Courier\CustomerStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,6 +23,8 @@ class OrderResource extends JsonResource
             'order_number' => $this->resource->number(),
             'is_legacy' => $this->resource->isLegacy(),
             'status' => $this->status,
+            // The same words the admin uses ("Pre-order", "Processing"...), so no code ever has to be shown to a customer.
+            'status_label' => AdminOrderResource::STATUSES[$this->status] ?? ucfirst(str_replace('_', ' ', (string) $this->status)),
             'payment_method' => $this->payment_method,
             // cod, awaiting_verification, verified or failed. The sender number, transaction ID and the
             // admin's note stay inside the admin.

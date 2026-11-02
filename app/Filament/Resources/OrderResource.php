@@ -42,6 +42,8 @@ class OrderResource extends Resource
     protected static string $permissionKey = 'orders.manage';
 
     public const STATUSES = [
+        // An order for something not yet in stock, to be fulfilled later. Set by a person only; it sits before Pending in the flow.
+        'preorder' => 'Pre-order',
         'pending' => 'Pending',
         'processing' => 'Processing',
         'shipped' => 'Shipped',
@@ -252,6 +254,7 @@ class OrderResource extends Resource
     {
         $recipient = $order->recipient();
         $statusColor = match ($order->status) {
+            'preorder' => 'preorder',
             'processing' => 'warning',
             'shipped' => 'info',
             'delivered' => 'success',
@@ -296,6 +299,7 @@ class OrderResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => self::STATUSES[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
+                        'preorder' => 'preorder',
                         'pending' => 'gray',
                         'processing' => 'warning',
                         'shipped' => 'info',

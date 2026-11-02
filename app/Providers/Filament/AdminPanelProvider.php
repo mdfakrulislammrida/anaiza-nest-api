@@ -32,6 +32,8 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::Amber,
+                // The Pre-order status badge: a colour no other status uses.
+                'preorder' => Color::Violet,
             ])
             // Registered explicitly (rather than relying on each resource's
             // string $navigationGroup alone) so every group can start

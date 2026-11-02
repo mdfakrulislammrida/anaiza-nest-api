@@ -20,6 +20,7 @@ use App\Models\ShippingZone;
 use Filament\Facades\Filament;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\CourierFixtures;
@@ -102,6 +103,8 @@ class MobileListsTest extends TestCase
     {
         $category = Category::create(['name' => 'Tea sets', 'slug' => 'tea-sets']);
         $product = Product::create(['category_id' => $category->id, 'name' => 'Rose cup', 'slug' => 'rose-cup', 'price' => 1450, 'stock_quantity' => 0, 'sku' => 'RC-1', 'is_active' => true]);
+        // The picture's file must be on the disk: a picture that is gone is skipped (App\Support\ProductThumbnail).
+        Storage::fake('public')->put('products/rc-400.webp', 'x');
         ProductImage::create(['product_id' => $product->id, 'url' => 'products/rc.webp', 'url_400' => 'products/rc-400.webp', 'sort_order' => 0]);
         $customer = Customer::create(['name' => 'Nusrat Jahan', 'email' => 'n@example.test', 'password' => 'secret-pass-1', 'phone' => '01712345678', 'address' => 'x', 'city' => 'Dhaka', 'postal_code' => '1212']);
         ShippingZone::create(['name' => 'Inside Dhaka', 'delivery_fee' => 80, 'estimated_days' => '1-2 days']);

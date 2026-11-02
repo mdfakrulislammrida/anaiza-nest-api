@@ -29,6 +29,7 @@ class OrdersRelationManager extends RelationManager
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => OrderResource::STATUSES[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
+                        'preorder' => 'preorder',
                         'pending' => 'gray',
                         'processing' => 'warning',
                         'shipped' => 'info',

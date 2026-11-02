@@ -92,6 +92,11 @@ final class CourierBooking
             $blocks[] = 'The order is '.$order->status.'.';
         }
 
+        // A Pre-order is for something not yet in stock: no parcel may be booked until a person moves it on.
+        if ($order->status === 'preorder') {
+            $blocks[] = 'Move this order to Processing first.';
+        }
+
         $phone = Contact::phone((string) $to['phone']);
         if ($phone === null) {
             $blocks[] = 'The phone number is missing or is not a Bangladeshi mobile number.';

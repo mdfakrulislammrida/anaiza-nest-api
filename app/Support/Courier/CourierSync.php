@@ -40,6 +40,8 @@ final class CourierSync
             ->whereNotNull('courier_booked_at')
             ->whereNull('courier_final_at')
             ->whereNull('courier_returned_at')
+            // A Pre-order is not followed: nothing may change it from a courier's report.
+            ->where('status', '!=', 'preorder')
             // A parcel still open a month after booking is not followed any more: that is a conversation with the courier, not a status check.
             ->where('courier_booked_at', '>=', now()->subDays((int) config('couriers.sync.stop_after_days')))
             ->where(fn ($query) => $query
@@ -118,6 +120,10 @@ final class CourierSync
 
         if (! $settings->ready($courier)) {
             return ['ok' => false, 'message' => CourierSettingNames::label($courier).' is switched off or its keys are not saved (Settings > Courier).'];
+        }
+
+        if ($order->status === 'preorder') {
+            return ['ok' => false, 'message' => 'This order is a Pre-order. Move it to Processing first.'];
         }
 
         if ($order->courier_final_at !== null) {

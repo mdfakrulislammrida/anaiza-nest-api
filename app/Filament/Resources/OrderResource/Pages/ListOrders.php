@@ -27,9 +27,14 @@ class ListOrders extends ListRecords
     public function getTabs(): array
     {
         $waiting = Order::query()->where('payment_status', WalletPayments::AWAITING)->count();
+        $preorders = Order::query()->where('status', 'preorder')->count();
 
         return [
             'all' => Tab::make('All orders'),
+            'preorders' => Tab::make('Pre-orders')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'preorder'))
+                ->badge($preorders > 0 ? $preorders : null)
+                ->badgeColor('preorder'),
             'to_verify' => Tab::make('Payment to verify')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('payment_status', WalletPayments::AWAITING))
                 ->badge($waiting > 0 ? $waiting : null)

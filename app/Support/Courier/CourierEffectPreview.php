@@ -28,7 +28,7 @@ final class CourierEffectPreview
 
         Order::query()->notLegacy()
             ->whereNotNull('courier')->whereNotNull('courier_booked_at')->whereNotNull('courier_status')
-            ->whereNull('courier_final_at')->whereNull('courier_returned_at')
+            ->whereNull('courier_final_at')->whereNull('courier_returned_at')->where('status', '!=', 'preorder')
             ->orderBy('id')
             ->chunkById(200, function ($orders) use (&$rows, $notify): void {
                 foreach ($orders as $order) {
