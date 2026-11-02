@@ -185,6 +185,8 @@
         .fi-fo-file-upload, .fi-fo-rich-editor, .fi-fo-markdown-editor, .fi-fo-tags-input, .fi-fo-select { max-width: 100%; }
         .fi-fo-rich-editor .trix-content, .fi-fo-rich-editor trix-editor { max-width: 100%; }
         .fi-fo-rich-editor trix-toolbar .trix-button-row { flex-wrap: wrap; }
+        /* the rich text editor's button groups wrap onto more lines instead of scrolling sideways */
+        .fi-fo-rich-editor-toolbar > div { flex-wrap: wrap; overflow-x: visible; row-gap: .25rem; }
         pre, code { white-space: pre-wrap; overflow-wrap: anywhere; }
         .fi-in-entry-wrp, .fi-in-text { overflow-wrap: anywhere; }
 

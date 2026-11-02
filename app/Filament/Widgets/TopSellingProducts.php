@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Support\MobileCards;
 use App\Models\Product;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,7 +18,7 @@ class TopSellingProducts extends BaseWidget
 
     public function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->query(
                 Product::query()
                     ->with('images')
@@ -40,6 +41,9 @@ class TopSellingProducts extends BaseWidget
                     ->sortable(),
                 Tables\Columns\TextColumn::make('price')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state)),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::picture(MobileCards::imageUrl($record->images->first())), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text(((int) $record->total_sold).' sold', ['muted' => true]), MobileCards::text($record->sku, ['muted' => true])], 'right' => [MobileCards::text(MobileCards::taka($record->price), ['strong' => true])]],
             ]);
     }
 }

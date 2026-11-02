@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\AbandonedCheckoutResource\Pages;
+use App\Filament\Support\MobileCards;
 use App\Filament\Widgets\AbandonedCheckoutStats;
 use App\Models\AbandonedCheckout;
 use App\Models\CartRecoverySetting;
@@ -79,7 +80,7 @@ class AbandonedCheckoutResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->defaultSort('last_activity_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('stage')
@@ -150,7 +151,7 @@ class AbandonedCheckoutResource extends Resource
                         ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->where('last_activity_at', '>=', Carbon::parse($d, Dhaka::ZONE)->startOfDay()->utc()))
                         ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->where('last_activity_at', '<=', Carbon::parse($d, Dhaka::ZONE)->endOfDay()->utc()))),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\ViewAction::make()
                     ->label('Cart')
                     ->infolist([
@@ -253,9 +254,16 @@ class AbandonedCheckoutResource extends Resource
                     ->modalDescription('Stops every reminder for this checkout. It stays in the list.')
                     ->visible(fn (AbandonedCheckout $r): bool => $r->status === AbandonedCheckout::STATUS_OPEN)
                     ->action(fn (AbandonedCheckout $record) => $record->forceFill(['status' => AbandonedCheckout::STATUS_IGNORED])->save()),
-            ])
+            ]))
             ->bulkActions([])
-            ->poll('60s');
+            ->poll('60s'), fn ($record): array => [
+                ['left' => [MobileCards::text($record->displayName(), ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::badge(AbandonedCheckout::STATUSES[$record->status] ?? $record->status, match ($record->status) {
+                    'open' => 'warning', 'recovered', 'ordered' => 'success', 'unsubscribed' => 'danger', default => 'gray'
+                })]],
+                ['left' => [MobileCards::text(implode(' · ', array_filter([$record->phone, $record->email])), ['muted' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text(MobileCards::taka($record->cart_total).' · '.count($record->items ?? []).' pcs', ['strong' => true])], 'right' => [MobileCards::text(Dhaka::readable($record->last_activity_at), ['muted' => true])]],
+                ['left' => [MobileCards::badge(AbandonedCheckout::STAGES[$record->stage] ?? $record->stage, 'gray'), MobileCards::text($record->messages_count === 0 ? 'No reminder sent' : $record->messages_count.' sent', ['muted' => true])]],
+            ]);
     }
 
     public static function getPages(): array

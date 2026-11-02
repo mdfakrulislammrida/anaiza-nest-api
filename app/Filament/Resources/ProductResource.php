@@ -7,6 +7,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
+use App\Filament\Support\MobileCards;
 use App\Models\Product;
 use App\Support\Pricing;
 use App\Support\Sku;
@@ -329,7 +330,8 @@ class ProductResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
+            ->modifyQueryUsing(fn ($query) => $query->with(['images', 'category']))
             ->columns([
                 Tables\Columns\TextColumn::make('category.name')
                     ->sortable(),
@@ -374,14 +376,18 @@ class ProductResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_new'),
                 Tables\Filters\TernaryFilter::make('is_featured'),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::picture(MobileCards::imageUrl($record->images->first())), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::badge($record->is_active ? 'Active' : 'Hidden', $record->is_active ? 'success' : 'gray')]],
+                ['left' => [MobileCards::text($record->sku, ['muted' => true]), MobileCards::text($record->category?->name, ['muted' => true])]],
+                ['left' => [MobileCards::badge($record->stock_quantity > 0 ? 'In stock: '.$record->stock_quantity : 'Out of stock', $record->stock_quantity > 0 ? 'success' : 'danger')], 'right' => [MobileCards::text(MobileCards::taka($record->sale_price ?: $record->price), ['strong' => true])]],
             ]);
     }
 

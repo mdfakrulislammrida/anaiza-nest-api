@@ -6,6 +6,7 @@ use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Filament\Support\DeleteGuard;
+use App\Filament\Support\MobileCards;
 use App\Models\Customer;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -56,7 +57,7 @@ class CustomerResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
@@ -76,15 +77,19 @@ class CustomerResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->using(DeleteGuard::bulk(['orders' => 'orders'], "Orders are kept as a record of sales, so customers with orders can't be deleted."))
                         ->successNotificationTitle(null),
                 ]),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::text($record->name, ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::text($record->orders_count.($record->orders_count === 1 ? ' order' : ' orders'), ['muted' => true])]],
+                ['left' => [MobileCards::text($record->phone, ['muted' => true])]],
+                ['left' => [MobileCards::text($record->email, ['muted' => true, 'wrap' => true])]],
             ]);
     }
 

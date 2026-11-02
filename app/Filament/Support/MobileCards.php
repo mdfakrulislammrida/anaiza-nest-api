@@ -2,11 +2,14 @@
 
 namespace App\Filament\Support;
 
+use App\Models\ProductImage;
+use App\Support\MediaUrl;
 use Closure;
 use Filament\Actions\ActionGroup as PageActionGroup;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\ViewColumn;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -36,6 +39,24 @@ final class MobileCards
         }
 
         return [...$columns, self::card($rows)];
+    }
+
+    /**
+     * Makes a table already defined read as cards on a phone: every column is kept and shown from md up, and one card column is added. Call it last,
+     * around the table. The row actions are NOT touched here: an action cannot be copied (its closures point at the original), so a list gives its
+     * actions to MobileCards::actions() as a function that builds them, which is called once for the line and once for the phone menu.
+     *
+     * @param  Closure(Model): list<array<string, mixed>>  $rows
+     */
+    public static function phone(Table $table, Closure $rows): Table
+    {
+        return $table->columns(self::columns(array_values($table->getColumns()), $rows));
+    }
+
+    /** A product picture at its small size, as an address (null when there is none). */
+    public static function imageUrl(?ProductImage $image): ?string
+    {
+        return MediaUrl::resolve($image?->url_400 ?: $image?->url);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Support\MobileCards;
 use App\Models\Order;
 use Filament\Tables;
 use Filament\Tables\Enums\FiltersLayout;
@@ -25,7 +26,7 @@ class UtmAttributionWidget extends BaseWidget
 
     public function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->query(
                 Order::query()
                     ->selectRaw('MIN(id) as id')
@@ -70,6 +71,9 @@ class UtmAttributionWidget extends BaseWidget
                     ->label('Revenue')
                     ->formatStateUsing(fn ($state): string => '৳'.number_format((float) $state))
                     ->sortable(),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::text($record->utm_campaign ?: '—', ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::text('৳'.number_format((float) $record->revenue), ['strong' => true])]],
+                ['left' => [MobileCards::text($record->utm_source, ['muted' => true]), MobileCards::text($record->orders_count.($record->orders_count == 1 ? ' order' : ' orders'), ['muted' => true])]],
             ]);
     }
 }

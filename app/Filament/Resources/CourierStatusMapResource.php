@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CourierStatusMapResource\Pages;
+use App\Filament\Support\MobileCards;
 use App\Models\CourierSetting;
 use App\Models\CourierStatusMap;
 use Filament\Forms;
@@ -70,7 +71,7 @@ class CourierStatusMapResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->defaultSort('rank')
             ->paginated([25, 50])
             ->columns([
@@ -94,9 +95,15 @@ class CourierStatusMapResource extends Resource
                 Tables\Filters\SelectFilter::make('courier')->options(CourierSetting::COURIERS),
                 Tables\Filters\Filter::make('unmapped')->label('Not mapped yet')->toggle()->query(fn ($query) => $query->where('stage', 'like', 'Unknown status%')),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
+            ->actions(MobileCards::actions(fn (): array => [Tables\Actions\EditAction::make()]))
             ->emptyStateHeading('No statuses yet')
-            ->emptyStateDescription('Statuses appear here as the couriers report them.');
+            ->emptyStateDescription('Statuses appear here as the couriers report them.'), fn ($record): array => [
+                ['left' => [MobileCards::text(CourierSetting::COURIERS[$record->courier] ?? $record->courier, ['strong' => true]), MobileCards::text($record->courier_status, ['muted' => true, 'wrap' => true])], 'right' => [MobileCards::badge(CourierStatusMap::EFFECTS[$record->effect] ?? $record->effect, match ($record->effect) {
+                    'delivered' => 'success', 'returned' => 'danger', 'partial' => 'warning', default => 'gray'
+                })]],
+                ['left' => [MobileCards::text($record->stage, ['wrap' => true])]],
+                ['left' => array_values(array_filter([$record->is_final ? MobileCards::badge('Final', 'gray') : null, $record->marks_cod_collected ? MobileCards::badge('Cash collected', 'gray') : null, MobileCards::badge($record->armed ? 'Acts on orders' : 'Not armed', $record->armed ? 'success' : 'warning')])), 'right' => [MobileCards::text('Seen '.$record->seen_count, ['muted' => true])]],
+            ]);
     }
 
     public static function getPages(): array

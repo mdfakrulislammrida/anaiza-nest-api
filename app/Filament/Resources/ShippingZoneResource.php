@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ShippingZoneResource\Pages;
 use App\Filament\Support\DeleteGuard;
+use App\Filament\Support\MobileCards;
 use App\Models\ShippingZone;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -47,7 +48,7 @@ class ShippingZoneResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
@@ -56,16 +57,19 @@ class ShippingZoneResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('estimated_days'),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['orders' => 'orders'], 'Orders keep their shipping zone, so change the zone on those orders first.')),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->using(DeleteGuard::bulk(['orders' => 'orders'], 'Orders keep their shipping zone, so change the zone on those orders first.'))
                         ->successNotificationTitle(null),
                 ]),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::text($record->name, ['strong' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text(MobileCards::taka($record->delivery_fee), ['strong' => true]), MobileCards::text($record->estimated_days, ['muted' => true])]],
             ]);
     }
 

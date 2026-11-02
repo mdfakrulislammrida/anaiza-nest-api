@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ProductReviewResource\Pages;
+use App\Filament\Support\MobileCards;
 use App\Models\ProductReview;
 use App\Support\MediaUrl;
 use Filament\Forms;
@@ -106,7 +107,7 @@ class ProductReviewResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('status')
@@ -145,7 +146,7 @@ class ProductReviewResource extends Resource
                 Tables\Filters\SelectFilter::make('rating')->options([5 => '5 stars', 4 => '4 stars', 3 => '3 stars', 2 => '2 stars', 1 => '1 star']),
                 Tables\Filters\SelectFilter::make('product_id')->label('Product')->relationship('product', 'name')->searchable()->preload(),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make()->label('Open'),
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
@@ -159,7 +160,7 @@ class ProductReviewResource extends Resource
                     ->color('danger')
                     ->visible(fn (ProductReview $record): bool => $record->status !== ProductReview::REJECTED)
                     ->action(fn (ProductReview $record) => self::moderate($record, ProductReview::REJECTED)),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('approveSelected')
@@ -178,7 +179,14 @@ class ProductReviewResource extends Resource
                 ]),
             ])
             ->emptyStateHeading('No reviews yet')
-            ->emptyStateDescription('Reviews from customers who ordered a piece appear here to be read before they are shown.');
+            ->emptyStateDescription('Reviews from customers who ordered a piece appear here to be read before they are shown.'), fn ($record): array => [
+                ['left' => [MobileCards::text($record->name, ['strong' => true, 'wrap' => true]), MobileCards::text('★ '.$record->rating.'/5', ['muted' => true])], 'right' => [MobileCards::badge(ProductReview::STATUSES[$record->status] ?? $record->status, match ($record->status) {
+                    ProductReview::PENDING => 'warning', ProductReview::APPROVED => 'success', default => 'danger'
+                })]],
+                ['left' => [MobileCards::text($record->product?->name, ['muted' => true, 'wrap' => true])]],
+                ['left' => [MobileCards::text(str($record->body)->limit(110)->toString(), ['wrap' => true])]],
+                ['left' => [MobileCards::text($record->created_at?->timezone('Asia/Dhaka')->format('j M, g:i A'), ['muted' => true])]],
+            ]);
     }
 
     public static function moderate(ProductReview $review, string $status, bool $notify = true): void

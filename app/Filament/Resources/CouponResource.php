@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CouponResource\Pages;
+use App\Filament\Support\MobileCards;
 use App\Models\Coupon;
 use App\Support\Contact;
 use App\Support\Coupons\CouponService;
@@ -125,7 +126,7 @@ class CouponResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return MobileCards::phone($table
             ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('code')
@@ -162,14 +163,18 @@ class CouponResource extends Resource
                 Tables\Filters\SelectFilter::make('source')
                     ->options(['manual' => 'Made by hand', 'recovery' => 'Cart recovery']),
             ])
-            ->actions([
+            ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
+            ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ]), fn ($record): array => [
+                ['left' => [MobileCards::text($record->code, ['strong' => true])], 'right' => [MobileCards::badge(self::status($record), self::status($record) === 'Live' ? 'success' : 'gray')]],
+                ['left' => [MobileCards::text($record->valueLabel().($record->min_order ? ', over ৳'.number_format($record->min_order) : ''), ['wrap' => true])]],
+                ['left' => [MobileCards::text($record->valid_until ? 'Ends '.Dhaka::readable($record->valid_until) : 'No end', ['muted' => true])], 'right' => [MobileCards::text('Used '.$record->used_count, ['muted' => true])]],
             ]);
     }
 
