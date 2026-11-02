@@ -160,7 +160,10 @@ class SiteSetting extends Model
     /** The promo text to show: the admin's own wording, else the generated default. */
     public function promoTextOrDefault(): string
     {
-        if (blank($this->promo_text) || $this->promo_text === self::LEGACY_DEFAULT_PROMO_TEXT) {
+        // The wording before "Dhaka city" (a saved copy of the generated default) also follows the generated text.
+        $previousDefault = 'Free delivery inside Dhaka on orders over ৳'.number_format($this->free_delivery_threshold);
+
+        if (blank($this->promo_text) || $this->promo_text === self::LEGACY_DEFAULT_PROMO_TEXT || $this->promo_text === $previousDefault) {
             return self::defaultPromoText($this);
         }
 
@@ -171,7 +174,7 @@ class SiteSetting extends Model
     {
         $threshold = number_format(($settings ?? new self)->free_delivery_threshold);
 
-        return "Free delivery inside Dhaka on orders over ৳{$threshold}";
+        return "Free delivery inside Dhaka city on orders over ৳{$threshold}";
     }
 
     public const DEFAULT_WHATSAPP_MESSAGE = 'Hello, I would like some help choosing a gift.';

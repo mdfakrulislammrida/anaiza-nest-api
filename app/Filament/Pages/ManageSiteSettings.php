@@ -264,31 +264,32 @@ class ManageSiteSettings extends Page implements HasForms
                     ->columns(2),
 
                 Section::make('Delivery & returns')
-                    ->description('These numbers drive the delivery fee charged at checkout and every place the storefront quotes delivery or returns, including the product structured data. They start out equal to the previous fixed rules (free over ৳2,000, ৳80 inside Dhaka, ৳130 outside, 1-3 / 3-5 days, 7-day returns). The Shipping and Returns pages are separate text you edit yourself.')
+                    ->description('These numbers drive the delivery fee charged at checkout and every place the storefront quotes delivery or returns, including the product structured data. "Inside Dhaka" means Dhaka city only (the Dhaka city thanas); Gazipur, Narayanganj, Savar, Keraniganj and the rest of the Dhaka division count as outside. They start out equal to the previous fixed rules (free over ৳2,000, ৳80 inside Dhaka city, ৳130 outside, 1-3 / 3-5 days, 7-day returns). The Shipping and Returns pages are separate text you edit yourself.')
                     ->schema([
                         TextInput::make('free_delivery_threshold')
-                            ->label('Free delivery inside Dhaka over (৳)')
-                            ->helperText('Orders with a subtotal above this ship free inside Dhaka. Set 0 to charge the Dhaka fee on every order.')
+                            ->label('Free delivery inside Dhaka city over (৳)')
+                            ->helperText('Orders with a subtotal above this ship free inside Dhaka city only; outside Dhaka city they still pay the outside fee. Set 0 to charge the Dhaka city fee on every order.')
                             ->numeric()->integer()->minValue(0)->required(),
                         TextInput::make('delivery_fee_dhaka')
-                            ->label('Delivery fee inside Dhaka (৳)')
+                            ->label('Delivery fee inside Dhaka city (৳)')
                             ->numeric()->integer()->minValue(0)->required(),
                         TextInput::make('delivery_fee_outside_dhaka')
-                            ->label('Delivery fee outside Dhaka (৳)')
+                            ->label('Delivery fee outside Dhaka city (৳)')
+                            ->helperText('Everywhere that is not Dhaka city, including Gazipur, Narayanganj and the rest of the Dhaka division.')
                             ->numeric()->integer()->minValue(0)->required(),
                         TextInput::make('return_window_days')
                             ->label('Return window (days)')
                             ->helperText('Set 0 if returns are not accepted.')
                             ->numeric()->integer()->minValue(0)->maxValue(365)->required(),
                         TextInput::make('delivery_days_dhaka_min')
-                            ->label('Delivery time inside Dhaka: from (days)')
+                            ->label('Delivery time inside Dhaka city: from (days)')
                             ->numeric()->integer()->minValue(0)->maxValue(60)->required(),
                         TextInput::make('delivery_days_dhaka_max')
                             ->label('...to (days)')
                             ->numeric()->integer()->minValue(0)->maxValue(60)->required()
                             ->gte('delivery_days_dhaka_min'),
                         TextInput::make('delivery_days_outside_min')
-                            ->label('Delivery time outside Dhaka: from (days)')
+                            ->label('Delivery time outside Dhaka city: from (days)')
                             ->numeric()->integer()->minValue(0)->maxValue(60)->required(),
                         TextInput::make('delivery_days_outside_max')
                             ->label('...to (days)')

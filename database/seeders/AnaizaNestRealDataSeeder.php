@@ -233,7 +233,7 @@ class AnaizaNestRealDataSeeder extends Seeder
             [
                 'slug' => 'shipping',
                 'title' => 'Shipping Policy',
-                'content' => "<p>We deliver across Bangladesh through trusted courier partners. Orders inside Dhaka typically arrive within 1-3 business days; orders outside Dhaka arrive within 3-5 business days.</p><p>Delivery is free inside Dhaka for orders over &#2547;2,000. Below that, a flat delivery fee applies based on your area.</p><p>You'll receive a call or SMS from our delivery partner before your order arrives. You can track any order from the Track Order page using your order ID and phone number.</p>",
+                'content' => "<p>We deliver across Bangladesh through trusted courier partners. Orders inside Dhaka city typically arrive within 1-3 business days; orders outside Dhaka city (including Gazipur, Narayanganj, Savar and the rest of the Dhaka division) arrive within 3-5 business days.</p><p>Delivery is free inside Dhaka city for orders over &#2547;2,000. Below that, a flat delivery fee applies based on your area.</p><p>You'll receive a call or SMS from our delivery partner before your order arrives. You can track any order from the Track Order page using your order ID and phone number.</p>",
             ],
             [
                 'slug' => 'returns',
@@ -243,7 +243,7 @@ class AnaizaNestRealDataSeeder extends Seeder
             [
                 'slug' => 'terms',
                 'title' => 'Terms & Conditions',
-                'content' => "<p>By placing an order with Anaiza Nest, you agree to these terms. Product prices, descriptions, and availability are subject to change without notice.</p><p>Orders are confirmed once payment is received or, for Cash on Delivery, once the order is placed. We reserve the right to cancel any order suspected of fraud or error.</p><p>For questions about these terms, please get in touch through the Contact page.</p>",
+                'content' => '<p>By placing an order with Anaiza Nest, you agree to these terms. Product prices, descriptions, and availability are subject to change without notice.</p><p>Orders are confirmed once payment is received or, for Cash on Delivery, once the order is placed. We reserve the right to cancel any order suspected of fraud or error.</p><p>For questions about these terms, please get in touch through the Contact page.</p>',
             ],
         ];
 

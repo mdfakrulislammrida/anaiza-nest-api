@@ -30,7 +30,7 @@ class ShippingZoneResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->helperText("e.g. 'Inside Dhaka' or 'Outside Dhaka'")
+                    ->helperText("e.g. 'Inside Dhaka city' or 'Outside Dhaka city' (Gazipur, Narayanganj, Savar and the rest of the Dhaka division are outside). Used when you set an order's fee by hand in the admin; the checkout fee follows Site settings.")
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('delivery_fee')

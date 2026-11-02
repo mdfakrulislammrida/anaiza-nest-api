@@ -49,9 +49,9 @@ class StorePolicyAndContentFieldsTest extends TestCase
     {
         $this->assertSame(0, SiteSetting::count());
 
-        $this->assertSame(0, DeliveryFeeCalculator::forDivision('Dhaka', 2001));
-        $this->assertSame(80, DeliveryFeeCalculator::forDivision('Dhaka', 2000));
-        $this->assertSame(130, DeliveryFeeCalculator::forDivision('Chattogram', 99999));
+        $this->assertSame(0, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 2001));
+        $this->assertSame(80, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 2000));
+        $this->assertSame(130, DeliveryFeeCalculator::forAddress('Chattogram', 'Chattogram', 'Kotwali', 99999));
     }
 
     public function test_a_freshly_created_settings_row_also_carries_the_previous_rules(): void
@@ -62,8 +62,8 @@ class StorePolicyAndContentFieldsTest extends TestCase
         $this->assertSame(80, $settings->delivery_fee_dhaka);
         $this->assertSame(130, $settings->delivery_fee_outside_dhaka);
         $this->assertSame(7, $settings->return_window_days);
-        $this->assertSame(0, DeliveryFeeCalculator::forDivision('Dhaka', 2001));
-        $this->assertSame(80, DeliveryFeeCalculator::forDivision('Dhaka', 100));
+        $this->assertSame(0, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 2001));
+        $this->assertSame(80, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 100));
     }
 
     public function test_edited_settings_change_the_calculator(): void
@@ -75,10 +75,10 @@ class StorePolicyAndContentFieldsTest extends TestCase
             'delivery_fee_outside_dhaka' => 200,
         ]);
 
-        $this->assertSame(100, DeliveryFeeCalculator::forDivision('Dhaka', 2500));
-        $this->assertSame(100, DeliveryFeeCalculator::forDivision('Dhaka', 5000), 'threshold itself is not free (strictly over)');
-        $this->assertSame(0, DeliveryFeeCalculator::forDivision('Dhaka', 5001));
-        $this->assertSame(200, DeliveryFeeCalculator::forDivision('Sylhet', 9000));
+        $this->assertSame(100, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 2500));
+        $this->assertSame(100, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 5000), 'threshold itself is not free (strictly over)');
+        $this->assertSame(0, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 5001));
+        $this->assertSame(200, DeliveryFeeCalculator::forAddress('Sylhet', 'Sylhet', 'Sylhet Sadar', 9000));
     }
 
     public function test_checkout_charges_the_edited_fee_end_to_end(): void

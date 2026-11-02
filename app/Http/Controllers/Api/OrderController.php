@@ -224,9 +224,15 @@ class OrderController extends Controller
                 }
             }
 
-            // The delivery fee follows the cart as it stands (before any coupon), so a discount never costs a customer free
-            // delivery. The coupon is checked again here, under lock, whatever the browser showed.
-            $deliveryFee = DeliveryFeeCalculator::forDivision($request->string('division')->toString(), $subtotal);
+            // The delivery fee follows the address (Dhaka city or not) and the cart as it stands (before any coupon), so a
+            // discount never costs a customer free delivery. The server decides it here, whatever the browser showed, and the
+            // coupon is checked again here, under lock.
+            $deliveryFee = DeliveryFeeCalculator::forAddress(
+                $request->string('division')->toString(),
+                $request->string('district')->toString(),
+                $request->string('thana')->toString(),
+                $subtotal,
+            );
 
             $coupon = null;
             $discount = 0;

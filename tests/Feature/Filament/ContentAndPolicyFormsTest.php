@@ -170,9 +170,9 @@ class ContentAndPolicyFormsTest extends TestCase
         $this->assertSame(3000, $settings->free_delivery_threshold);
         $this->assertSame(14, $settings->return_window_days);
         $this->assertSame('Anaiza Nest sells ceramic tea sets in Bangladesh.', $settings->brand_description);
-        $this->assertSame(95, DeliveryFeeCalculator::forDivision('Dhaka', 2500));
-        $this->assertSame(0, DeliveryFeeCalculator::forDivision('Dhaka', 3001));
-        $this->assertSame(160, DeliveryFeeCalculator::forDivision('Sylhet', 100));
+        $this->assertSame(95, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 2500));
+        $this->assertSame(0, DeliveryFeeCalculator::forAddress('Dhaka', 'Dhaka', 'Banani', 3001));
+        $this->assertSame(160, DeliveryFeeCalculator::forAddress('Sylhet', 'Sylhet', 'Sylhet Sadar', 100));
     }
 
     public function test_an_untouched_default_promo_text_is_stored_blank_so_it_keeps_following_the_threshold(): void

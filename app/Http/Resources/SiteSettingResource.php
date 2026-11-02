@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\IntegrationSetting;
 use App\Models\PaymentSetting;
 use App\Models\SiteSetting;
+use App\Support\DhakaCity;
 use App\Support\HomepagePictures;
 use App\Support\ImageSize;
 use App\Support\Seo;
@@ -99,6 +100,14 @@ class SiteSettingResource extends JsonResource
                     'max' => $this->delivery_days_outside_max,
                 ],
                 'return_window_days' => $this->return_window_days,
+                // "Inside Dhaka" means Dhaka city only: the ৳80 fee, the 1-3 days and free delivery over the threshold all
+                // apply to an address in this division + district + one of these thanas. Anything else is outside.
+                'dhaka_city' => [
+                    'division' => config('delivery.dhaka_city.division'),
+                    'district' => config('delivery.dhaka_city.district'),
+                    'thanas' => DhakaCity::thanas(),
+                    'outside_upazilas' => DhakaCity::outsideUpazilas(),
+                ],
             ],
         ];
     }
