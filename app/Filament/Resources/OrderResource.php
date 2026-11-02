@@ -7,6 +7,7 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Filament\Support\ConversionActions;
 use App\Filament\Support\CourierActions;
+use App\Filament\Support\MobileCards;
 use App\Filament\Support\PaymentActions;
 use App\Models\BlockedContact;
 use App\Models\CourierSetting;
@@ -241,11 +242,46 @@ class OrderResource extends Resource
             ]);
     }
 
+    /**
+     * What an order shows as a card on a phone: the number and time, the status, who it is for and their phone, how it is paid, the courier, the total.
+     * (From 768 px up the table's own columns show instead.)
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function phoneCard(Order $order): array
+    {
+        $recipient = $order->recipient();
+        $statusColor = match ($order->status) {
+            'processing' => 'warning',
+            'shipped' => 'info',
+            'delivered' => 'success',
+            'cancelled', 'returned' => 'danger',
+            default => 'gray',
+        };
+        $paymentColor = match ($order->payment_status) {
+            WalletPayments::AWAITING => 'warning',
+            'verified' => 'success',
+            'failed' => 'danger',
+            default => 'gray',
+        };
+        $courier = $order->courier_booked_at === null
+            ? 'Not sent to a courier'
+            : trim((CourierSetting::COURIERS[$order->courier] ?? ucfirst((string) $order->courier)).' · '.($order->courier_status_text ?: 'Booked'));
+
+        return [
+            ['left' => [MobileCards::text('#'.$order->number(), ['strong' => true]), MobileCards::text($order->created_at?->timezone('Asia/Dhaka')->format('j M, g:i A'), ['muted' => true])],
+                'right' => [MobileCards::badge(self::STATUSES[$order->status] ?? $order->status, $statusColor)]],
+            ['left' => [MobileCards::text($recipient['name'] ?: '—', ['wrap' => true]), MobileCards::text($recipient['phone'], ['muted' => true])]],
+            ['left' => [MobileCards::badge(self::PAYMENT_STATUSES[$order->payment_status] ?? (string) $order->payment_status, $paymentColor), MobileCards::text($courier, ['muted' => true, 'wrap' => true])],
+                'right' => [MobileCards::text(MobileCards::taka($order->total), ['strong' => true])]],
+        ];
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            ->columns([
+            ->columns(MobileCards::columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('Order #')
                     ->sortable(),
@@ -360,7 +396,7 @@ class OrderResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
+            ], fn (Order $order): array => self::phoneCard($order)))
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(self::STATUSES),

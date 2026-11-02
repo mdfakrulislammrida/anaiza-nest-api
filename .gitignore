@@ -37,3 +37,6 @@ Thumbs.db
 
 # Copies of the database made before an import or a purge: customer data, never committed.
 /storage/backups/
+
+# Phone screenshots of the admin (made locally by scripts/mobile-admin-check.mjs)
+/docs/mobile-admin-screenshots/

@@ -47,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
-                fn (): string => view('filament.admin.compact-styles')->render(),
+                fn (): string => view('filament.admin.compact-styles')->render().view('filament.admin.mobile-styles')->render(),
             )
             // A banner on every page while Pathao is in its sandbox. Never allowed to break the admin (the table may not exist yet).
             ->renderHook(
