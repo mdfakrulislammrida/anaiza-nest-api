@@ -55,7 +55,10 @@ class UploadsSurviveASecondSaveTest extends TestCase
     {
         $banner = AdminRecords::for(Banner::class);
 
+        // The fixture's old picture is not on the disk; the field now shows it as a neutral tile (it is no longer dropped silently), so, as on the
+        // screen, it is taken out of the field before the new picture is put in.
         $page = Livewire::test(EditBanner::class, ['record' => $banner->getRouteKey()])
+            ->set('data.image_url', [])
             ->fillForm(['image_url' => UploadedFile::fake()->image('slide.png', 1600, 600)])
             ->call('save')->assertHasNoFormErrors();
 
