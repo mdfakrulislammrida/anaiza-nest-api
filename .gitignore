@@ -40,3 +40,6 @@ Thumbs.db
 
 # Phone screenshots of the admin (made locally by scripts/mobile-admin-check.mjs)
 /docs/mobile-admin-screenshots/
+
+# Screenshots of the ADM1 screens (made locally by scripts/adm1-check.mjs)
+/docs/adm1-screenshots/

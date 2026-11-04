@@ -40,6 +40,12 @@ final class ProductThumbnail
         return null;
     }
 
+    /** One gallery picture's smallest usable copy, by the same rule as the list (the product's pictures table in the admin uses it too). */
+    public static function imageUrl(ProductImage $picture): ?string
+    {
+        return self::smallestThatExists($picture);
+    }
+
     private static function smallestThatExists(ProductImage $picture): ?string
     {
         foreach ([$picture->url_400, $picture->url_800, $picture->url] as $stored) {

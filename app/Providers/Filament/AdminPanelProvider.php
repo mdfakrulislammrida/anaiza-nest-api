@@ -2,10 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Support\UploadPreview;
 use App\Models\CourierSetting;
 use App\Support\Dhaka;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TimePicker;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -48,6 +50,9 @@ class AdminPanelProvider extends PanelProvider
         TextEntry::configureUsing(fn (TextEntry $entry) => $entry->timezone(Dhaka::ZONE));
         // A date-only or time-only picker is left alone: a Dhaka midnight is the day before in UTC, and the stored date would move back a day.
         DateTimePicker::configureUsing(fn (DateTimePicker $picker) => $picker instanceof DatePicker || $picker instanceof TimePicker ? null : $picker->timezone(Dhaka::ZONE));
+
+        // Every upload field: a small picture drawn from the page's own address (the "important" flag runs it after the field's own defaults).
+        FileUpload::configureUsing(fn (FileUpload $upload) => UploadPreview::configure($upload), isImportant: true);
     }
 
     public function panel(Panel $panel): Panel
@@ -76,7 +81,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
-                fn (): string => view('filament.admin.compact-styles')->render().view('filament.admin.mobile-styles')->render(),
+                fn (): string => view('filament.admin.compact-styles')->render().view('filament.admin.mobile-styles')->render().view('filament.admin.upload-styles')->render(),
             )
             // A banner on every page while Pathao is in its sandbox. Never allowed to break the admin (the table may not exist yet).
             ->renderHook(

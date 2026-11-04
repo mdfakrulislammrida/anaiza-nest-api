@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\ProductResource\RelationManagers;
 
+use App\Filament\Support\UploadPreview;
+use App\Models\ProductImage;
+use App\Support\ProductThumbnail;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -96,9 +99,13 @@ class ImagesRelationManager extends RelationManager
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
             ->columns([
-                Tables\Columns\ImageColumn::make('url')
+                // The same picture the Products list shows (ProductThumbnail), so the two never disagree; a neutral tile when no copy is on the disk.
+                // Its own name: it used to be called "url" like the text column below, and a table keeps one column per name, so the picture was never shown.
+                Tables\Columns\ImageColumn::make('preview')
                     ->label('Preview')
-                    ->disk('public'),
+                    ->getStateUsing(fn (ProductImage $record): ?string => ProductThumbnail::imageUrl($record))
+                    ->defaultImageUrl(UploadPreview::placeholderUrl('no-picture.png'))
+                    ->size(UploadPreview::SIZE / 2),
                 Tables\Columns\TextColumn::make('url')
                     ->limit(40)
                     ->searchable(),
