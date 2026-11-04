@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\ProductReviewResource\Pages;
 use App\Filament\Support\MobileCards;
+use App\Filament\Support\PlacedFilter;
 use App\Models\ProductReview;
 use App\Support\MediaUrl;
 use Filament\Forms;
@@ -142,6 +143,7 @@ class ProductReviewResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                PlacedFilter::make('received', 'created_at', 'Received'),
                 Tables\Filters\SelectFilter::make('status')->options(ProductReview::STATUSES),
                 Tables\Filters\SelectFilter::make('rating')->options([5 => '5 stars', 4 => '4 stars', 3 => '3 stars', 2 => '2 stars', 1 => '1 star']),
                 Tables\Filters\SelectFilter::make('product_id')->label('Product')->relationship('product', 'name')->searchable()->preload(),

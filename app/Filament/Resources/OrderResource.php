@@ -9,6 +9,7 @@ use App\Filament\Support\ConversionActions;
 use App\Filament\Support\CourierActions;
 use App\Filament\Support\MobileCards;
 use App\Filament\Support\PaymentActions;
+use App\Filament\Support\PlacedFilter;
 use App\Models\BlockedContact;
 use App\Models\CourierSetting;
 use App\Models\Order;
@@ -16,6 +17,7 @@ use App\Models\ReviewRequestSetting;
 use App\Models\ShippingZone;
 use App\Models\User;
 use App\Support\Contact;
+use App\Support\Dhaka;
 use App\Support\Reviews\ReviewRequests;
 use App\Support\WalletPayments;
 use Filament\Actions\Action;
@@ -93,6 +95,14 @@ class OrderResource extends Resource
                     ->options(self::STATUSES)
                     ->default('pending')
                     ->required(),
+                Forms\Components\Placeholder::make('placed_on')
+                    ->label('Placed on')
+                    ->content(fn (?Order $record): string => Dhaka::format($record?->created_at).' (Dhaka time)')
+                    ->visible(fn (?Order $record): bool => $record !== null),
+                Forms\Components\Placeholder::make('order_times')
+                    ->label('Times')
+                    ->content(fn (?Order $record): HtmlString => self::timesHtml($record))
+                    ->visible(fn (?Order $record): bool => $record !== null && self::times($record) !== []),
                 Forms\Components\TextInput::make('courier_name')
                     ->label('Courier')
                     ->maxLength(100)
@@ -272,12 +282,46 @@ class OrderResource extends Resource
             : trim((CourierSetting::COURIERS[$order->courier] ?? ucfirst((string) $order->courier)).' · '.($order->courier_status_text ?: 'Booked'));
 
         return [
-            ['left' => [MobileCards::text('#'.$order->number(), ['strong' => true]), MobileCards::text($order->created_at?->timezone('Asia/Dhaka')->format('j M, g:i A'), ['muted' => true])],
+            ['left' => [MobileCards::text('#'.$order->number(), ['strong' => true]), MobileCards::text(Dhaka::format($order->created_at), ['muted' => true])],
                 'right' => [MobileCards::badge(self::STATUSES[$order->status] ?? $order->status, $statusColor)]],
             ['left' => [MobileCards::text($recipient['name'] ?: '—', ['wrap' => true]), MobileCards::text($recipient['phone'], ['muted' => true])]],
             ['left' => [MobileCards::badge(self::PAYMENT_STATUSES[$order->payment_status] ?? (string) $order->payment_status, $paymentColor), MobileCards::text($courier, ['muted' => true, 'wrap' => true])],
                 'right' => [MobileCards::text(MobileCards::taka($order->total), ['strong' => true])]],
         ];
+    }
+
+    /**
+     * The times the order already carries, each only when it exists. The shop keeps no status history, so nothing is invented (there is no
+     * "shipped" or "cancelled" time to show, only these). In Dhaka time.
+     *
+     * @return array<string, string>
+     */
+    public static function times(Order $order): array
+    {
+        $times = [
+            'Placed' => $order->created_at,
+            'Payment verified' => $order->payment_verified_at,
+            'Sent to courier' => $order->courier_booked_at,
+            'Delivered' => $order->delivered_at,
+            'Cash collected' => $order->cod_collected_at,
+            'Returned or cancelled by the courier' => $order->courier_returned_at,
+        ];
+
+        return collect($times)->filter()->map(fn ($time): string => Dhaka::format($time))->all();
+    }
+
+    public static function timesHtml(?Order $order): HtmlString
+    {
+        if ($order === null) {
+            return new HtmlString('');
+        }
+
+        $html = '<dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 16px">';
+        foreach (self::times($order) as $label => $time) {
+            $html .= '<dt style="color:#6b7280">'.e($label).'</dt><dd>'.e($time).'</dd>';
+        }
+
+        return new HtmlString($html.'</dl>');
     }
 
     public static function table(Table $table): Table
@@ -287,6 +331,11 @@ class OrderResource extends Resource
             ->columns(MobileCards::columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('Order #')
+                    ->sortable(),
+                // When it was placed, in Dhaka time (the table keeps UTC; see AdminPanelProvider::boot).
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Placed')
+                    ->dateTime()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('ship_name')
                     ->label('Customer')
@@ -392,16 +441,13 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('total')
                     ->formatStateUsing(fn (int $state): string => '৳'.number_format($state))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ], fn (Order $order): array => self::phoneCard($order)))
             ->filters([
+                PlacedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->options(self::STATUSES),
                 Tables\Filters\SelectFilter::make('origin')

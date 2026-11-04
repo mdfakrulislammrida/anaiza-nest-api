@@ -152,13 +152,15 @@
         .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn { display: contents; }
         .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > * { order: 50; min-width: 0; }
         .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(2) { order: 10; }  /* status */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(6) { order: 11; }  /* subtotal */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(8) { order: 12; }  /* delivery fee */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(10) { order: 13; } /* coupon discount */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(9) { order: 14; }  /* total */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(5) { order: 15; }  /* payment method */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(3) { order: 10; }  /* placed on (after status, by its place in the page) */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(4) { order: 10; }  /* the times */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(8) { order: 11; }  /* subtotal */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(10) { order: 12; } /* delivery fee */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(12) { order: 13; } /* coupon discount */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(11) { order: 14; } /* total */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(7) { order: 15; }  /* payment method */
         .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(1) { order: 20; }  /* customer */
-        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(11) { order: 21; } /* delivery details */
+        .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-fo-component-ctn > :nth-child(13) { order: 21; } /* delivery details */
         .fi-resource-orders.fi-resource-edit-record-page .fi-resource-relation-managers { order: 30; min-width: 0; }
         .fi-resource-orders.fi-resource-edit-record-page .fi-form > .fi-form-actions { order: 100; }
 

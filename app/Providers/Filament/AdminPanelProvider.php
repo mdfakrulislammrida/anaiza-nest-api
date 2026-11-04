@@ -3,15 +3,23 @@
 namespace App\Providers\Filament;
 
 use App\Models\CourierSetting;
+use App\Support\Dhaka;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\TimePicker;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -23,6 +31,25 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Every date and time the admin shows is Dhaka time. The database keeps UTC (and the application stays on UTC, so the stored times, the
+     * scheduler, the quiet hours and the emails are untouched); this is only how a time is read on screen. Filament 3.3 has no global display
+     * time zone, so the default is given to the columns and entries that print a time (a date-only column is not shifted) and to the pickers
+     * that hold a time. One format for all: 04 Nov 2026, 11:14 AM.
+     */
+    public function boot(): void
+    {
+        Table::$defaultDateTimeDisplayFormat = Dhaka::DISPLAY;
+        Table::$defaultDateDisplayFormat = 'd M Y';
+        Infolist::$defaultDateTimeDisplayFormat = Dhaka::DISPLAY;
+        Infolist::$defaultDateDisplayFormat = 'd M Y';
+
+        TextColumn::configureUsing(fn (TextColumn $column) => $column->timezone(Dhaka::ZONE));
+        TextEntry::configureUsing(fn (TextEntry $entry) => $entry->timezone(Dhaka::ZONE));
+        // A date-only or time-only picker is left alone: a Dhaka midnight is the day before in UTC, and the stored date would move back a day.
+        DateTimePicker::configureUsing(fn (DateTimePicker $picker) => $picker instanceof DatePicker || $picker instanceof TimePicker ? null : $picker->timezone(Dhaka::ZONE));
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel

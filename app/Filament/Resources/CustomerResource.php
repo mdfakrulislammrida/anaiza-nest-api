@@ -7,6 +7,7 @@ use App\Filament\Resources\CustomerResource\Pages;
 use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Filament\Support\DeleteGuard;
 use App\Filament\Support\MobileCards;
+use App\Filament\Support\PlacedFilter;
 use App\Models\Customer;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -74,8 +75,10 @@ class CustomerResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Joined')
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
+            ])
+            ->filters([
+                PlacedFilter::make('joined', 'created_at', 'Joined'),
             ])
             ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\EditAction::make(),

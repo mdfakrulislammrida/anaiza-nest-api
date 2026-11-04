@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\CouponResource\Pages;
 use App\Filament\Support\MobileCards;
+use App\Filament\Support\PlacedFilter;
 use App\Models\Coupon;
 use App\Support\Contact;
 use App\Support\Coupons\CouponService;
@@ -141,9 +142,13 @@ class CouponResource extends Resource
                     ->state(fn (Coupon $record): string => self::status($record))
                     ->badge()
                     ->color(fn (string $state): string => $state === 'Live' ? 'success' : 'gray'),
+                Tables\Columns\TextColumn::make('valid_from')
+                    ->label('Starts (Dhaka)')
+                    ->formatStateUsing(fn ($state) => $state ? Dhaka::format($state) : 'At once')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('valid_until')
                     ->label('Ends (Dhaka)')
-                    ->formatStateUsing(fn ($state) => $state ? Dhaka::readable($state) : 'No end')
+                    ->formatStateUsing(fn ($state) => $state ? Dhaka::format($state) : 'No end')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('used_count')
                     ->label('Used')
@@ -157,6 +162,8 @@ class CouponResource extends Resource
                     ->toggleable(),
             ])
             ->filters([
+                PlacedFilter::make('starts', 'valid_from', 'Starts'),
+                PlacedFilter::make('ends', 'valid_until', 'Ends'),
                 Tables\Filters\TernaryFilter::make('is_active'),
                 Tables\Filters\SelectFilter::make('discount_type')
                     ->options(self::DISCOUNT_TYPES),

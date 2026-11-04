@@ -31,8 +31,8 @@ class MobileAdminTest extends TestCase
 
     /** The columns the Orders table had before the phone cards were added: all must still be there, in this order. */
     private const ORDER_COLUMNS = [
-        'id', 'ship_name', 'status', 'source', 'legacy_order_id', 'payment_status', 'payment_trx_id', 'courier', 'is_gift', 'payment_method', 'landing_slug',
-        'utm_source', 'utm_medium', 'utm_campaign', 'coupon_code', 'review_request', 'shippingZone.name', 'total', 'created_at', 'updated_at',
+        'id', 'created_at', 'ship_name', 'status', 'source', 'legacy_order_id', 'payment_status', 'payment_trx_id', 'courier', 'is_gift', 'payment_method', 'landing_slug',
+        'utm_source', 'utm_medium', 'utm_campaign', 'coupon_code', 'review_request', 'shippingZone.name', 'total', 'updated_at',
     ];
 
     protected function setUp(): void
@@ -149,12 +149,12 @@ class MobileAdminTest extends TestCase
         // mobile-styles.blade.php puts these parts in a phone's order by their place in the form (:nth-child). If a part is added or moved, this fails
         // and the numbers there need to follow.
         $this->assertSame(
-            ['customer_id', 'status', 'courier_name', 'tracking_number', 'payment_method', 'subtotal', 'shipping_zone_id', 'delivery_fee', 'total', 'discount_amount', 'Section', 'gift_note', 'Section', 'Section', 'is_gift', 'gift_message', 'Section'],
+            ['customer_id', 'status', 'placed_on', 'order_times', 'courier_name', 'tracking_number', 'payment_method', 'subtotal', 'shipping_zone_id', 'delivery_fee', 'total', 'discount_amount', 'Section', 'gift_note', 'Section', 'Section', 'is_gift', 'gift_message', 'Section'],
             $names,
         );
 
         $css = view('filament.admin.mobile-styles')->render();
-        foreach ([[2, 10, 'status'], [6, 11, 'subtotal'], [8, 12, 'delivery fee'], [10, 13, 'coupon discount'], [9, 14, 'total'], [5, 15, 'payment method'], [1, 20, 'customer'], [11, 21, 'delivery details']] as [$child, $order, $part]) {
+        foreach ([[2, 10, 'status'], [3, 10, 'placed on'], [4, 10, 'times'], [8, 11, 'subtotal'], [10, 12, 'delivery fee'], [12, 13, 'coupon discount'], [11, 14, 'total'], [7, 15, 'payment method'], [1, 20, 'customer'], [13, 21, 'delivery details']] as [$child, $order, $part]) {
             $this->assertStringContainsString(":nth-child({$child}) { order: {$order}; }", $css, $part);
         }
     }

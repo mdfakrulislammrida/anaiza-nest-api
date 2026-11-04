@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Concerns\AuthorizesResourceAccess;
 use App\Filament\Resources\AbandonedCheckoutResource\Pages;
 use App\Filament\Support\MobileCards;
+use App\Filament\Support\PlacedFilter;
 use App\Filament\Widgets\AbandonedCheckoutStats;
 use App\Models\AbandonedCheckout;
 use App\Models\CartRecoverySetting;
@@ -22,7 +23,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 
 /**
  * Carts and checkouts left by visitors we can reach. Visitors with no email or phone are not here (they are only counted).
@@ -142,14 +142,8 @@ class AbandonedCheckoutResource extends Resource
                     ->label('Has an email')
                     ->toggle()
                     ->query(fn (Builder $query) => $query->whereNotNull('email')),
-                Tables\Filters\Filter::make('last_activity')
-                    ->form([
-                        Forms\Components\DatePicker::make('from')->label('Last activity from'),
-                        Forms\Components\DatePicker::make('until')->label('Until'),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when($data['from'] ?? null, fn (Builder $q, $d) => $q->where('last_activity_at', '>=', Carbon::parse($d, Dhaka::ZONE)->startOfDay()->utc()))
-                        ->when($data['until'] ?? null, fn (Builder $q, $d) => $q->where('last_activity_at', '<=', Carbon::parse($d, Dhaka::ZONE)->endOfDay()->utc()))),
+                // The same Dhaka-day filter as the Orders list, with the same From / Until names as before.
+                PlacedFilter::make('last_activity', 'last_activity_at', 'Last activity'),
             ])
             ->actions(MobileCards::actions(fn (): array => [
                 Tables\Actions\ViewAction::make()
