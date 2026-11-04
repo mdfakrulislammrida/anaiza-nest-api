@@ -89,6 +89,12 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                // A small round picture (their photo, or their initials). Shown only: a person changes their own photo in My profile, nobody else's.
+                Tables\Columns\ImageColumn::make('photo')
+                    ->label('')
+                    ->circular()
+                    ->size(32)
+                    ->getStateUsing(fn (User $record): string => filament()->getUserAvatarUrl($record)),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')

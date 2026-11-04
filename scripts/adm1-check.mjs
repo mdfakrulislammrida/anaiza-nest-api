@@ -238,6 +238,74 @@ async function main() {
       }
     }
 
+    if (mode === "profile") {
+      // My profile, as a person does it: initials first, then add a photo, replace it, remove it. Every request to another host is listed (there must be none),
+      // and the old files are asked for again after a replace and a remove (they must be gone).
+      await setViewport(page, 1280, 900);
+      await page.cdp.send("Network.enable", {}, page.sessionId);
+      const hosts = new Set();
+      page.cdp.listeners.push((m) => {
+        if (m.sessionId === page.sessionId && m.method === "Network.requestWillBeSent") hosts.add(new URL(m.params.request.url).host);
+      });
+      const menuAvatar = () => evaluate(page, "(() => { const i = document.querySelector('.fi-user-menu img'); return i ? { src: i.getAttribute('src').slice(0, 60), w: Math.round(i.getBoundingClientRect().width), h: Math.round(i.getBoundingClientRect().height) } : null; })()");
+      const status = (u) => evaluate(page, `fetch(${JSON.stringify(u)}, { cache: 'no-store' }).then((r) => r.status)`);
+      const choose = async (file) => {
+        const doc = await page.cdp.send("DOM.getDocument", { depth: -1 }, page.sessionId);
+        const input = await page.cdp.send("DOM.querySelector", { nodeId: doc.root.nodeId, selector: ".fi-fo-file-upload input[type=file]" }, page.sessionId);
+        await page.cdp.send("DOM.setFileInputFiles", { nodeId: input.nodeId, files: [file] }, page.sessionId);
+        // Wait until every picture in the field has finished uploading (a person sees "Upload complete" before pressing Save).
+        for (let attempt = 0; attempt < 40; attempt++) {
+          await sleep(500);
+          if (await evaluate(page, "(() => { const items = [...document.querySelectorAll('.filepond--item')]; return items.length > 0 && items.every((i) => i.getAttribute('data-filepond-item-state') === 'processing-complete'); })()")) break;
+        }
+        await sleep(800);
+      };
+      const save = async () => {
+        await evaluate(page, "[...document.querySelectorAll('button[type=submit]')].find((b) => /Save changes/i.test(b.innerText) && b.offsetParent !== null).click()");
+        await sleep(2500);
+      };
+      const avatarUrl = () => evaluate(page, "(() => { const i = document.querySelector('.fi-user-menu img'); const s = i ? i.getAttribute('src') : ''; return s.startsWith('data:') ? null : s; })()");
+      const sample = (name) => path.resolve(HERE, "..", "storage", "app", "public", "products", name);
+
+      await go(page, `${BASE}/admin/profile`);
+      console.log("1 no photo, menu avatar:", JSON.stringify(await menuAvatar()));
+      await shot(page, "profile-initials", 1280);
+
+      await choose(sample("01M2SX3WNF690XNPQNJQ27Y12V.jpeg"));
+      console.log("  after choosing:", JSON.stringify(await evaluate(page, "[...document.querySelectorAll('.filepond--item')].map((i) => ({ state: i.getAttribute('data-filepond-item-state'), text: i.innerText.replace(/\\s+/g, ' ').trim().slice(0, 50) }))")));
+      await save();
+      console.log("  after save, messages:", JSON.stringify(await evaluate(page, "[...document.querySelectorAll('.fi-fo-field-wrp-error-message, .fi-no-notification, [role=alert]')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim().slice(0, 120))")));
+      await go(page, `${BASE}/admin/profile`);
+      const first = await avatarUrl();
+      console.log("2 after upload, menu avatar:", JSON.stringify(await menuAvatar()), "file status:", await status(first));
+      console.log("  field:", JSON.stringify((await evaluate(page, UPLOADS)).fields));
+      await shot(page, "profile-photo", 1280);
+
+      // A replace, as a person does it: take the old picture out of the field, choose the new one, Save.
+      await evaluate(page, "document.querySelector('.fi-fo-file-upload .filepond--action-remove-item').click()");
+      await sleep(1500);
+      await choose(sample("01M2SX3WNF690XNPQNJQ27Y12V.jpeg"));
+      await save();
+      await go(page, `${BASE}/admin/profile`);
+      const second = await avatarUrl();
+      console.log("3 after replace, new file differs:", second !== first, "| old file status:", await status(first), "| new file status:", await status(second));
+
+      await evaluate(page, "document.querySelector('.fi-fo-file-upload .filepond--action-remove-item').click()");
+      await sleep(1500);
+      await save();
+      await go(page, `${BASE}/admin/profile`);
+      console.log("4 after remove, menu avatar:", JSON.stringify(await menuAvatar()), "| removed file status:", await status(second));
+
+      for (const width of [390, 360]) {
+        await setViewport(page, width, 844);
+        await go(page, `${BASE}/admin/profile`);
+        const phone = await evaluate(page, "({ sideways: document.documentElement.scrollWidth > innerWidth + 1, topbarAvatar: !!document.querySelector('.fi-topbar .fi-user-menu img') })");
+        console.log(`5 profile at ${width}px:`, JSON.stringify(phone));
+        await shot(page, "profile", width);
+      }
+      console.log("hosts contacted during the whole session:", JSON.stringify([...hosts]));
+    }
+
     if (mode === "multi") {
       // Several pictures in one field (the media library's "Upload files" window): do they sit as a small grid, and do the buttons keep a 44 px hit area?
       const samples = ["01M2SX3WNF690XNPQNJQ27Y12V.jpeg", "01M2SX3WNF690XNPQNJQ27Y12V.jpeg", "01M2SX3WNF690XNPQNJQ27Y12V.jpeg"].map((n) => path.resolve(HERE, "..", "storage", "app", "public", "products", n));

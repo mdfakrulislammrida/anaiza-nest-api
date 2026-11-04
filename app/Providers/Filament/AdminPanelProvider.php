@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Support\AdminBrand;
+use App\Filament\Support\InitialsAvatarProvider;
 use App\Filament\Support\UploadPreview;
 use App\Models\CourierSetting;
 use App\Support\Dhaka;
@@ -63,6 +65,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // "My profile" in the top-right menu: name, email, password and a photo, for the signed-in user only. A user with no photo gets their
+            // initials, drawn here (Filament's own default asks ui-avatars.com on every page).
+            ->profile(EditProfile::class)
+            ->defaultAvatarProvider(InitialsAvatarProvider::class)
             // "Anaiza Nest" and the logo from Site settings, set here and not taken from APP_NAME (see AdminBrand).
             ->brandName(AdminBrand::NAME)
             ->brandLogo(fn () => AdminBrand::logo())
