@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Support\AdminBrand;
 use App\Filament\Support\UploadPreview;
 use App\Models\CourierSetting;
 use App\Support\Dhaka;
@@ -62,6 +63,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // "Anaiza Nest" and the logo from Site settings, set here and not taken from APP_NAME (see AdminBrand).
+            ->brandName(AdminBrand::NAME)
+            ->brandLogo(fn () => AdminBrand::logo())
+            ->darkModeBrandLogo(fn () => AdminBrand::darkLogo())
+            ->brandLogoHeight('32px')
+            ->favicon(fn () => AdminBrand::favicon())
             ->colors([
                 'primary' => Color::Amber,
                 // The Pre-order status badge: a colour no other status uses.
@@ -81,7 +88,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
-                fn (): string => view('filament.admin.compact-styles')->render().view('filament.admin.mobile-styles')->render().view('filament.admin.upload-styles')->render(),
+                fn (): string => view('filament.admin.compact-styles')->render().view('filament.admin.mobile-styles')->render().view('filament.admin.upload-styles')->render().view('filament.admin.brand-styles')->render(),
             )
             // A banner on every page while Pathao is in its sandbox. Never allowed to break the admin (the table may not exist yet).
             ->renderHook(

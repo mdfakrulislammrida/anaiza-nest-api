@@ -165,6 +165,35 @@ const UPLOADS = `(async () => {
 async function main() {
   const page = await launch();
   try {
+    if (mode === "login") {
+      // The login page, signed out, at three widths and in light and dark: the logo (visible one) height and centring, the tab title, any sideways scroll.
+      for (const dark of [false, true]) {
+        for (const width of [360, 390, 1280]) {
+          await setViewport(page, width, width < 768 ? 844 : 900, dark);
+          await go(page, `${BASE}/admin/login`, 1800);
+          const found = await evaluate(page, `(() => {
+            const vw = innerWidth;
+            const logos = [...document.querySelectorAll('.fi-simple-layout .fi-logo, .fi-simple-layout .fi-logo img')].filter((el) => el.offsetParent !== null);
+            const logo = logos.find((el) => el.tagName === 'IMG') || logos[0];
+            const r = logo ? logo.getBoundingClientRect() : null;
+            const plate = document.querySelector('.fi-simple-layout img.fi-brand-plate');
+            return {
+              title: document.title,
+              logo: r ? { h: Math.round(r.height), w: Math.round(r.width), centreOffset: Math.round((r.left + r.width / 2) - vw / 2) } : null,
+              logoCss: logo ? (() => { const cs = getComputedStyle(logo); const p = logo.parentElement; return { height: cs.height, maxHeight: cs.maxHeight, shrink: cs.flexShrink, parent: p.className.slice(0, 80), parentH: Math.round(p.getBoundingClientRect().height) }; })() : null,
+              onPlate: !!plate && plate.offsetParent !== null,
+              heading: ((document.querySelector('h1') || {}).innerText || '').trim(),
+              hasApiWord: document.documentElement.innerHTML.includes('Anaiza Nest API'),
+              sideways: document.documentElement.scrollWidth > vw + 1,
+            };
+          })()`);
+          console.log(`login ${dark ? "dark " : "light"} ${width}px:`, JSON.stringify(found));
+          await shot(page, `login-${dark ? "dark" : "light"}`, width);
+        }
+      }
+      return;
+    }
+
     await setViewport(page, 1280, 900);
     await signIn(page);
 
