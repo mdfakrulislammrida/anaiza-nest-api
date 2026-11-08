@@ -120,6 +120,35 @@ final class ConversionEvents
             ->update(['client_ip' => null, 'client_user_agent' => null, 'fbp' => null, 'external_id' => null]);
     }
 
+    /** The shop address the events say they came from (FRONTEND_URL): without a trailing slash, or '' when it is not set. */
+    private static function frontendBase(): string
+    {
+        return rtrim(trim((string) config('app.frontend_url')), '/');
+    }
+
+    /** True in production when FRONTEND_URL is empty or still points at a developer's machine: an event must not claim that address as its page. */
+    public static function frontendUrlUnusable(): bool
+    {
+        $base = strtolower(self::frontendBase());
+
+        return config('app.env') === 'production' && ($base === '' || str_contains($base, 'localhost') || str_contains($base, '127.0.0.1'));
+    }
+
+    /**
+     * The page a sale is reported from (event_source_url): the shop's order confirmation, with the trailing slash the real page has. Null when it
+     * cannot be said truthfully: FRONTEND_URL not set at all, or (in production) not set to the real shop. Then the event goes without it.
+     */
+    public static function orderConfirmationUrl(): ?string
+    {
+        $base = self::frontendBase();
+
+        if ($base === '' || self::frontendUrlUnusable()) {
+            return null;
+        }
+
+        return $base.'/order-confirmation/';
+    }
+
     /**
      * What a purchase is worth to Meta and TikTok: the items total after any discount, without the delivery fee (the order's total minus its
      * delivery fee, never negative). The browser and the server container send the same number, so every sender agrees.

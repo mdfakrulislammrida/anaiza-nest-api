@@ -195,8 +195,8 @@ class LaravelPurchaseSendersTest extends TestCase
         $this->assertSame('Purchase', $event['event_name']);
         $this->assertSame('order-'.$order->id, $event['event_id'], 'the storefront pushes order-<number> too');
         $this->assertSame('website', $event['action_source']);
-        $this->assertSame(config('app.frontend_url').'/order-confirmation', $event['event_source_url']);
-        $this->assertSame(['currency' => 'BDT', 'value' => 3700.0, 'order_id' => (string) $order->id, 'content_type' => 'product', 'content_ids' => ['M-1'], 'contents' => [['id' => 'M-1', 'quantity' => 2, 'item_price' => 1850.0]]], $event['custom_data']);
+        $this->assertSame(rtrim(config('app.frontend_url'), '/').'/order-confirmation/', $event['event_source_url']);
+        $this->assertSame(['currency' => 'BDT', 'value' => 3700.0, 'order_id' => (string) $order->id, 'content_type' => 'product', 'content_ids' => ['M-1'], 'contents' => [['id' => 'M-1', 'quantity' => 2, 'item_price' => 1850.0]], 'num_items' => 2], $event['custom_data']);
         $this->assertSame(['203.0.113.9'], [$event['user_data']['client_ip_address']]);
     }
 

@@ -44,6 +44,12 @@ return [
         'redirect' => null,
     ],
 
+    // Meta's Graph API version for the Conversions API (Purchase and the admin's test event). Meta retires a version about two years after its release:
+    // raise it here, in the .env, when Events Manager says the version is old.
+    'meta' => [
+        'graph_version' => env('META_GRAPH_VERSION') ?: 'v25.0',
+    ],
+
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),

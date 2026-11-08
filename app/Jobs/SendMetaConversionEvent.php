@@ -93,7 +93,7 @@ class SendMetaConversionEvent
             'ln' => $name['last'] ? [$name['last']] : null,
             'ct' => ConversionApiHasher::text($customer->district) ? [ConversionApiHasher::text($customer->district)] : null,
             'st' => ConversionApiHasher::text($customer->division) ? [ConversionApiHasher::text($customer->division)] : null,
-            'country' => [ConversionApiHasher::country()],
+            'country' => ConversionApiHasher::country() ? [ConversionApiHasher::country()] : null,
             // The browser's and the server container's hashed external id, as it arrived (already hashed: never hashed again).
             'external_id' => ($externalId = MatchData::externalId($this->order->external_id)) ? [$externalId] : null,
             // Meta's browser cookie, passed on from checkout.
@@ -106,13 +106,17 @@ class SendMetaConversionEvent
 
         $value = ConversionEvents::purchaseValue($this->order);
 
+        // How many pieces were bought (the line quantities added up); left out when there are none.
+        $numItems = (int) $this->order->items->sum('quantity');
+
         $payload = [
-            'data' => [[
+            'data' => [array_filter([
                 'event_name' => 'Purchase',
                 'event_time' => $eventTime,
                 'event_id' => $eventId,
                 'action_source' => 'website',
-                'event_source_url' => config('app.frontend_url').'/order-confirmation',
+                // Left out (never a made-up or developer address) when FRONTEND_URL is not the real shop: see ConversionEvents::orderConfirmationUrl().
+                'event_source_url' => ConversionEvents::orderConfirmationUrl(),
                 'user_data' => $userData,
                 'custom_data' => [
                     'currency' => 'BDT',
@@ -127,8 +131,9 @@ class SendMetaConversionEvent
                         'quantity' => $item->quantity,
                         'item_price' => (float) $item->price,
                     ])->all(),
+                    ...($numItems > 0 ? ['num_items' => $numItems] : []),
                 ],
-            ]],
+            ], fn ($part) => $part !== null)],
         ];
 
         $testCode = trim((string) $settings->meta_test_event_code);
@@ -142,7 +147,7 @@ class SendMetaConversionEvent
 
         try {
             $response = Http::asJson()->connectTimeout(self::CONNECT_TIMEOUT)->timeout(self::TIMEOUT)
-                ->post("https://graph.facebook.com/v18.0/{$settings->meta_pixel_id}/events", [...$payload, 'access_token' => $token]);
+                ->post('https://graph.facebook.com/'.config('services.meta.graph_version').'/'.$settings->meta_pixel_id.'/events', [...$payload, 'access_token' => $token]);
 
             $body = $response->json() ?? [];
             $received = (int) ($body['events_received'] ?? 0);

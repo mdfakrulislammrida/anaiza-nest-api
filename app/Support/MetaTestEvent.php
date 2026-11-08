@@ -43,7 +43,7 @@ final class MetaTestEvent
         }
 
         try {
-            $response = Http::asJson()->connectTimeout(5)->timeout(20)->post("https://graph.facebook.com/v18.0/{$pixel}/events", [...$payload, 'access_token' => $token]);
+            $response = Http::asJson()->connectTimeout(5)->timeout(20)->post('https://graph.facebook.com/'.config('services.meta.graph_version').'/'.$pixel.'/events', [...$payload, 'access_token' => $token]);
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'Could not reach Meta: '.Redact::secrets($e->getMessage(), [$token])];
         }

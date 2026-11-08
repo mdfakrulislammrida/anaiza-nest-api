@@ -8,6 +8,7 @@ use App\Models\Page;
 use App\Models\PaymentSetting;
 use App\Models\Product;
 use App\Support\Backup\BackupService;
+use App\Support\ConversionEvents;
 use App\Support\WalletPayments;
 use Illuminate\Support\Carbon;
 
@@ -285,6 +286,11 @@ final class GoLiveCheck
 
         foreach (['meta_capi_access_token' => 'Meta conversions token', 'tiktok_events_api_access_token' => 'TikTok events token'] as $field => $label) {
             $rows[] = filled($settings?->{$field}) ? self::row(self::PASS, $label, 'set') : self::row(self::WARN, $label, 'missing');
+        }
+
+        // Without a real shop address the Purchase is sent with no source URL (the job leaves it out rather than say localhost).
+        if (ConversionEvents::frontendUrlUnusable()) {
+            $rows[] = self::row(self::WARN, 'Meta source URL', 'FRONTEND_URL not set for production: the Meta Purchase is sent without a page address. Set FRONTEND_URL to the shop address.');
         }
 
         foreach (['meta_test_event_code' => 'Meta test event code', 'tiktok_test_event_code' => 'TikTok test event code'] as $field => $label) {

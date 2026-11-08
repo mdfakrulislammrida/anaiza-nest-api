@@ -10,13 +10,22 @@ namespace App\Support;
  */
 class ConversionApiHasher
 {
+    /** What a form or a script writes when it has no value. Meta must never receive the hash of one of these as if it were a person's detail. */
+    private const PLACEHOLDERS = ['', 'null', 'undefined', 'none', 'n/a', 'na', 'nan', '-'];
+
+    /** True for nothing, whitespace, or a literal placeholder such as "null" or "N/A" (case-insensitive, after trimming). */
+    public static function isPlaceholder(?string $value): bool
+    {
+        return in_array(strtolower(trim((string) $value)), self::PLACEHOLDERS, true);
+    }
+
     public static function email(?string $email): ?string
     {
-        if (! $email) {
+        if (self::isPlaceholder($email)) {
             return null;
         }
 
-        return hash('sha256', strtolower(trim($email)));
+        return hash('sha256', strtolower(trim((string) $email)));
     }
 
     /**
@@ -52,6 +61,10 @@ class ConversionApiHasher
      */
     public static function text(?string $value): ?string
     {
+        if (self::isPlaceholder($value)) {
+            return null;
+        }
+
         $clean = preg_replace('/[^\p{L}\p{M}]/u', '', mb_strtolower(trim((string) $value)));
 
         return $clean === null || $clean === '' ? null : hash('sha256', $clean);
@@ -69,8 +82,8 @@ class ConversionApiHasher
         return ['first' => self::text($parts[0] ?? null), 'last' => self::text($parts[1] ?? null)];
     }
 
-    public static function country(string $code = 'bd'): string
+    public static function country(?string $code = 'bd'): ?string
     {
-        return hash('sha256', strtolower($code));
+        return self::isPlaceholder($code) ? null : hash('sha256', strtolower(trim((string) $code)));
     }
 }
