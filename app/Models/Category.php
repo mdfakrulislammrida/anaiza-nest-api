@@ -6,6 +6,7 @@ use App\Models\Concerns\CleansContentHtml;
 use App\Models\Concerns\RemembersSlugs;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
@@ -69,9 +70,16 @@ class Category extends Model
         ];
     }
 
+    /** The products whose PRIMARY category this is (products.category_id). What blocks deleting a category. */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /** Every product listed in this category, as primary or extra (category_product), each once. What a category page and the counts use. */
+    public function listedProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'category_product')->withPivot('sort_order')->withTimestamps();
     }
 
     public function faqs(): HasMany

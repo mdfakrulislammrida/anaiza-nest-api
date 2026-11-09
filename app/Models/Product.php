@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\FeedController;
 use App\Support\Pricing;
 use App\Support\Sku;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Product extends Model
 {
@@ -78,6 +80,26 @@ class Product extends Model
 
     protected static function booted(): void
     {
+        // The primary category always has a row in category_product. A new product gets its row; when the primary changes, the old primary's row moves to
+        // the new one (a product that had one category still has one), and the extras are left alone. The admin form then sets the extras it was given.
+        static::saved(function (self $product): void {
+            // During "saved" the attribute is still dirty and the original still holds the old value (it is synced after the event). Not wasRecentlyCreated /
+            // wasChanged: those stay true on the same instance for later saves.
+            if (! $product->isDirty('category_id')) {
+                return;
+            }
+
+            $old = $product->getOriginal('category_id');
+
+            if ($old !== null && (int) $old !== (int) $product->category_id) {
+                $product->categories()->detach((int) $old);
+            }
+
+            $product->categories()->syncWithoutDetaching([(int) $product->category_id]);
+
+            FeedController::forgetAll();
+        });
+
         // A sale price of 0 or less can only be a mistake (it once showed a 100% discount at ৳0): store it as no sale.
         static::saving(function (self $product): void {
             if ($product->sale_price !== null && $product->sale_price <= 0) {
@@ -100,9 +122,55 @@ class Product extends Model
         return (int) round((($this->price - $this->sale_price) / $this->price) * 100);
     }
 
+    /** The PRIMARY category (products.category_id): breadcrumb, feeds, schema, the category on a card. */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /** The same relation under its clearer name. */
+    public function primaryCategory(): BelongsTo
+    {
+        return $this->category();
+    }
+
+    /** Every category the product is listed in: the primary and the extras (category_product). The primary always has a row here. */
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'category_product')->withPivot('sort_order')->withTimestamps()->orderByPivot('sort_order')->orderBy('categories.name');
+    }
+
+    /**
+     * Products listed in a category, as primary or extra, each once (an EXISTS-style subquery adds no rows, so sorting, pagination and counts do not change).
+     */
+    public function scopeInCategory(Builder $query, int|Category $category): Builder
+    {
+        $id = $category instanceof Category ? $category->id : $category;
+
+        return $query->whereIn($query->getModel()->qualifyColumn('id'), DB::table('category_product')->select('product_id')->where('category_id', $id));
+    }
+
+    /** The same by the category's address (slug). */
+    public function scopeInCategorySlug(Builder $query, string $slug): Builder
+    {
+        return $query->whereIn($query->getModel()->qualifyColumn('id'), DB::table('category_product')->select('product_id')
+            ->whereIn('category_id', DB::table('categories')->select('id')->where('slug', $slug)));
+    }
+
+    /**
+     * Makes the listed categories exactly the primary plus the extras given. The primary is always kept (and is never an "extra"); an extra that is the
+     * primary is ignored. Nothing here changes products.category_id.
+     *
+     * @param  list<int|string>  $extraIds
+     */
+    public function syncCategories(array $extraIds = []): void
+    {
+        $primary = (int) $this->category_id;
+        $ids = collect($extraIds)->map(fn ($id): int => (int) $id)->filter(fn (int $id): bool => $id > 0 && $id !== $primary)->unique()->values();
+
+        $this->categories()->sync($ids->push($primary)->all());
+
+        FeedController::forgetAll();
     }
 
     public function brand(): BelongsTo
