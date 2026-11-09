@@ -274,7 +274,7 @@ final class LandingBlocks
     private static function products(array $data, $shown): ?array
     {
         $query = Product::query()->where('is_active', true)->withRatings()
-            ->with(['category', 'brand', 'images', 'variants.image', 'tags', 'labels']);
+            ->with(['category', 'categories', 'brand', 'images', 'variants.image', 'tags', 'labels']);
 
         if (($data['source'] ?? 'hand') === 'category') {
             $products = $query->inCategory((int) ($data['category_id'] ?? 0))

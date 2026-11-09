@@ -73,6 +73,16 @@ class ProductResource extends JsonResource
                 $this->relationLoaded('category') ? ($this->category?->seo_image ?: $this->category?->thumbnail ?: $this->category?->banner_desktop) : null,
             ),
             'category' => CategorySummaryResource::make($this->whenLoaded('category')),
+            // Every category the product is listed in, the primary first (is_primary), then the others by position and name. `category` above stays the primary.
+            'categories' => $this->whenLoaded('categories', fn () => $this->categories
+                ->sortBy(fn ($category): array => [(int) $category->id === (int) $this->category_id ? 0 : 1, (int) ($category->pivot->sort_order ?? PHP_INT_MAX), mb_strtolower((string) $category->name)])
+                ->values()
+                ->map(fn ($category): array => [
+                    'id' => $category->id,
+                    'slug' => $category->slug,
+                    'name' => $category->name,
+                    'is_primary' => (int) $category->id === (int) $this->category_id,
+                ])),
             'brand' => BrandResource::make($this->whenLoaded('brand')),
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,

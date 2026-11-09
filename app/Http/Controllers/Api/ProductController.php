@@ -14,7 +14,7 @@ class ProductController extends Controller
         $products = Product::query()
             ->where('is_active', true)
             ->withRatings()
-            ->with(['category', 'brand', 'images', 'tags', 'labels'])
+            ->with(['category', 'categories', 'brand', 'images', 'tags', 'labels'])
             // A category lists the products that are in it as primary OR extra category, each once (Product::scopeInCategorySlug).
             ->when($request->filled('category'), fn ($query) => $query->inCategorySlug($request->string('category')->toString()))
             ->when($request->filled('brand'), fn ($query) => $query->whereHas(
@@ -53,7 +53,7 @@ class ProductController extends Controller
     {
         abort_unless($product->is_active, 404);
 
-        $product->load(['category', 'brand', 'images', 'variants.image', 'tags', 'labels', 'attributeValues.attribute', 'faqs']);
+        $product->load(['category', 'categories', 'brand', 'images', 'variants.image', 'tags', 'labels', 'attributeValues.attribute', 'faqs']);
         $product->loadCount(['reviews as rating_count' => fn ($reviews) => $reviews->where('status', 'approved')]);
         $product->loadAvg(['reviews as rating_average' => fn ($reviews) => $reviews->where('status', 'approved')], 'rating');
 
