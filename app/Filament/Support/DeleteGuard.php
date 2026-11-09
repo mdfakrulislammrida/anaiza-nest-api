@@ -28,11 +28,12 @@ class DeleteGuard
     /**
      * @param  array<string, string>  $blockers  Relation name => plural noun shown to the admin.
      * @param  string|null  $hint  What to do instead, appended to the message.
+     * @param  array<string, string>  $examples  Relation name => attribute to name the blocking records by (the first few are listed).
      */
-    public static function single(array $blockers, ?string $hint = null): Closure
+    public static function single(array $blockers, ?string $hint = null, array $examples = []): Closure
     {
-        return function (Model $record) use ($blockers, $hint): bool {
-            $reason = self::reasonFor($record, $blockers, $hint);
+        return function (Model $record) use ($blockers, $hint, $examples): bool {
+            $reason = self::reasonFor($record, $blockers, $hint, $examples);
 
             if ($reason === null) {
                 try {
@@ -60,14 +61,14 @@ class DeleteGuard
     /**
      * @param  array<string, string>  $blockers
      */
-    public static function bulk(array $blockers, ?string $hint = null): Closure
+    public static function bulk(array $blockers, ?string $hint = null, array $examples = []): Closure
     {
-        return function (Collection $records) use ($blockers, $hint): void {
+        return function (Collection $records) use ($blockers, $hint, $examples): void {
             $deleted = 0;
             $skipped = [];
 
             foreach ($records as $record) {
-                $reason = self::reasonFor($record, $blockers, $hint);
+                $reason = self::reasonFor($record, $blockers, $hint, $examples);
 
                 if ($reason === null) {
                     try {
@@ -114,16 +115,24 @@ class DeleteGuard
 
     /**
      * @param  array<string, string>  $blockers
+     * @param  array<string, string>  $examples
      */
-    public static function reasonFor(Model $record, array $blockers, ?string $hint = null): ?string
+    public static function reasonFor(Model $record, array $blockers, ?string $hint = null, array $examples = []): ?string
     {
         $found = [];
+        $which = [];
 
         foreach ($blockers as $relation => $noun) {
             $count = $record->{$relation}()->count();
 
             if ($count > 0) {
                 $found[] = number_format($count).' '.($count === 1 ? self::singular($noun) : $noun);
+
+                // Which ones: the first few by name ("... and 4 more").
+                if (isset($examples[$relation])) {
+                    $names = $record->{$relation}()->orderBy($examples[$relation])->limit(5)->pluck($examples[$relation])->map(fn ($name): string => '"'.$name.'"')->all();
+                    $which[] = implode(', ', $names).($count > count($names) ? ' and '.($count - count($names)).' more' : '');
+                }
             }
         }
 
@@ -132,6 +141,10 @@ class DeleteGuard
         }
 
         $reason = 'It still has '.implode(' and ', $found).'.';
+
+        if ($which !== []) {
+            $reason .= ' They are: '.implode('; ', $which).'.';
+        }
 
         return $hint ? "{$reason} {$hint}" : $reason;
     }

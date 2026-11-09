@@ -19,7 +19,7 @@ class EditCategory extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make()->using(DeleteGuard::single(['products' => 'products'], 'Move them to another category or delete them first.')),
+            Actions\DeleteAction::make()->using(DeleteGuard::single(['products' => 'products'], CategoryResource::DELETE_HINT, ['products' => 'name'])),
         ];
     }
 

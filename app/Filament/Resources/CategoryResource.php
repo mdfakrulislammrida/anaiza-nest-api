@@ -28,6 +28,9 @@ class CategoryResource extends Resource
 
     protected static ?string $model = Category::class;
 
+    /** Shown when a category cannot be deleted because it is the primary category of products (the ones that only list it as an extra are simply taken out of it). */
+    public const DELETE_HINT = 'Change their primary category first (or delete them). Products that only show it as an extra category are simply taken out of it.';
+
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $navigationGroup = 'Catalog';
@@ -255,12 +258,12 @@ class CategoryResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['products' => 'products'], 'Move them to another category or delete them first.')),
+                Tables\Actions\DeleteAction::make()->using(DeleteGuard::single(['products' => 'products'], CategoryResource::DELETE_HINT, ['products' => 'name'])),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->using(DeleteGuard::bulk(['products' => 'products'], 'Move them to another category or delete them first.'))
+                        ->using(DeleteGuard::bulk(['products' => 'products'], CategoryResource::DELETE_HINT, ['products' => 'name']))
                         ->successNotificationTitle(null),
                 ]),
             ]);
