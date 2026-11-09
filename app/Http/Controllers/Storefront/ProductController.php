@@ -14,10 +14,7 @@ class ProductController extends Controller
         $products = Product::query()
             ->where('is_active', true)
             ->with(['images' => fn ($q) => $q->orderBy('sort_order'), 'category'])
-            ->when($request->filled('category'), fn ($q) => $q->whereHas(
-                'category',
-                fn ($cq) => $cq->where('slug', $request->string('category'))
-            ))
+            ->when($request->filled('category'), fn ($q) => $q->inCategorySlug($request->string('category')->toString()))
             ->when($request->filled('search'), fn ($q) => $q->where(
                 'name',
                 'like',
@@ -40,7 +37,7 @@ class ProductController extends Controller
 
         $related = Product::query()
             ->where('is_active', true)
-            ->where('category_id', $product->category_id)
+            ->inCategory((int) $product->category_id)
             ->where('id', '!=', $product->id)
             ->with(['images' => fn ($q) => $q->orderBy('sort_order')])
             ->take(4)

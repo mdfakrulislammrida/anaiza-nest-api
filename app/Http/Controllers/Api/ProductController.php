@@ -15,10 +15,8 @@ class ProductController extends Controller
             ->where('is_active', true)
             ->withRatings()
             ->with(['category', 'brand', 'images', 'tags', 'labels'])
-            ->when($request->filled('category'), fn ($query) => $query->whereHas(
-                'category',
-                fn ($q) => $q->where('slug', $request->string('category'))
-            ))
+            // A category lists the products that are in it as primary OR extra category, each once (Product::scopeInCategorySlug).
+            ->when($request->filled('category'), fn ($query) => $query->inCategorySlug($request->string('category')->toString()))
             ->when($request->filled('brand'), fn ($query) => $query->whereHas(
                 'brand',
                 fn ($q) => $q->where('slug', $request->string('brand'))

@@ -224,6 +224,8 @@ class CategoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            // One query for every count in the list (products listed in each category, primary or extra).
+            ->modifyQueryUsing(fn ($query) => $query->withCount('listedProducts'))
             ->columns([
                 Tables\Columns\ImageColumn::make('thumbnail')
                     ->label('')
@@ -233,7 +235,8 @@ class CategoryResource extends Resource
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('products_count')
-                    ->counts('products')
+                    // Every product listed in the category, primary or extra, each once.
+                    ->state(fn (Category $record): int => (int) $record->listed_products_count)
                     ->label('Products'),
                 Tables\Columns\IconColumn::make('show_in_menu')
                     ->label('In menu')

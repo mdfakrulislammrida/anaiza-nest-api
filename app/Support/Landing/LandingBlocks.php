@@ -277,7 +277,7 @@ final class LandingBlocks
             ->with(['category', 'brand', 'images', 'variants.image', 'tags', 'labels']);
 
         if (($data['source'] ?? 'hand') === 'category') {
-            $products = $query->where('category_id', (int) ($data['category_id'] ?? 0))
+            $products = $query->inCategory((int) ($data['category_id'] ?? 0))
                 ->orderByRaw('stock_quantity > 0 desc')->orderBy('name')
                 ->limit(max(1, min((int) ($data['limit'] ?? 12), 48)))->get();
         } else {

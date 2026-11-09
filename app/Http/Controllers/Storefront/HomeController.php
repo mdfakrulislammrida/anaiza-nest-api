@@ -25,7 +25,7 @@ class HomeController extends Controller
             ->take(8)
             ->get();
 
-        $categories = Category::withCount('products')->orderBy('name')->get();
+        $categories = Category::withCount(['listedProducts as products_count'])->orderBy('name')->get();
 
         return view('storefront.home', compact('newArrivals', 'featured', 'categories'));
     }
