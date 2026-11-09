@@ -8,6 +8,7 @@ use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Filament\Support\AuthoringGuidance;
 use App\Filament\Support\BrandVoiceNote;
 use App\Filament\Support\MobileCards;
+use App\Models\Category;
 use App\Models\Product;
 use App\Support\OrderItemPicture;
 use App\Support\Pricing;
@@ -17,10 +18,12 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -41,10 +44,25 @@ class ProductResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('category_id')
+                    ->label('Primary category')
                     ->relationship('category', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->helperText('The primary category is used for the breadcrumb and feeds.')
+                    // The primary is never also an extra.
+                    ->afterStateUpdated(fn ($state, Get $get, Set $set) => $set('extra_category_ids', array_values(array_filter((array) $get('extra_category_ids'), fn ($id): bool => (int) $id !== (int) $state)))),
+                // Not a column: saved to category_product by the page (Concerns\SavesExtraCategories).
+                Forms\Components\Select::make('extra_category_ids')
+                    ->label('Also show in these categories')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->options(fn (Get $get): array => Category::query()->when(filled($get('category_id')), fn ($query) => $query->whereKeyNot((int) $get('category_id')))->orderBy('name')->pluck('name', 'id')->all())
+                    ->dehydrated(false)
+                    ->default([])
+                    ->helperText('Optional. The product is also listed on these category pages.'),
                 Forms\Components\Select::make('brand_id')
                     ->relationship('brand', 'name')
                     ->searchable()
@@ -333,7 +351,7 @@ class ProductResource extends Resource
     public static function table(Table $table): Table
     {
         return MobileCards::phone($table
-            ->modifyQueryUsing(fn ($query) => $query->with(['images', 'category', 'variants.image']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['images', 'category', 'categories', 'variants.image']))
             ->columns([
                 // A small square picture: the main one, else the rest of the gallery, else a variant's, else a neutral tile (App\Support\ProductThumbnail).
                 Tables\Columns\ImageColumn::make('thumbnail')
@@ -343,8 +361,16 @@ class ProductResource extends Resource
                     ->size(48)
                     ->square()
                     ->extraImgAttributes(['loading' => 'lazy', 'alt' => '', 'style' => 'border-radius:2px;box-shadow:none;object-fit:cover;']),
+                // The primary category, and a "+N" badge when the product is also listed in others (the tooltip names them).
                 Tables\Columns\TextColumn::make('category.name')
+                    ->label('Category')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('extra_categories')
+                    ->label('')
+                    ->badge()
+                    ->color('gray')
+                    ->state(fn (Product $record): ?string => self::extraCategoryBadge($record))
+                    ->tooltip(fn (Product $record): ?string => self::extraCategoryNames($record) ?: null),
                 Tables\Columns\TextColumn::make('brand.name')
                     ->sortable()
                     ->toggleable(),
@@ -379,9 +405,12 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                // Matches ANY of a product's categories (primary or extra).
                 Tables\Filters\SelectFilter::make('category_id')
-                    ->relationship('category', 'name')
-                    ->label('Category'),
+                    ->label('Category')
+                    ->options(fn (): array => Category::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null) ? $query->inCategory((int) $data['value']) : $query),
                 Tables\Filters\TernaryFilter::make('is_active'),
                 Tables\Filters\TernaryFilter::make('is_new'),
                 Tables\Filters\TernaryFilter::make('is_featured'),
@@ -392,13 +421,82 @@ class ProductResource extends Resource
             ]))
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    self::categoryBulkAction('add'),
+                    self::categoryBulkAction('remove'),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]), fn ($record): array => [
                 ['left' => [MobileCards::picture(ProductThumbnail::url($record)), MobileCards::text($record->name, ['strong' => true, 'wrap' => true])], 'right' => [MobileCards::badge($record->is_active ? 'Active' : 'Hidden', $record->is_active ? 'success' : 'gray')]],
-                ['left' => [MobileCards::text($record->sku, ['muted' => true]), MobileCards::text($record->category?->name, ['muted' => true])]],
+                ['left' => array_values(array_filter([MobileCards::text($record->sku, ['muted' => true]), MobileCards::text($record->category?->name, ['muted' => true]), self::extraCategoryBadge($record) ? MobileCards::badge(self::extraCategoryBadge($record)) : null]))],
                 ['left' => [MobileCards::badge($record->stock_quantity > 0 ? 'In stock: '.$record->stock_quantity : 'Out of stock', $record->stock_quantity > 0 ? 'success' : 'danger')], 'right' => [MobileCards::text(MobileCards::taka($record->sale_price ?: $record->price), ['strong' => true])]],
             ]);
+    }
+
+    /** "+2" when the product is also listed in two other categories; null when it is only in its primary. */
+    private static function extraCategoryBadge(Product $record): ?string
+    {
+        $extras = $record->categories->where('id', '!=', $record->category_id)->count();
+
+        return $extras > 0 ? '+'.$extras : null;
+    }
+
+    /** "Gifts, Ceramic": the extra categories, for the tooltip. */
+    private static function extraCategoryNames(Product $record): string
+    {
+        return $record->categories->where('id', '!=', $record->category_id)->pluck('name')->implode(', ');
+    }
+
+    /**
+     * "Add to category" / "Remove from category" for the selected products. Only the extras are touched: a product's primary category is never added,
+     * removed or changed here (a product already has it).
+     */
+    private static function categoryBulkAction(string $mode): Tables\Actions\BulkAction
+    {
+        $adding = $mode === 'add';
+
+        return Tables\Actions\BulkAction::make($adding ? 'add_to_category' : 'remove_from_category')
+            ->label($adding ? 'Add to category' : 'Remove from category')
+            ->icon($adding ? 'heroicon-o-plus-circle' : 'heroicon-o-minus-circle')
+            ->form([
+                Forms\Components\Select::make('category_id')
+                    ->label('Category')
+                    ->options(fn (): array => Category::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->required()
+                    ->helperText($adding ? 'The products are also listed here. Their primary category does not change.' : 'Takes the products out of this category. A product whose primary category it is keeps it.'),
+            ])
+            ->action(function (Collection $records, array $data) use ($adding): void {
+                $category = Category::query()->find((int) $data['category_id']);
+
+                if ($category === null) {
+                    return;
+                }
+
+                $changed = 0;
+                $primary = 0;
+
+                foreach ($records as $record) {
+                    if ((int) $record->category_id === $category->id) {
+                        $primary++;
+
+                        continue;
+                    }
+
+                    $adding ? $record->addCategories([$category->id]) : $record->removeCategories([$category->id]);
+                    $changed++;
+                }
+
+                $notice = Notification::make()
+                    ->title(($adding ? 'Added to "' : 'Removed from "').$category->name.'": '.$changed.' '.Str::plural('product', $changed))
+                    ->success();
+
+                if ($primary > 0) {
+                    $notice->body($primary.' selected '.Str::plural('product', $primary).' left unchanged: "'.$category->name.'" is the primary category, which this action never touches.');
+                }
+
+                $notice->send();
+            })
+            ->deselectRecordsAfterCompletion();
     }
 
     public static function getRelations(): array

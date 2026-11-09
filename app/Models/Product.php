@@ -157,6 +157,26 @@ class Product extends Model
             ->whereIn('category_id', DB::table('categories')->select('id')->where('slug', $slug)));
     }
 
+    /** Lists the product in more categories. The primary is already there; nothing is removed. */
+    public function addCategories(array $categoryIds): void
+    {
+        $this->categories()->syncWithoutDetaching($this->extrasOnly($categoryIds));
+    }
+
+    /** Takes the product out of the given categories. The primary is never removed. Returns how many were removed. */
+    public function removeCategories(array $categoryIds): int
+    {
+        $ids = $this->extrasOnly($categoryIds);
+
+        return $ids === [] ? 0 : $this->categories()->detach($ids);
+    }
+
+    /** @return list<int> the ids given, without the primary and without junk */
+    private function extrasOnly(array $categoryIds): array
+    {
+        return collect($categoryIds)->map(fn ($id): int => (int) $id)->filter(fn (int $id): bool => $id > 0 && $id !== (int) $this->category_id)->unique()->values()->all();
+    }
+
     /**
      * Makes the listed categories exactly the primary plus the extras given. The primary is always kept (and is never an "extra"); an extra that is the
      * primary is ignored. Nothing here changes products.category_id.
